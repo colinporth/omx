@@ -1,7 +1,7 @@
-# native Makefile
-CXX     := /usr/bin/g++
-LD      := /usr/bin/ld
-STRIP   := /usr/bin/strip
+# cross compile Makefile
+CXX     := arm-linux-gnueabihf-g++
+LD      := arm-linux-gnueabihf-ld
+STRIP   := arm-linux-gnueabihf-strip
 
 SRC=       cPcmRemap.cpp \
 	   cLog.cpp \
@@ -40,11 +40,11 @@ CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
 	   -D HAVE_LIBAVUTIL_MEM_H \
 	   -U _FORTIFY_SOURCE \
 
-INCLUDES = -I/opt/vc/include \
-	   -I/opt/vc/include/interface/vmcs_host \
-	   -I/opt/vc/include/interface/vcos/pthreads \
-	   -I/opt/vc/include/interface/vmcs_host/linux \
-
+INCLUDES=  -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/include \
+	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include \
+	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host \
+	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vcos/pthreads \
+	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host/linux \
 
 LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/lib \
 	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
@@ -57,29 +57,25 @@ LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/lib \
 	   -l vchostif \
 	   -l vchiq_arm \
 	   -l openmaxil \
+	   -l asound \
+	   -Bstatic \
 	   -l avutil \
 	   -l avcodec \
 	   -l avformat \
 	   -l swscale \
 	   -l swresample \
-	   -l asound \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
-all:    omxPlayer
-
 %.o: %.cpp
-	@rm -f $@
-	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@ -Wno-deprecated-declarations
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-version:
-	bash gen_version.sh > version.h
+omxPlayer: $(OBJS)
+	$(CXX) $(LDFLAGS) -o omxPlayerX $(OBJS)
+	$(STRIP) omxPlayerX
 
-omxPlayer: version $(OBJS)
-	$(CXX) $(LDFLAGS) -o omxPlayer $(OBJS)
-	$(STRIP) omxPlayer
+all:    omxPlayer
 
 clean:
 	@rm -f *.o
-	@rm -f omxPlayer
-	@rm -f omxPlayer.old.log omxPlayer.log
+	@rm -f omxPlayerX
