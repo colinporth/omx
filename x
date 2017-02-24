@@ -46,7 +46,7 @@ INCLUDES=  -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/include \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vcos/pthreads \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host/linux \
 
-LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/lib \
+LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/lib/omxplayer \
 	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
 	   -l pthread \
 	   -l bcm_host \
@@ -55,7 +55,6 @@ LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/lib \
 	   -l vchiq_arm \
 	   -l openmaxil \
 	   -l asound \
-	   -Bstatic \
 	   -l avutil \
 	   -l avcodec \
 	   -l avformat \

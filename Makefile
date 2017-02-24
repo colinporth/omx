@@ -46,7 +46,7 @@ INCLUDES = -I/opt/vc/include \
 	   -I/opt/vc/include/interface/vmcs_host/linux \
 
 
-LDFLAGS=   -L /usr/local/lib \
+LDFLAGS=   -L /usr/local/omxplayer \
 	   -L /opt/vc/lib \
 	   -l pthread \
 	   -l WFC \
