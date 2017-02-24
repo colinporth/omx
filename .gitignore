@@ -1,0 +1,11 @@
+*.o
+omxplayer.log
+omxplayer.old.log
+omxplayer
+omxplayerX
+version.h
+
+*.~h
+*.~h~
+*.~cpp
+*.~cpp~
