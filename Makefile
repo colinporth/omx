@@ -46,8 +46,8 @@ INCLUDES = -I/opt/vc/include \
 	   -I/opt/vc/include/interface/vmcs_host/linux \
 
 
-LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/lib \
-	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
+LDFLAGS=   -L /usr/local/lib \
+	   -L /opt/vc/lib \
 	   -l pthread \
 	   -l WFC \
 	   -l EGL \
