@@ -47,7 +47,9 @@ INCLUDES=  -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/include \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host/linux \
 
 LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
+	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/lib/arm-linux-gnueabihf \
 	   -l pthread \
+	   -l asound \
 	   -l WFC \
 	   -l EGL \
 	   -l GLESv2 \
@@ -61,7 +63,6 @@ LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
 	   -l avformat \
 	   -l swscale \
 	   -l swresample \
-	   -l asound \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 

@@ -48,6 +48,7 @@ INCLUDES = -I/opt/vc/include \
 
 LDFLAGS=   -L /opt/vc/lib \
 	   -l pthread \
+	   -l asound \
 	   -l WFC \
 	   -l EGL \
 	   -l GLESv2 \
@@ -61,7 +62,6 @@ LDFLAGS=   -L /opt/vc/lib \
 	   -l avformat \
 	   -l swscale \
 	   -l swresample \
-	   -l asound \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
