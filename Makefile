@@ -57,12 +57,13 @@ LDFLAGS=   -L /usr/local/lib \
 	   -l vchostif \
 	   -l vchiq_arm \
 	   -l openmaxil \
+	   -l asound \
+	   -Bstatic
 	   -l avutil \
 	   -l avcodec \
 	   -l avformat \
 	   -l swscale \
 	   -l swresample \
-	   -l asound \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
