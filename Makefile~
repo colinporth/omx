@@ -58,7 +58,7 @@ LDFLAGS=   -L /usr/local/lib \
 	   -l vchiq_arm \
 	   -l openmaxil \
 	   -l asound \
-	   -Bstatic \
+	   -Bstatic
 	   -l avutil \
 	   -l avcodec \
 	   -l avformat \
