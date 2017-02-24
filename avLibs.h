@@ -1,26 +1,14 @@
 #pragma once
 //{{{  includes
 extern "C" {
-  #if defined(HAVE_LIBAVUTIL_OPT_H)
-    #include <libavutil/opt.h>
-  #elif defined(HAVE_LIBAVCODEC_AVCODEC_H)
-    #include <libavcodec/opt.h>
-  #endif
-
-  #if defined(HAVE_LIBAVUTIL_MEM_H)
-    #include <libavutil/mem.h>
-  #endif
-
-  #if (defined HAVE_LIBAVUTIL_MATHEMATICS_H)
-    #include <libavutil/mathematics.h>
-  #endif
-
-  #include <libavutil/avutil.h>
+  #include <libavutil/opt.h>
+  #include <libavutil/mem.h>
   #include <libavutil/crc.h>
   #include <libavutil/fifo.h>
+  #include <libavutil/avutil.h>
+
   #include <libavcodec/avcodec.h>
   #include <libavformat/avformat.h>
-
   #include <libswresample/swresample.h>
   }
 //}}}

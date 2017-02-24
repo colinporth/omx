@@ -9,7 +9,7 @@
 #include "cSingleLock.h"
 #include "cPcmRemap.h"
 
-#include "cAvLibs.h"
+#include "avLibs.h"
 
 #include "cOmxThread.h"
 #include "cOmxCoreComponent.h"

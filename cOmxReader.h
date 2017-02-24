@@ -5,7 +5,7 @@
 #include <string>
 #include <queue>
 
-#include "cAvLibs.h"
+#include "avLibs.h"
 
 #include "cOmxStreamInfo.h"
 #include "cSingleLock.h"

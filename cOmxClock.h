@@ -1,6 +1,6 @@
 #pragma once
 //{{{  includes
-#include "cAvLibs.h"
+#include "avLibs.h"
 #include "cSingleLock.h"
 #include "cOmxCoreComponent.h"
 //}}}

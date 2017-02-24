@@ -18,7 +18,7 @@
 
 #include "cBcmHost.h"
 #include "cOmx.h"
-#include "cAvLibs.h"
+#include "avLibs.h"
 
 #include "cOmxClock.h"
 #include "cOmxReader.h"

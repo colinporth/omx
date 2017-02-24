@@ -13,11 +13,7 @@
 #include <IL/OMX_Component.h>
 #include <IL/OMX_Broadcom.h>
 
-extern "C" {
-  #include <libavutil/channel_layout.h>
-  #include <libavutil/opt.h>
-  #include <libswresample/swresample.h>
-  }
+#include "avLibs.h"
 //}}}
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 

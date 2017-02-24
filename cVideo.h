@@ -8,7 +8,7 @@
 #include "cSingleLock.h"
 #include <IL/OMX_Video.h>
 
-#include "cAvLibs.h"
+#include "avLibs.h"
 
 #include "cOmxThread.h"
 #include "cOmxCoreComponent.h"
