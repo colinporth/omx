@@ -46,24 +46,22 @@ INCLUDES=  -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/include \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vcos/pthreads \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host/linux \
 
-LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/lib/omxplayer \
-	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
+LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
 	   -l pthread \
+	   -l WFC \
+	   -l EGL \
+	   -l GLESv2 \
 	   -l bcm_host \
 	   -l vcos \
 	   -l vchostif \
 	   -l vchiq_arm \
 	   -l openmaxil \
-	   -l asound \
 	   -l avutil \
 	   -l avcodec \
 	   -l avformat \
 	   -l swscale \
 	   -l swresample \
-
-#           -l WFC \
-#           -l EGL \
-#           -l GLESv2 \
+	   -l asound \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 

@@ -46,8 +46,7 @@ INCLUDES = -I/opt/vc/include \
 	   -I/opt/vc/include/interface/vmcs_host/linux \
 
 
-LDFLAGS=   -L /usr/local/omxplayer \
-	   -L /opt/vc/lib \
+LDFLAGS=   -L /opt/vc/lib \
 	   -l pthread \
 	   -l WFC \
 	   -l EGL \
@@ -57,13 +56,12 @@ LDFLAGS=   -L /usr/local/omxplayer \
 	   -l vchostif \
 	   -l vchiq_arm \
 	   -l openmaxil \
-	   -l asound \
-	   -Bstatic \
 	   -l avutil \
 	   -l avcodec \
 	   -l avformat \
 	   -l swscale \
 	   -l swresample \
+	   -l asound \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
