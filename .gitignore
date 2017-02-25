@@ -9,3 +9,4 @@ version.h
 *.~h~
 *.~cpp
 *.~cpp~
+*.~~cpp
