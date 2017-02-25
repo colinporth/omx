@@ -338,9 +338,9 @@ int main (int argc, char* argv[]) {
           video_fifo_high = !m_has_video || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
           }
 
-        cLog::Log (LOGINFO, "p:%d m:%.0f a:%.0f v:%.0f a:%.2f v:%.2f th:%.2f %d%d%d%d A:%d%% V:%d%% d:%.2f c:%.2f\n",
+        cLog::Log (LOGINFO1, "%d:%.0f av%.0f,%.0f av%.2f,%.2f th:%.2f %d%d%d%d av%d%%,%d%% d%.2f c%.2f\n",
                    mClock.isPaused(),
-                   stamp, 
+                   stamp,
                    audio_pts, video_pts,
                    (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
                    (video_pts == DVD_NOPTS_VALUE) ? 0.0 : video_fifo,
