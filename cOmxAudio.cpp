@@ -703,14 +703,12 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, double d
   unsigned pitch = (m_config.passthrough || m_config.hwdecode) ? 1:(m_BitsPerSample >> 3) * m_InputChannels;
   unsigned int demuxer_samples = len / pitch;
   unsigned int demuxer_samples_sent = 0;
-  uint8_t *demuxer_content = (uint8_t *)data;
+  uint8_t* demuxer_content = (uint8_t *)data;
 
-  OMX_ERRORTYPE omx_err;
-  OMX_BUFFERHEADERTYPE *omx_buffer = NULL;
+  OMX_BUFFERHEADERTYPE* omx_buffer = NULL;
   while (demuxer_samples_sent < demuxer_samples) {
     // 200ms timeout
     omx_buffer = m_omx_decoder.GetInputBuffer (200);
-
     if (omx_buffer == NULL) {
       cLog::Log (LOGERROR, "cOmxAudio::Decode timeout");
       return len;
@@ -722,7 +720,6 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, double d
     // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
     // it will be 16-bit and rounded up to next power of 2 in channels
     unsigned int max_buffer = AUDIO_DECODE_OUTPUT_BUFFER * (m_InputChannels * m_BitsPerSample) >> (rounded_up_channels_shift[m_InputChannels] + 4);
-
     unsigned int remaining = demuxer_samples-demuxer_samples_sent;
     unsigned int samples_space = std::min(max_buffer, omx_buffer->nAllocLen)/pitch;
     unsigned int samples = std::min(remaining, samples_space);
@@ -736,42 +733,37 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, double d
       const unsigned int frame_samples = frame_size / pitch;
       const unsigned int plane_size = frame_samples * sample_pitch;
       const unsigned int out_plane_size = samples * sample_pitch;
-      //cLog::Log(LOGDEBUG, "%s::%s samples:%d/%d ps:%d ops:%d fs:%d pitch:%d filled:%d frames=%d", "cOmxAudio", __func__, samples, demuxer_samples, plane_size, out_plane_size, frame_size, pitch, omx_buffer
       for (unsigned int sample = 0; sample < samples;) {
         unsigned int frame = (demuxer_samples_sent + sample) / frame_samples;
         unsigned int sample_in_frame = (demuxer_samples_sent + sample) - frame * frame_samples;
         int out_remaining = std::min(std::min(frame_samples - sample_in_frame, samples), samples-sample);
-        uint8_t *src = demuxer_content + frame*frame_size + sample_in_frame * sample_pitch;
-        uint8_t *dst = (uint8_t *)omx_buffer->pBuffer + sample * sample_pitch;
+        auto src = demuxer_content + frame*frame_size + sample_in_frame * sample_pitch;
+        auto dst = (uint8_t*)omx_buffer->pBuffer + sample * sample_pitch;
         for (unsigned int channel = 0; channel < m_InputChannels; channel++) {
-          //cLog::Log(LOGDEBUG, "%s::%s copy(%d,%d,%d) (s:%d f:%d sin:%d c:%d)", "cOmxAudio", __func__, dst-(uint8_t *)omx_buffer->pBuffer, src-demuxer_content, out_remaining, sample, frame, sample_in_frame
-          memcpy(dst, src, out_remaining * sample_pitch);
+          memcpy (dst, src, out_remaining * sample_pitch);
           src += plane_size;
           dst += out_plane_size;
           }
         sample += out_remaining;
         }
       }
-    else {
-      uint8_t *dst = omx_buffer->pBuffer;
-      uint8_t *src = demuxer_content + demuxer_samples_sent * pitch;
-      memcpy(dst, src, omx_buffer->nFilledLen);
-      }
+    else
+      memcpy (omx_buffer->pBuffer, demuxer_content + demuxer_samples_sent * pitch, omx_buffer->nFilledLen);
 
-    uint64_t val  = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
-    if(m_setStartTime) {
+    uint64_t val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
+    if (m_setStartTime) {
       omx_buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
       m_last_pts = pts;
-      cLog::Log(LOGDEBUG, "cOmxAudio::Decode ADec : setStartTime %f", (float)val / DVD_TIME_BASE);
+      cLog::Log (LOGDEBUG, "cOmxAudio::AddPackets setStartTime:%f", (float)val / DVD_TIME_BASE);
       m_setStartTime = false;
       }
     else {
-      if(pts == DVD_NOPTS_VALUE) {
+      if (pts == DVD_NOPTS_VALUE) {
         omx_buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
         m_last_pts = pts;
         }
       else if (m_last_pts != pts) {
-        if(pts > m_last_pts)
+        if (pts > m_last_pts)
           m_last_pts = pts;
         else
           omx_buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
@@ -785,19 +777,15 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, double d
     if (demuxer_samples_sent == demuxer_samples)
       omx_buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
 
-    omx_err = m_omx_decoder.EmptyThisBuffer(omx_buffer);
-    if (omx_err != OMX_ErrorNone) {
-      cLog::Log(LOGERROR, "%s::%s - OMX_EmptyThisBuffer() failed with result(0x%x)", "cOmxAudio", __func__, omx_err);
+    if (m_omx_decoder.EmptyThisBuffer(omx_buffer) != OMX_ErrorNone) {
+      cLog::Log (LOGERROR, "cOmxAudio::AddPackets OMX_EmptyThisBuffer");
       m_omx_decoder.DecoderEmptyBufferDone(m_omx_decoder.GetComponent(), omx_buffer);
       return 0;
       }
-    //cLog::Log(LOGINFO, "AudiD: dts:%.0f pts:%.0f size:%d", dts, pts, len);
 
-    omx_err = m_omx_decoder.WaitForEvent(OMX_EventPortSettingsChanged, 0);
-    if (omx_err == OMX_ErrorNone) {
-      if(!PortSettingsChanged())
-        cLog::Log(LOGERROR, "%s::%s - error PortSettingsChanged omx_err(0x%08x)", "cOmxAudio", __func__, omx_err);
-      }
+    if (m_omx_decoder.WaitForEvent(OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone)
+      if (!PortSettingsChanged())
+        cLog::Log (LOGERROR, "cOmxAudio::AddPackets PortSettingsChanged");
     }
 
   m_submitted += (float)demuxer_samples / m_config.hints.samplerate;
