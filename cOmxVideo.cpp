@@ -565,8 +565,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
   if (m_omx_decoder.BadState())
     return false;
 
-  cLog::Log (LOGDEBUG,
-             cOmxVideo::Open decoder_component(0x%p), input_port(0x%x), output_port(0x%x) deinterlace %d hdmiclocksync %d",
+  cLog::Log (LOGDEBUG, "cOmxVideo::Open decoder_component(0x%p), in:%x out:%x deint:%d hdmi:%d",
              m_omx_decoder.GetComponent(), m_omx_decoder.GetInputPort(), m_omx_decoder.GetOutputPort(),
              m_config.deinterlace, m_config.hdmi_clock_sync);
 
@@ -796,7 +795,7 @@ void cOmxVideo::SubmitEOS() {
 
   auto omx_buffer = m_omx_decoder.GetInputBuffer (1000);
   if (omx_buffer == NULL) {
-    cLog::Log(LOGERROR, "cOmxVideo::SubmitEOS buffer");
+    cLog::Log(LOGERROR, "cOmxVideo::SubmitEOS GetInputBuffer");
     m_failed_eos = true;
     return;
     }
@@ -805,7 +804,7 @@ void cOmxVideo::SubmitEOS() {
   omx_buffer->nTimeStamp = toOmxTime (0LL);
   omx_buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
   if (m_omx_decoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
-    cLog::Log (LOGERROR, "cOmxVideo::SubmitEOS  OMX_EmptyThisBuffer());
+    cLog::Log (LOGERROR, "cOmxVideo::SubmitEOS OMX_EmptyThisBuffer");
     m_omx_decoder.DecoderEmptyBufferDone(m_omx_decoder.GetComponent(), omx_buffer);
     return;
     }
