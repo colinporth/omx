@@ -506,7 +506,6 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
     cLog::Log (LOGERROR, "cOmxVideo::Open AllocInputBuffers");
     return false;
     }
-
   if (m_omx_decoder.SetStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
     cLog::Log (LOGERROR, "cOmxVideo::Open SetStateForComponent");
     return false;
@@ -565,7 +564,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
   if (m_omx_decoder.BadState())
     return false;
 
-  cLog::Log (LOGDEBUG, "cOmxVideo::Open decoder_component(0x%p), in:%x out:%x deint:%d hdmi:%d",
+  cLog::Log (LOGDEBUG, "cOmxVideo::Open %p in:%x out:%x deint:%d hdmi:%d",
              m_omx_decoder.GetComponent(), m_omx_decoder.GetInputPort(), m_omx_decoder.GetOutputPort(),
              m_config.deinterlace, m_config.hdmi_clock_sync);
 
@@ -682,7 +681,7 @@ void cOmxVideo::SetVideoRect() {
     }
 
   if (m_omx_render.SetConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-    cLog::Log (LOGERROR, "cOmxVideo::Open error OMX_IndexConfigDisplayRegion");
+    cLog::Log (LOGERROR, "cOmxVideo::Open OMX_IndexConfigDisplayRegion");
   }
 //}}}
 //{{{

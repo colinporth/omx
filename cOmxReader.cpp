@@ -221,12 +221,12 @@ static int interrupt_cb (void *unused)
   int ret = 0;
   if (g_abort)
   {
-    cLog::Log(LOGERROR, "COMXPlayer::interrupt_cb - Told to abort");
+    cLog::Log (LOGERROR, "cOmxReader::interrupt_cb - Told to abort");
     ret = 1;
   }
   else if (timeout_duration && CurrentHostCounter() - timeout_start > timeout_duration)
   {
-    cLog::Log(LOGERROR, "COMXPlayer::interrupt_cb - Timed out");
+    cLog::Log (LOGERROR, "cOmxReader::interrupt_cb - Timed out");
     ret = 1;
   }
   return ret;
@@ -350,7 +350,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
   result = mAvFormat.av_set_options_string (mAvFormatContext, lavfdopts.c_str(), ":", ",");
   if (result < 0) {
     //{{{  options error return
-    cLog::Log (LOGERROR, "COMXPlayer::OpenFile - invalid lavfdopts %s ", lavfdopts.c_str());
+    cLog::Log (LOGERROR, "cOmxReader::Open nvalid lavfdopts %s ", lavfdopts.c_str());
     Close();
     return false;
     }
@@ -360,7 +360,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
   result = mAvUtil.av_dict_parse_string (&d, avdict.c_str(), ":", ",", 0);
   //{{{  dict error return
   if (result < 0) {
-    cLog::Log(LOGERROR, "COMXPlayer::OpenFile - invalid avdict %s ", avdict.c_str());
+    cLog::Log(LOGERROR, "cOmxReader::Open invalid avdict %s ", avdict.c_str());
     Close();
     return false;
     }
@@ -392,18 +392,18 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
       if (!user_agent.empty())
         av_dict_set(&d, "user_agent", user_agent.c_str(), 0);
       }
-    cLog::Log (LOGDEBUG, "COMXPlayer::OpenFile - avformat_open_input %s ", m_filename.c_str());
+    cLog::Log (LOGDEBUG, "cOmxReader::Open avformat_open_input %s ", m_filename.c_str());
 
     result = mAvFormat.avformat_open_input (&mAvFormatContext, m_filename.c_str(), iformat, &d);
     if (av_dict_count(d) == 0) {
-      cLog::Log (LOGDEBUG, "COMXPlayer::OpenFile - avformat_open_input enabled SEEKING ");
+      cLog::Log (LOGDEBUG, "cOmxReader::Open avformat_open_input enabled SEEKING ");
       if (m_filename.substr(0,7) == "http://")
         mAvFormatContext->pb->seekable = AVIO_SEEKABLE_NORMAL;
       }
 
     av_dict_free (&d);
     if (result < 0) {
-      cLog::Log (LOGERROR, "COMXPlayer::OpenFile - avformat_open_input %s ", m_filename.c_str());
+      cLog::Log (LOGERROR, "cOmxReader::Open avformat_open_input %s ", m_filename.c_str());
       Close();
       return false;
       }
@@ -432,7 +432,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
     mAvFormat.av_probe_input_buffer (m_ioContext, &iformat, m_filename.c_str(), NULL, 0, 0);
 
     if (!iformat) {
-      cLog::Log (LOGERROR, "cOmxReader::OpenFile - av_probe_input_buffer %s ", m_filename.c_str());
+      cLog::Log (LOGERROR, "cOmxReader::Open av_probe_input_buffer %s ", m_filename.c_str());
       Close();
       return false;
       }
@@ -505,7 +505,7 @@ bool cOmxReader::Close() {
 
   if (mAvFormatContext) {
     if (m_ioContext && mAvFormatContext->pb && mAvFormatContext->pb != m_ioContext) {
-      cLog::Log(LOGWARNING, "cOmxReader::Close - demuxer changed our byte context behind our back, possible memleak");
+      cLog::Log(LOGWARNING, "cOmxReader::Close  demuxer changed byteContext, possible memleak");
       m_ioContext = mAvFormatContext->pb;
       }
     mAvFormat.avformat_close_input (&mAvFormatContext);
@@ -646,7 +646,7 @@ bool cOmxReader::SeekTime (int time, bool backwords, double* startpts) {
     return false;
 
   if (mFile && !mFile->IoControl (IOCTRL_SEEK_POSSIBLE, NULL)) {
-    cLog::Log (LOGDEBUG, "%s - input stream reports it is not seekable", __FUNCTION__);
+    cLog::Log (LOGDEBUG, "cOmxReader::SeekTime input stream reports it is not seekable");
     return false;
     }
 
@@ -675,7 +675,7 @@ bool cOmxReader::SeekTime (int time, bool backwords, double* startpts) {
     ret = 0;
    }
 
-  cLog::Log (LOGDEBUG, "cOmxReader::SeekTime(%d) - seek ended up on time %d",
+  cLog::Log (LOGDEBUG, "cOmxReader::SeekTime %d seek ended up on time %d",
              time,(int)(m_iCurrentPts / DVD_TIME_BASE * 1000));
 
   return (ret >= 0);
