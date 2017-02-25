@@ -132,7 +132,6 @@ public:
   float GetVolume();
   void SetMute(bool bOnOff);
   void SetDynamicRangeCompression(long drc);
-  bool ApplyVolume();
   void SubmitEOS();
   bool IsEOS();
 
@@ -144,10 +143,6 @@ public:
 
   bool CanHWDecode (AVCodecID codec);
   static bool HWDecode (AVCodecID codec);
-
-  void PrintChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
-  void PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, std::string direction);
-  void UpdateAttenuation();
 
   void BuildChannelMap (enum PCMChannels *channelMap, uint64_t layout);
   int BuildChannelMapCEA (enum PCMChannels *channelMap, uint64_t layout);
@@ -172,6 +167,12 @@ protected:
   cAvUtil           mAvUtil;
 
 private:
+  bool ApplyVolume();
+  void UpdateAttenuation();
+
+  void PrintChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
+  void PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, std::string direction);
+
   bool          m_Initialized;
   float         m_CurrentVolume;
   bool          m_Mute;

@@ -609,24 +609,20 @@ float cOmxAudio::GetVolume() {
 //}}}
 
 //{{{
-unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len) {
-  return AddPackets(data, len, 0, 0, 0);
-  }
-//}}}
-//{{{
-unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, double dts, double pts, unsigned int frame_size)
-{
-  cSingleLock lock (m_critSection);
+unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, 
+                                    double dts, double pts, unsigned int frame_size) {
 
-  if(!m_Initialized) {
-    cLog::Log(LOGERROR,"cOmxAudio::AddPackets - sanity failed. no valid play handle!");
+  if (!m_Initialized) {
+    cLog::Log (LOGERROR,"cOmxAudio::AddPackets not inited");
     return len;
     }
+
+  cSingleLock lock (m_critSection);
 
   unsigned pitch = (m_config.passthrough || m_config.hwdecode) ? 1:(m_BitsPerSample >> 3) * m_InputChannels;
   unsigned int demuxer_samples = len / pitch;
   unsigned int demuxer_samples_sent = 0;
-  uint8_t* demuxer_content = (uint8_t *)data;
+  auto demuxer_content = (uint8_t *)data;
 
   OMX_BUFFERHEADERTYPE* omx_buffer = NULL;
   while (demuxer_samples_sent < demuxer_samples) {
@@ -714,6 +710,11 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, double d
   m_submitted += (float)demuxer_samples / m_config.hints.samplerate;
   UpdateAttenuation();
   return len;
+  }
+//}}}
+//{{{
+unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len) {
+  return AddPackets (data, len, 0, 0, 0);
   }
 //}}}
 
@@ -874,115 +875,6 @@ void cOmxAudio::SetVolume (float fVolume) {
     UpdateAttenuation();
   }
 //}}}
-//{{{
-bool cOmxAudio::ApplyVolume() {
-
-  float m_ac3Gain = 12.0f;
-
-  cSingleLock lock (m_critSection);
-  if (!m_Initialized || m_config.passthrough)
-    return false;
-
-  // the analogue volume is too quiet for some. Allow use of an advancedsetting to boost this (at risk of distortion) (deprecated)
-  float fVolume = m_Mute ? VOLUME_MINIMUM : m_CurrentVolume;
-  double gain = pow(10, (m_ac3Gain - 12.0f) / 20.0);
-  const float* coeff = m_downmix_matrix;
-
-  OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
-  OMX_INIT_STRUCTURE(mix);
-  assert (sizeof(mix.coeff) / sizeof(mix.coeff[0]) == 64);
-  if (m_amplification != 1.0) {
-    // reduce scaling so overflow can be seen
-    for (size_t i = 0; i < 8*8; ++i)
-      mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * 0.01f));
-    mix.nPortIndex = m_omx_decoder.GetInputPort();
-    if (m_omx_decoder.SetConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix) != OMX_ErrorNone) {
-      cLog::Log (LOGERROR, "cOmxAudio::ApplyVolume OMX_IndexConfigBrcmAudioDownmixCoefficients");
-      return false;
-      }
-    }
-
-  for (size_t i = 0; i < 8*8; ++i)
-    mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * fVolume * m_amplification * m_attenuation));
-
-  mix.nPortIndex = m_omx_mixer.GetInputPort();
-  if (m_omx_mixer.SetConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix) != OMX_ErrorNone) {
-    cLog::Log (LOGERROR, "cOmxAudio::ApplyVolume OMX_IndexConfigBrcmAudioDownmixCoefficients");
-    return false;
-    }
-
-  cLog::Log (LOGINFO, "cOmxAudio::ApplyVolume %.2f (* %.2f * %.2f)", fVolume, m_amplification, m_attenuation);
-  return true;
-  }
-//}}}
-//{{{
-void cOmxAudio::UpdateAttenuation() {
-
-  if (m_amplification == 1.0) {
-    ApplyVolume();
-    return;
-    }
-
-  double level_pts = 0.0;
-  float level = GetMaxLevel(level_pts);
-  if (level_pts != 0.0) {
-    amplitudes_t v;
-    v.level = level;
-    v.pts = level_pts;
-    m_ampqueue.push_back(v);
-    }
-
-  double stamp = m_av_clock->getMediaTime();
-  // discard too old data
-  while (!m_ampqueue.empty()) {
-    amplitudes_t &v = m_ampqueue.front();
-    /* we'll also consume if queue gets unexpectedly long to avoid filling memory */
-    if (v.pts == DVD_NOPTS_VALUE || v.pts < stamp || v.pts - stamp > DVD_SEC_TO_TIME(15.0))
-      m_ampqueue.pop_front();
-    else
-      break;
-    }
-
-  float maxlevel = 0.0f, imminent_maxlevel = 0.0f;
-  for (int i=0; i < (int)m_ampqueue.size(); i++) {
-    amplitudes_t &v = m_ampqueue[i];
-    maxlevel = std::max(maxlevel, v.level);
-    // check for maximum volume in next 200ms
-    if (v.pts != DVD_NOPTS_VALUE && v.pts < stamp + DVD_SEC_TO_TIME(0.2))
-      imminent_maxlevel = std::max(imminent_maxlevel, v.level);
-    }
-
-  if (maxlevel != 0.0) {
-    float m_limiterHold = 0.025f;
-    float m_limiterRelease = 0.100f;
-    float alpha_h = -1.0f/(0.025f*log10f(0.999f));
-    float alpha_r = -1.0f/(0.100f*log10f(0.900f));
-    float decay  = powf (10.0f, -1.0f / (alpha_h * m_limiterHold));
-    float attack = powf (10.0f, -1.0f / (alpha_r * m_limiterRelease));
-    // if we are going to clip imminently then deal with it now
-    if (imminent_maxlevel > m_maxLevel)
-      m_maxLevel = imminent_maxlevel;
-    // clip but not imminently can ramp up more slowly
-    else if (maxlevel > m_maxLevel)
-      m_maxLevel = attack * m_maxLevel + (1.0f-attack) * maxlevel;
-    // not clipping, decay more slowly
-    else
-      m_maxLevel = decay  * m_maxLevel + (1.0f-decay ) * maxlevel;
-
-    // want m_maxLevel * amp -> 1.0
-    float amp = m_amplification * m_attenuation;
-
-    // We fade in the attenuation over first couple of seconds
-    float start = std::min (std::max ((m_submitted-1.0f), 0.0f), 1.0f);
-    float attenuation = std::min( 1.0f, std::max(m_attenuation / (amp * m_maxLevel), 1.0f/m_amplification));
-    m_attenuation = (1.0f - start) * 1.0f/m_amplification + start * attenuation;
-    }
-  else
-    m_attenuation = 1.0f / m_amplification;
-
-  ApplyVolume();
-  }
-//}}}
 
 //{{{
 void cOmxAudio::SubmitEOS() {
@@ -1125,75 +1017,6 @@ bool cOmxAudio::HWDecode (AVCodecID codec) {
 //}}}
 
 //{{{
-void cOmxAudio::PrintChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
-
-  for (int i = 0; i < OMX_AUDIO_MAXCHANNELS; i++) {
-    switch (eChannelMapping[i]) {
-      case OMX_AUDIO_ChannelLF:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLF");
-        break;
-
-      case OMX_AUDIO_ChannelRF:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelRF");
-        break;
-
-      case OMX_AUDIO_ChannelCF:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelCF");
-        break;
-
-      case OMX_AUDIO_ChannelLS:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLS");
-        break;
-
-      case OMX_AUDIO_ChannelRS:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelRS");
-        break;
-
-      case OMX_AUDIO_ChannelLFE:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLFE");
-        break;
-
-      case OMX_AUDIO_ChannelCS:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelCS");
-        break;
-
-      case OMX_AUDIO_ChannelLR:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLR");
-        break;
-
-      case OMX_AUDIO_ChannelRR:
-        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelRR");
-        break;
-
-      case OMX_AUDIO_ChannelNone:
-      case OMX_AUDIO_ChannelKhronosExtensions:
-      case OMX_AUDIO_ChannelVendorStartUnused:
-      case OMX_AUDIO_ChannelMax:
-
-      default:
-        break;
-      }
-    }
-  }
-//}}}
-//{{{
-void cOmxAudio::PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, std::string direction) {
-
-  cLog::Log (LOGDEBUG, "pcm->direction    : %s", direction.c_str());
-  cLog::Log (LOGDEBUG, "pcm->nPortIndex   : %d", (int)pcm->nPortIndex);
-  cLog::Log (LOGDEBUG, "pcm->eNumData     : %d", pcm->eNumData);
-  cLog::Log (LOGDEBUG, "pcm->eEndian      : %d", pcm->eEndian);
-  cLog::Log (LOGDEBUG, "pcm->bInterleaved : %d", (int)pcm->bInterleaved);
-  cLog::Log (LOGDEBUG, "pcm->nBitPerSample: %d", (int)pcm->nBitPerSample);
-  cLog::Log (LOGDEBUG, "pcm->ePCMMode     : %d", pcm->ePCMMode);
-  cLog::Log (LOGDEBUG, "pcm->nChannels    : %d", (int)pcm->nChannels);
-  cLog::Log (LOGDEBUG, "pcm->nSamplingRate: %d", (int)pcm->nSamplingRate);
-
-  PrintChannels (pcm->eChannelMapping);
-  }
-//}}}
-
-//{{{
 void cOmxAudio::BuildChannelMap (enum PCMChannels *channelMap, uint64_t layout) {
 
   int index = 0;
@@ -1275,5 +1098,185 @@ void cOmxAudio::BuildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE * channelMap, uin
 
   while (index<OMX_AUDIO_MAXCHANNELS)
     channelMap[index++] = OMX_AUDIO_ChannelNone;
+  }
+//}}}
+
+// private
+//{{{
+bool cOmxAudio::ApplyVolume() {
+
+  float m_ac3Gain = 12.0f;
+
+  cSingleLock lock (m_critSection);
+  if (!m_Initialized || m_config.passthrough)
+    return false;
+
+  // the analogue volume is too quiet for some. Allow use of an advancedsetting to boost this (at risk of distortion) (deprecated)
+  float fVolume = m_Mute ? VOLUME_MINIMUM : m_CurrentVolume;
+  double gain = pow(10, (m_ac3Gain - 12.0f) / 20.0);
+  const float* coeff = m_downmix_matrix;
+
+  OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
+  OMX_INIT_STRUCTURE(mix);
+  assert (sizeof(mix.coeff) / sizeof(mix.coeff[0]) == 64);
+  if (m_amplification != 1.0) {
+    // reduce scaling so overflow can be seen
+    for (size_t i = 0; i < 8*8; ++i)
+      mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * 0.01f));
+    mix.nPortIndex = m_omx_decoder.GetInputPort();
+    if (m_omx_decoder.SetConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix) != OMX_ErrorNone) {
+      cLog::Log (LOGERROR, "cOmxAudio::ApplyVolume OMX_IndexConfigBrcmAudioDownmixCoefficients");
+      return false;
+      }
+    }
+
+  for (size_t i = 0; i < 8*8; ++i)
+    mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * fVolume * m_amplification * m_attenuation));
+
+  mix.nPortIndex = m_omx_mixer.GetInputPort();
+  if (m_omx_mixer.SetConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix) != OMX_ErrorNone) {
+    cLog::Log (LOGERROR, "cOmxAudio::ApplyVolume OMX_IndexConfigBrcmAudioDownmixCoefficients");
+    return false;
+    }
+
+  cLog::Log (LOGINFO, "cOmxAudio::ApplyVolume %.2f (* %.2f * %.2f)", fVolume, m_amplification, m_attenuation);
+  return true;
+  }
+//}}}
+//{{{
+void cOmxAudio::UpdateAttenuation() {
+
+  if (m_amplification == 1.0) {
+    ApplyVolume();
+    return;
+    }
+
+  double level_pts = 0.0;
+  float level = GetMaxLevel(level_pts);
+  if (level_pts != 0.0) {
+    amplitudes_t v;
+    v.level = level;
+    v.pts = level_pts;
+    m_ampqueue.push_back(v);
+    }
+
+  double stamp = m_av_clock->getMediaTime();
+  // discard too old data
+  while (!m_ampqueue.empty()) {
+    amplitudes_t &v = m_ampqueue.front();
+    /* we'll also consume if queue gets unexpectedly long to avoid filling memory */
+    if (v.pts == DVD_NOPTS_VALUE || v.pts < stamp || v.pts - stamp > DVD_SEC_TO_TIME(15.0))
+      m_ampqueue.pop_front();
+    else
+      break;
+    }
+
+  float maxlevel = 0.0f, imminent_maxlevel = 0.0f;
+  for (int i=0; i < (int)m_ampqueue.size(); i++) {
+    amplitudes_t &v = m_ampqueue[i];
+    maxlevel = std::max(maxlevel, v.level);
+    // check for maximum volume in next 200ms
+    if (v.pts != DVD_NOPTS_VALUE && v.pts < stamp + DVD_SEC_TO_TIME(0.2))
+      imminent_maxlevel = std::max(imminent_maxlevel, v.level);
+    }
+
+  if (maxlevel != 0.0) {
+    float m_limiterHold = 0.025f;
+    float m_limiterRelease = 0.100f;
+    float alpha_h = -1.0f/(0.025f*log10f(0.999f));
+    float alpha_r = -1.0f/(0.100f*log10f(0.900f));
+    float decay  = powf (10.0f, -1.0f / (alpha_h * m_limiterHold));
+    float attack = powf (10.0f, -1.0f / (alpha_r * m_limiterRelease));
+    // if we are going to clip imminently then deal with it now
+    if (imminent_maxlevel > m_maxLevel)
+      m_maxLevel = imminent_maxlevel;
+    // clip but not imminently can ramp up more slowly
+    else if (maxlevel > m_maxLevel)
+      m_maxLevel = attack * m_maxLevel + (1.0f-attack) * maxlevel;
+    // not clipping, decay more slowly
+    else
+      m_maxLevel = decay  * m_maxLevel + (1.0f-decay ) * maxlevel;
+
+    // want m_maxLevel * amp -> 1.0
+    float amp = m_amplification * m_attenuation;
+
+    // We fade in the attenuation over first couple of seconds
+    float start = std::min (std::max ((m_submitted-1.0f), 0.0f), 1.0f);
+    float attenuation = std::min( 1.0f, std::max(m_attenuation / (amp * m_maxLevel), 1.0f/m_amplification));
+    m_attenuation = (1.0f - start) * 1.0f/m_amplification + start * attenuation;
+    }
+  else
+    m_attenuation = 1.0f / m_amplification;
+
+  ApplyVolume();
+  }
+//}}}
+
+//{{{
+void cOmxAudio::PrintChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
+
+  for (int i = 0; i < OMX_AUDIO_MAXCHANNELS; i++) {
+    switch (eChannelMapping[i]) {
+      case OMX_AUDIO_ChannelLF:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLF");
+        break;
+
+      case OMX_AUDIO_ChannelRF:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelRF");
+        break;
+
+      case OMX_AUDIO_ChannelCF:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelCF");
+        break;
+
+      case OMX_AUDIO_ChannelLS:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLS");
+        break;
+
+      case OMX_AUDIO_ChannelRS:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelRS");
+        break;
+
+      case OMX_AUDIO_ChannelLFE:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLFE");
+        break;
+
+      case OMX_AUDIO_ChannelCS:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelCS");
+        break;
+
+      case OMX_AUDIO_ChannelLR:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelLR");
+        break;
+
+      case OMX_AUDIO_ChannelRR:
+        cLog::Log(LOGDEBUG, "OMX_AUDIO_ChannelRR");
+        break;
+
+      case OMX_AUDIO_ChannelNone:
+      case OMX_AUDIO_ChannelKhronosExtensions:
+      case OMX_AUDIO_ChannelVendorStartUnused:
+      case OMX_AUDIO_ChannelMax:
+
+      default:
+        break;
+      }
+    }
+  }
+//}}}
+//{{{
+void cOmxAudio::PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, std::string direction) {
+
+  cLog::Log (LOGDEBUG, "pcm->direction    : %s", direction.c_str());
+  cLog::Log (LOGDEBUG, "pcm->nPortIndex   : %d", (int)pcm->nPortIndex);
+  cLog::Log (LOGDEBUG, "pcm->eNumData     : %d", pcm->eNumData);
+  cLog::Log (LOGDEBUG, "pcm->eEndian      : %d", pcm->eEndian);
+  cLog::Log (LOGDEBUG, "pcm->bInterleaved : %d", (int)pcm->bInterleaved);
+  cLog::Log (LOGDEBUG, "pcm->nBitPerSample: %d", (int)pcm->nBitPerSample);
+  cLog::Log (LOGDEBUG, "pcm->ePCMMode     : %d", pcm->ePCMMode);
+  cLog::Log (LOGDEBUG, "pcm->nChannels    : %d", (int)pcm->nChannels);
+  cLog::Log (LOGDEBUG, "pcm->nSamplingRate: %d", (int)pcm->nSamplingRate);
+
+  PrintChannels (pcm->eChannelMapping);
   }
 //}}}
