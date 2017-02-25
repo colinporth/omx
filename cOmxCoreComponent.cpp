@@ -1,3 +1,4 @@
+// cOmxCoreComponent.cpp
 //{{{  includes
 #include "cOmxCoreComponent.h"
 
@@ -80,7 +81,7 @@ cOmxCoreComponent::cOmxCoreComponent() {
   pthread_cond_init (&m_output_buffer_cond, NULL);
   pthread_cond_init (&m_omx_event_cond, NULL);
 
-  m_OMX = cOmx::GetOMX();
+  mOmx = cOmx::GetOMX();
   }
 //}}}
 //{{{
@@ -99,16 +100,120 @@ cOmxCoreComponent::~cOmxCoreComponent() {
 //}}}
 
 //{{{
-void cOmxCoreComponent::TransitionToStateLoaded() {
+bool cOmxCoreComponent::Initialize (const std::string &component_name,
+                                    OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks) {
+  m_input_port  = 0;
+  m_output_port = 0;
+  m_handle      = NULL;
 
-  if (!m_handle)
-    return;
+  m_input_alignment     = 0;
+  m_input_buffer_size  = 0;
+  m_input_buffer_count  = 0;
 
-  if (GetState() != OMX_StateLoaded && GetState() != OMX_StateIdle)
-    SetStateForComponent (OMX_StateIdle);
+  m_output_alignment    = 0;
+  m_output_buffer_size  = 0;
+  m_output_buffer_count = 0;
+  m_flush_input         = false;
+  m_flush_output        = false;
+  m_resource_error      = false;
 
-  if (GetState() != OMX_StateLoaded)
-    SetStateForComponent (OMX_StateLoaded);
+  m_eos                 = false;
+  m_exit = false;
+
+  m_omx_input_use_buffers  = false;
+  m_omx_output_use_buffers = false;
+
+  m_omx_events.clear();
+  m_ignore_error = OMX_ErrorNone;
+
+  m_componentName = component_name;
+
+  m_callbacks.EventHandler    = &cOmxCoreComponent::DecoderEventHandlerCallback;
+  m_callbacks.EmptyBufferDone = &cOmxCoreComponent::DecoderEmptyBufferDoneCallback;
+  m_callbacks.FillBufferDone  = &cOmxCoreComponent::DecoderFillBufferDoneCallback;
+  if (callbacks && callbacks->EventHandler)
+    m_callbacks.EventHandler    = callbacks->EventHandler;
+  if (callbacks && callbacks->EmptyBufferDone)
+    m_callbacks.EmptyBufferDone = callbacks->EmptyBufferDone;
+  if (callbacks && callbacks->FillBufferDone)
+    m_callbacks.FillBufferDone  = callbacks->FillBufferDone;
+
+  // Get video component handle setting up callbacks, component is in loaded state on return.
+  if (!m_handle) {
+    OMX_ERRORTYPE omx_err;
+    if (strncmp ("OMX.alsa.", component_name.c_str(), 9) == 0)
+      omx_err = OMXALSA_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
+    else
+      omx_err = mOmx->OMX_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
+
+    if (!m_handle || omx_err != OMX_ErrorNone) {
+      cLog::Log (LOGERROR, "cOmxCoreComponent::Initialize no component handle %s 0x%08x",
+                 component_name.c_str(), (int)omx_err);
+      Deinitialize();
+      return false;
+      }
+    }
+
+  OMX_PORT_PARAM_TYPE port_param;
+  OMX_INIT_STRUCTURE(port_param);
+  if (OMX_GetParameter (m_handle, index, &port_param) != OMX_ErrorNone)
+    cLog::Log (LOGERROR, "%s no get port_param %s",  __func__, component_name.c_str());
+
+  if (DisableAllPorts() != OMX_ErrorNone)
+    cLog::Log (LOGERROR, "cOmxCoreComponent::Initialize disable ports %s", component_name.c_str());
+
+  m_input_port  = port_param.nStartPortNumber;
+  m_output_port = m_input_port + 1;
+  if (m_componentName == "OMX.broadcom.audio_mixer") {
+    m_input_port  = port_param.nStartPortNumber + 1;
+    m_output_port = port_param.nStartPortNumber;
+    }
+
+  if (m_output_port > port_param.nStartPortNumber+port_param.nPorts-1)
+    m_output_port = port_param.nStartPortNumber+port_param.nPorts-1;
+
+  cLog::Log (LOGDEBUG, "cOmxCoreComponent::Initialize %s inPort:%d outPort:%d handle:%p",
+             m_componentName.c_str(), m_input_port, m_output_port, m_handle);
+
+  m_exit = false;
+  m_flush_input   = false;
+  m_flush_output  = false;
+
+  return true;
+  }
+//}}}
+//{{{
+bool cOmxCoreComponent::Deinitialize() {
+
+  m_exit = true;
+  m_flush_input = true;
+  m_flush_output = true;
+
+  if (m_handle) {
+    FlushAll();
+    FreeOutputBuffers();
+    FreeInputBuffers();
+    TransitionToStateLoaded();
+
+    cLog::Log (LOGDEBUG, "cOmxCoreComponent::Deinitialize() %s handle:%p", m_componentName.c_str(), m_handle);
+
+    OMX_ERRORTYPE omx_err;
+    if (strncmp ("OMX.alsa.", m_componentName.c_str(), 9) == 0)
+      omx_err = OMXALSA_FreeHandle (m_handle);
+    else
+      omx_err = mOmx->OMX_FreeHandle (m_handle);
+    if (omx_err != OMX_ErrorNone)
+      cLog::Log (LOGERROR, "cOmxCoreComponent::Deinitialize() no free handle %s 0x%08x",
+                 m_componentName.c_str(), omx_err);
+    m_handle = NULL;
+
+    m_input_port = 0;
+    m_output_port = 0;
+    m_componentName = "";
+    m_resource_error = false;
+    }
+
+  return true;
   }
 //}}}
 
@@ -163,7 +268,6 @@ void cOmxCoreComponent::FlushInput() {
 
   if (!m_handle || m_resource_error)
     return;
-
   if (OMX_SendCommand (m_handle, OMX_CommandFlush, m_input_port, NULL) != OMX_ErrorNone)
     cLog::Log (LOGERROR, "%s %s OMX_SendCommand", __func__, m_componentName.c_str());
   if (WaitForCommand (OMX_CommandFlush, m_input_port) != OMX_ErrorNone)
@@ -175,7 +279,6 @@ void cOmxCoreComponent::FlushOutput() {
 
   if (!m_handle || m_resource_error)
     return;
-
   if (OMX_SendCommand (m_handle, OMX_CommandFlush, m_output_port, NULL) != OMX_ErrorNone)
     cLog::Log (LOGERROR, "%s %s OMX_SendCommand",  __func__, m_componentName.c_str());
   if (WaitForCommand (OMX_CommandFlush, m_output_port) != OMX_ErrorNone)
@@ -934,135 +1037,6 @@ OMX_ERRORTYPE cOmxCoreComponent::UseEGLImage (OMX_BUFFERHEADERTYPE** ppBufferHdr
 //}}}
 
 //{{{
-bool cOmxCoreComponent::Initialize (const std::string &component_name,
-                                    OMX_INDEXTYPE index, OMX_CALLBACKTYPE *callbacks) {
-
-  OMX_ERRORTYPE omx_err;
-
-  m_input_port  = 0;
-  m_output_port = 0;
-  m_handle      = NULL;
-
-  m_input_alignment     = 0;
-  m_input_buffer_size  = 0;
-  m_input_buffer_count  = 0;
-
-  m_output_alignment    = 0;
-  m_output_buffer_size  = 0;
-  m_output_buffer_count = 0;
-  m_flush_input         = false;
-  m_flush_output        = false;
-  m_resource_error      = false;
-
-  m_eos                 = false;
-  m_exit = false;
-
-  m_omx_input_use_buffers  = false;
-  m_omx_output_use_buffers = false;
-
-  m_omx_events.clear();
-  m_ignore_error = OMX_ErrorNone;
-
-  m_componentName = component_name;
-
-  m_callbacks.EventHandler    = &cOmxCoreComponent::DecoderEventHandlerCallback;
-  m_callbacks.EmptyBufferDone = &cOmxCoreComponent::DecoderEmptyBufferDoneCallback;
-  m_callbacks.FillBufferDone  = &cOmxCoreComponent::DecoderFillBufferDoneCallback;
-
-  if (callbacks && callbacks->EventHandler)
-    m_callbacks.EventHandler    = callbacks->EventHandler;
-  if (callbacks && callbacks->EmptyBufferDone)
-    m_callbacks.EmptyBufferDone = callbacks->EmptyBufferDone;
-  if (callbacks && callbacks->FillBufferDone)
-    m_callbacks.FillBufferDone  = callbacks->FillBufferDone;
-
-  // Get video component handle setting up callbacks, component is in loaded state on return.
-  if (!m_handle) {
-    if (strncmp ("OMX.alsa.", component_name.c_str(), 9) == 0)
-      omx_err = OMXALSA_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
-    else
-      omx_err = m_OMX->OMX_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
-
-    if (!m_handle || omx_err != OMX_ErrorNone) {
-      cLog::Log(LOGERROR, "%s no component handle %s 0x%08x", __func__, component_name.c_str(), (int)omx_err);
-      Deinitialize();
-      return false;
-      }
-    }
-
-  OMX_PORT_PARAM_TYPE port_param;
-  OMX_INIT_STRUCTURE(port_param);
-  omx_err = OMX_GetParameter (m_handle, index, &port_param);
-  if (omx_err != OMX_ErrorNone)
-    cLog::Log (LOGERROR, "%s no get port_param %s 0x%08x",  __func__, component_name.c_str(), (int)omx_err);
-
-  omx_err = DisableAllPorts();
-  if (omx_err != OMX_ErrorNone)
-    cLog::Log (LOGERROR, "%s disable ports %s 0x%08x", __func__, component_name.c_str(), (int)omx_err);
-
-  m_input_port  = port_param.nStartPortNumber;
-  m_output_port = m_input_port + 1;
-  if(m_componentName == "OMX.broadcom.audio_mixer") {
-    m_input_port  = port_param.nStartPortNumber + 1;
-    m_output_port = port_param.nStartPortNumber;
-    }
-
-  if (m_output_port > port_param.nStartPortNumber+port_param.nPorts-1)
-    m_output_port = port_param.nStartPortNumber+port_param.nPorts-1;
-
-  cLog::Log (LOGDEBUG, "%s %s input port %d output port %d m_handle %p",
-             __func__, m_componentName.c_str(), m_input_port, m_output_port, m_handle);
-
-  m_exit = false;
-  m_flush_input   = false;
-  m_flush_output  = false;
-
-  return true;
-  }
-//}}}
-//{{{
-bool cOmxCoreComponent::Deinitialize() {
-
-  OMX_ERRORTYPE omx_err;
-
-  m_exit = true;
-  m_flush_input = true;
-  m_flush_output = true;
-
-  if (m_handle) {
-    FlushAll();
-    FreeOutputBuffers();
-    FreeInputBuffers();
-    TransitionToStateLoaded();
-
-    cLog::Log (LOGDEBUG, "%s %s handle %p", __func__, m_componentName.c_str(), m_handle);
-    if (strncmp("OMX.alsa.", m_componentName.c_str(), 9) == 0)
-      omx_err = OMXALSA_FreeHandle(m_handle);
-    else
-      omx_err = m_OMX->OMX_FreeHandle(m_handle);
-    if (omx_err != OMX_ErrorNone)
-      cLog::Log (LOGERROR, "%s no free handle %s 0x%08x", __func__, m_componentName.c_str(), omx_err);
-    m_handle = NULL;
-
-    m_input_port = 0;
-    m_output_port = 0;
-    m_componentName = "";
-    m_resource_error = false;
-    }
-
-  return true;
-  }
-//}}}
-//{{{
-void cOmxCoreComponent::ResetEos() {
-
-  pthread_mutex_lock (&m_omx_eos_mutex);
-  m_eos = false;
-  pthread_mutex_unlock (&m_omx_eos_mutex);
-  }
-//}}}
-
-//{{{
 OMX_ERRORTYPE cOmxCoreComponent::DecoderEventHandlerCallback (OMX_HANDLETYPE hComponent, OMX_PTR pAppData,
     OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData) {
 
@@ -1244,5 +1218,29 @@ OMX_ERRORTYPE cOmxCoreComponent::DecoderEventHandler (OMX_HANDLETYPE hComponent,
     }
 
   return OMX_ErrorNone;
+  }
+//}}}
+
+//{{{
+void cOmxCoreComponent::ResetEos() {
+
+  pthread_mutex_lock (&m_omx_eos_mutex);
+  m_eos = false;
+  pthread_mutex_unlock (&m_omx_eos_mutex);
+  }
+//}}}
+
+// private
+//{{{
+void cOmxCoreComponent::TransitionToStateLoaded() {
+
+  if (!m_handle)
+    return;
+
+  if (GetState() != OMX_StateLoaded && GetState() != OMX_StateIdle)
+    SetStateForComponent (OMX_StateIdle);
+
+  if (GetState() != OMX_StateLoaded)
+    SetStateForComponent (OMX_StateLoaded);
   }
 //}}}

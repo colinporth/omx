@@ -63,7 +63,7 @@ bool cOmxThread::StopThread() {
   m_running = false;
   m_thread = 0;
 
-  cLog::Log (LOGDEBUG, "cOmxThread::StopThread stopped");
+  cLog::Log (LOGDEBUG, "cOmxThread::StopThread id:%d stopped", (int)m_thread);
   return true;
   }
 //}}}
