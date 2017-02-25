@@ -184,8 +184,7 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
       return true;
     }
 
-  cLog::Log (LOGINFO, "OMXPlayerVideo::Decode dts:%.0f pts:%.0f cur:%.0f, size:%d",
-             pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
+  cLog::Log (LOGINFO, "vid:Decode dts:%.0f pts:%.0f curPts:%.0f, size:%d", pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
   m_decoder->Decode (pkt->data, pkt->size, dts, pts);
   return true;
   }
