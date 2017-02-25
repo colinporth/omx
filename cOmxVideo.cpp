@@ -829,7 +829,7 @@ void cOmxVideo::SubmitEOS() {
     return;
     }
 
-  cLog::Log(LOGINFO, "%s",__PRETTY_FUNCTION__);
+  cLog::Log (LOGINFO, "%s",__PRETTY_FUNCTION__);
   }
 //}}}
 //{{{
@@ -843,7 +843,7 @@ bool cOmxVideo::IsEOS() {
     return false;
 
   if (m_submitted_eos) {
-    cLog::Log(LOGINFO, "%s",__PRETTY_FUNCTION__);
+    cLog::Log (LOGINFO, "%s",__PRETTY_FUNCTION__);
     m_submitted_eos = false;
     }
 

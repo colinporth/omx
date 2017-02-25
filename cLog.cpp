@@ -92,11 +92,11 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
 
   const char* postfix =             "\033[m";
 
-  const char levelNames[][6] =    { " deb ",
+  const char levelNames[][6] =    { " Deb ",
                                     " info",
                                     " note",
                                     " warn",
-                                    " err ",
+                                    " ERR ",
                                     };
   //}}}
   pthread_mutex_lock (&m_log_mutex);
