@@ -113,33 +113,32 @@ public:
   ~cOmxAudio();
 
   bool Initialize (cOmxClock *clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
+  bool Deinitialize();
+  bool PortSettingsChanged();
 
+  unsigned int GetSpace();
   unsigned int GetChunkLen();
   float GetDelay();
   float GetCacheTime();
   float GetCacheTotal();
   unsigned int GetAudioRenderingLatency();
   float GetMaxLevel (double &pts);
-
-  bool PortSettingsChanged();
-
-  unsigned int AddPackets (const void* data, unsigned int len);
-  unsigned int AddPackets (const void* data, unsigned int len, double dts, double pts, unsigned int frame_size);
-  unsigned int GetSpace();
-  bool Deinitialize();
-
-  void SetVolume(float nVolume);
+  uint64_t GetChannelLayout (enum PCMLayout layout);
   float GetVolume();
-  void SetMute(bool bOnOff);
-  void SetDynamicRangeCompression(long drc);
-  void SubmitEOS();
-  bool IsEOS();
 
-  void Flush();
-  void Process();
-
-  bool SetClock (cOmxClock *clock);
+  void SetMute (bool bOnOff);
+  void SetVolume (float nVolume);
   void SetCodingType (AVCodecID codec);
+  void SetDynamicRangeCompression (long drc);
+  bool SetClock (cOmxClock *clock);
+
+  unsigned int AddPackets (const void* data, unsigned int len, double dts, double pts, unsigned int frame_size);
+  unsigned int AddPackets (const void* data, unsigned int len);
+  void Process();
+  void Flush();
+
+  bool IsEOS();
+  void SubmitEOS();
 
   bool CanHWDecode (AVCodecID codec);
   static bool HWDecode (AVCodecID codec);
@@ -147,7 +146,6 @@ public:
   void BuildChannelMap (enum PCMChannels *channelMap, uint64_t layout);
   int BuildChannelMapCEA (enum PCMChannels *channelMap, uint64_t layout);
   void BuildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE *channelMap, uint64_t layout);
-  uint64_t GetChannelLayout (enum PCMLayout layout);
 
 protected:
   cCriticalSection m_critSection;
@@ -219,6 +217,7 @@ private:
   float m_downmix_matrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
   };
 //}}}
+
 //{{{
 class cOmxPlayerAudio : public cOmxThread {
 public:
