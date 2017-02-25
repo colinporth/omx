@@ -38,7 +38,7 @@ pthread_t cOmxThread::ThreadHandle() {
 bool cOmxThread::Create() {
 
   if (m_running) {
-    cLog::Log (LOGERROR, "%s - Thread already running\n", __PRETTY_FUNCTION__);
+    cLog::Log (LOGERROR, "cOmxThread::Create already running");
     return false;
     }
 
@@ -46,7 +46,7 @@ bool cOmxThread::Create() {
   m_running = true;
   pthread_create (&m_thread, &m_tattr, &cOmxThread::Run, this);
 
-  cLog::Log (LOGDEBUG, "%s - thread id %d started\n", __PRETTY_FUNCTION__, (int)m_thread);
+  cLog::Log (LOGDEBUG, "cOmxThread::Create id:%d started", (int)m_thread);
   return true;
   }
 //}}}
@@ -54,7 +54,7 @@ bool cOmxThread::Create() {
 bool cOmxThread::StopThread() {
 
   if (!m_running) {
-    cLog::Log (LOGDEBUG, "%s - No thread running\n", __PRETTY_FUNCTION__);
+    cLog::Log (LOGDEBUG, "cOmxThread::StopThread not running");
     return false;
     }
 
@@ -63,7 +63,7 @@ bool cOmxThread::StopThread() {
   m_running = false;
   m_thread = 0;
 
-  cLog::Log (LOGDEBUG, "%s - Thread stopped\n", __PRETTY_FUNCTION__);
+  cLog::Log (LOGDEBUG, "cOmxThread::StopThread stopped");
   return true;
   }
 //}}}
@@ -73,7 +73,7 @@ bool cOmxThread::StopThread() {
 void cOmxThread::Lock() {
 
   if (!m_running) {
-    cLog::Log (LOGDEBUG, "%s - Not running\n", __PRETTY_FUNCTION__);
+    cLog::Log (LOGDEBUG, "cOmxThread::Lock not running");
     return;
     }
 
@@ -84,7 +84,7 @@ void cOmxThread::Lock() {
 void cOmxThread::UnLock() {
 
   if (!m_running) {
-    cLog::Log (LOGDEBUG, "%s - Not running\n", __PRETTY_FUNCTION__);
+    cLog::Log (LOGDEBUG, "cOmxThread::UnLock not running");
     return;
     }
 
@@ -99,7 +99,7 @@ void* cOmxThread::Run (void* arg) {
   auto thread = static_cast<cOmxThread*>(arg);
   thread->Process();
 
-  cLog::Log (LOGDEBUG, "%s - exited id %d\n", __PRETTY_FUNCTION__, (int)thread->ThreadHandle());
+  cLog::Log (LOGDEBUG, "cOmxThread::Run exit id:%d", (int)thread->ThreadHandle());
   pthread_exit (NULL);
   }
 //}}}
