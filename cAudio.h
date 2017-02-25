@@ -47,7 +47,6 @@ public:
   float fifo_size;
   };
 //}}}
-
 //{{{
 class cSwAudio {
 public:
@@ -57,6 +56,10 @@ public:
   bool Open (cOmxStreamInfo &hints, enum PCMLayout layout);
   void Dispose();
 
+  int Decode (BYTE* pData, int iSize, double dts, double pts);
+  int GetData (BYTE** dst, double &dts, double &pts);
+  void Reset();
+
   int GetChannels();
   uint64_t GetChannelMap();
   int GetSampleRate();
@@ -64,11 +67,7 @@ public:
   int GetBitRate();
   unsigned int GetFrameSize() { return m_frameSize; }
 
-  int Decode (BYTE* pData, int iSize, double dts, double pts);
-  int GetData (BYTE** dst, double &dts, double &pts);
-  void Reset();
-
-  //static const char* GetName() { return "FFmpeg"; }
+  static const char* GetName() { return "FFmpeg"; }
 
 protected:
   cAvCodec mAvCodec;
