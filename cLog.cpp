@@ -40,18 +40,18 @@ const char levelNames[][6] =    { " Deb ",
 // vars
 pthread_mutex_t m_log_mutex;
 FILE* mFile = NULL;
-enum eLogLevel mLogLevel = LOG_LEVEL_NONE;
+enum eLogCode mLogLevel = LOGNONE;
 std::string mRepeatLine = "";
 int mRepeatLogCode = -1;
 int mRepeatCount = 0;
 
 //{{{
-bool cLog::Init (const char* path, enum eLogLevel logLevel) {
+bool cLog::Init (const char* path, enum eLogCode logLevel) {
 
   pthread_mutex_init (&m_log_mutex, NULL);
 
   mLogLevel = logLevel;
-  if (mLogLevel > LOG_LEVEL_NONE) {
+  if (mLogLevel > LOGNONE) {
     if (path && !mFile) {
       CStdString strLogFile;
       strLogFile.Format ("%s/omxPlayer.log", path);
@@ -86,15 +86,15 @@ void cLog::Close() {
 //}}}
 
 //{{{
-enum eLogLevel cLog::GetLogLevel() {
+enum eLogCode cLog::GetLogLevel() {
   return mLogLevel;
   }
 //}}}
 //{{{
-void cLog::SetLogLevel (enum eLogLevel level) {
-  if (mLogLevel > LOG_LEVEL_NONE)
-    cLog::Log (LOGNOTICE, "Log level changed to %d", mLogLevel);
-    mLogLevel = level;
+void cLog::SetLogLevel (enum eLogCode logLevel) {
+  if (logLevel > LOGNONE)
+    cLog::Log (LOGNOTICE, "Log level changed to %d", logLevel);
+  mLogLevel = logLevel;
   }
 //}}}
 
@@ -103,8 +103,7 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
 
   pthread_mutex_lock (&m_log_mutex);
 
-  if ((mLogLevel == LOG_LEVEL_DEBUG) ||
-      ((mLogLevel > LOG_LEVEL_NORMAL) && (logCode >= LOGNOTICE))) {
+  if (logCode <= mLogLevel) {
     //{{{  get usec time
     struct timeval now;
     gettimeofday (&now, NULL);
@@ -187,39 +186,5 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
     }
 
   pthread_mutex_unlock (&m_log_mutex);
-  }
-//}}}
-//{{{
-void cLog::MemDump (char *pData, int length) {
-
-  if (mLogLevel > LOG_LEVEL_NONE) {
-    Log (LOGDEBUG, "MEM_DUMP: Dumping from %p", pData);
-    for (int i = 0; i < length; i+=16) {
-      CStdString strLine;
-      strLine.Format ("MEM_DUMP: %04x ", i);
-      char *alpha = pData;
-      for (int k = 0; k < 4 && i + 4*k < length; k++) {
-        for (int j = 0; j < 4 && i + 4*k + j < length; j++) {
-          CStdString strFormat;
-          strFormat.Format (" %02x", *pData++);
-          strLine += strFormat;
-          }
-        strLine += " ";
-        }
-
-      // pad with spaces
-      while (strLine.size() < 13*4 + 16)
-        strLine += " ";
-      for (int j = 0; j < 16 && i + j < length; j++) {
-        if (*alpha > 31)
-          strLine += *alpha;
-        else
-          strLine += '.';
-        alpha++;
-        }
-
-      Log (LOGDEBUG, "%s", strLine.c_str());
-      }
-    }
   }
 //}}}
