@@ -461,6 +461,8 @@ int main (int argc, char* argv[]) {
     }
 
   // exit
+  unsigned timeSecs = (unsigned)(mClock.getMediaTime() * 1000000);
+
   mClock.stop();
   mClock.stateIdle();
   mPlayerVideo.Close();
