@@ -94,12 +94,12 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
 
   const char* postfix =             "\033[m";
 
-  const char levelNames[][6] =    { "debug",          
-                                    " info", 
-                                    " note", 
+  const char levelNames[][6] =    { "debug",
+                                    " info",
+                                    " note",
                                     " warn",
-                                    "error",  
-                                    "svere", 
+                                    "error",
+                                    "svere",
                                     "fatal",
                                     "" };
   //}}}
@@ -140,7 +140,7 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
       //{{{  output repeated
       prefixStr.Format (prefixFormat, time.wHour, time.wMinute, time.wSecond, usec, levelColours[mRepeatLogCode]);
       str.Format ("Previous line repeats %d times\n", mRepeatCount);
-      fputs (prefixStr.c_str(), mFile);
+      fputs (prefixStr.c_str(), stdout);
       fputs (str.c_str(), stdout);
       fputs (postfix, stdout);
 
@@ -178,7 +178,7 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
     prefixStr.Format (prefixFormat, time.wHour, time.wMinute, time.wSecond, usec, levelColours[logCode]);
     fputs (prefixStr.c_str(), stdout);
     fputs (str.c_str(), stdout);
-    fputs (postfix, mFile);
+    fputs (postfix, stdout);
 
     if (mFile) {
       prefixStr.Format (prefixFormat, time.wHour, time.wMinute, time.wSecond, usec, levelNames[logCode]);
