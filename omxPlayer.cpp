@@ -164,9 +164,8 @@ void blankBackground (uint32_t rgba) {
 //{{{
 int main (int argc, char* argv[]) {
 
-  printf ("omxplayer %s\n", VERSION_DATE);
   cLog::Init ("./", LOG_LEVEL_DEBUG);
-  cLog::Log (LOGNOTICE, "omxPlayer %s", argv[1]);
+  cLog::Log (LOGNOTICE, "omxPlayer %s %s", VERSION_DATE, argv[1]);
 
   mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
   //{{{  signals
@@ -232,7 +231,7 @@ int main (int argc, char* argv[]) {
 
         // decode keyboard
         switch (mKeyboard.getEvent()) {
-          case cKeyConfig::ACTION_STEP: mClock.step(); printf ("Step\n"); break;
+          case cKeyConfig::ACTION_STEP: mClock.step(); break;
           //{{{
           case cKeyConfig::ACTION_PREVIOUS_AUDIO:
             if (m_has_audio) {
@@ -256,15 +255,13 @@ int main (int argc, char* argv[]) {
           //{{{
           case cKeyConfig::ACTION_DECREASE_VOLUME:
             m_Volume -= 300;
-            mPlayerAudio.SetVolume(pow(10, m_Volume / 2000.0));
-            printf("Current Volume: %.2fdB\n", m_Volume / 100.0f);
+            mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
             break;
           //}}}
           //{{{
           case cKeyConfig::ACTION_INCREASE_VOLUME:
             m_Volume += 300;
-            mPlayerAudio.SetVolume(pow(10, m_Volume / 2000.0));
-            printf("Current Volume: %.2fdB\n", m_Volume / 100.0f);
+            mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
             break;
           //}}}
           case cKeyConfig::ACTION_EXIT: g_abort = true; m_stop = true; break;
@@ -279,18 +276,14 @@ int main (int argc, char* argv[]) {
         last_seek_pos = seek_pos;
         seek_pos *= 1000.0;
         double startpts = 0;
-        if (mReader.SeekTime ((int)seek_pos, m_incr < 0.0f, &startpts)) {
-          unsigned t = (unsigned)(startpts*1e-6);
-          //auto dur = mReader.GetStreamLength() / 1000;
-          printf ("Seek to: %02d:%02d:%02d\n", (t/3600), (t/60)%60, t%60);
+        if (mReader.SeekTime ((int)seek_pos, m_incr < 0.0f, &startpts))
           flushStreams (startpts);
-          }
 
         sentStarted = false;
         if (mReader.IsEof() || (m_has_video && !mPlayerVideo.Reset()))
           break;
 
-        cLog::Log (LOGDEBUG, "Seeked to %.0f %.0f %.0f\n",
+        cLog::Log (LOGDEBUG, "omxPlayer seeked to %.0f %.0f %.0f",
                    DVD_MSEC_TO_TIME(seek_pos), startpts, mClock.getMediaTime());
 
         mClock.pause();
@@ -343,7 +336,7 @@ int main (int argc, char* argv[]) {
                    audio_pts, video_pts,
                    (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
                    (video_pts == DVD_NOPTS_VALUE) ? 0.0 : video_fifo,
-                   m_threshold, 
+                   m_threshold,
                    audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
                    mPlayerAudio.GetLevel(), mPlayerVideo.GetLevel(),
                    mPlayerAudio.GetDelay(), (float)mPlayerAudio.GetCacheTotal());
@@ -360,7 +353,7 @@ int main (int argc, char* argv[]) {
           if (!m_Pause && latency != DVD_NOPTS_VALUE) {
             if (mClock.isPaused()) {
               if (latency > m_threshold) {
-                cLog::Log (LOGDEBUG, "Resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p\n",
+                cLog::Log (LOGDEBUG, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                            audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                            audio_fifo_high, video_fifo_high, mReader.IsEof(), mOmxPacket);
                 mClock.resume();
@@ -382,7 +375,8 @@ int main (int argc, char* argv[]) {
 
               mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
               mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
-              cLog::Log (LOGDEBUG, "Live: %.2f (%.2f) S:%.3f T:%.2f\n", m_latency, latency, speed, m_threshold);
+              cLog::Log (LOGDEBUG, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
+                         m_latency, latency, speed, m_threshold);
               }
             }
           }
@@ -390,7 +384,7 @@ int main (int argc, char* argv[]) {
         else if (!m_Pause && (mReader.IsEof() || mOmxPacket || (audio_fifo_high && video_fifo_high))) {
           //{{{  pause
           if (mClock.isPaused()) {
-            cLog::Log (LOGDEBUG, "Resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p\n",
+            cLog::Log (LOGDEBUG, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, mReader.IsEof(), mOmxPacket);
             mClock.resume();
@@ -402,7 +396,7 @@ int main (int argc, char* argv[]) {
           if (!mClock.isPaused()) {
             if (!m_Pause)
               m_threshold = std::min(2.0f*m_threshold, 16.0f);
-            cLog::Log (LOGDEBUG, "Pause %.2f,%.2f (%d,%d,%d,%d) %.2f\n",
+            cLog::Log (LOGDEBUG, "omxPlayer pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, m_threshold);
             mClock.pause();
@@ -413,7 +407,7 @@ int main (int argc, char* argv[]) {
         //}}}
       if (!sentStarted) {
         //{{{  reset
-        cLog::Log (LOGDEBUG, "omxPlayer - reset");
+        cLog::Log (LOGDEBUG, "omxPlayer reset");
         mClock.reset (m_has_video, m_has_audio);
         sentStarted = true;
         }
@@ -468,7 +462,6 @@ int main (int argc, char* argv[]) {
 
   // exit
   unsigned timeSecs = (unsigned)(mClock.getMediaTime() * 1000000);
-  printf ("Stopped at: %02d:%02d:%02d\n", (timeSecs / 3600), (timeSecs / 60) % 60, timeSecs % 60);
 
   mClock.stop();
   mClock.stateIdle();
