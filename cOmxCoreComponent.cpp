@@ -172,7 +172,7 @@ bool cOmxCoreComponent::Initialize (const std::string &component_name,
   if (m_output_port > port_param.nStartPortNumber+port_param.nPorts-1)
     m_output_port = port_param.nStartPortNumber+port_param.nPorts-1;
 
-  cLog::Log (LOGDEBUG, "cOmxCoreComponent::Initialize %s inPort:%d outPort:%d handle:%p",
+  cLog::Log (LOGDEBUG, "cOmxCoreComponent::Initialize %s in:%d out:%d h:%p",
              m_componentName.c_str(), m_input_port, m_output_port, m_handle);
 
   m_exit = false;
@@ -195,7 +195,7 @@ bool cOmxCoreComponent::Deinitialize() {
     FreeInputBuffers();
     TransitionToStateLoaded();
 
-    cLog::Log (LOGDEBUG, "cOmxCoreComponent::Deinitialize() %s handle:%p", m_componentName.c_str(), m_handle);
+    cLog::Log (LOGDEBUG, "cOmxCoreComponent::Deinitialize() %s h:%p", m_componentName.c_str(), m_handle);
 
     OMX_ERRORTYPE omx_err;
     if (strncmp ("OMX.alsa.", m_componentName.c_str(), 9) == 0)
@@ -223,7 +223,7 @@ OMX_ERRORTYPE cOmxCoreComponent::EmptyThisBuffer (OMX_BUFFERHEADERTYPE* omx_buff
   if (!m_handle || !omx_buffer)
     return OMX_ErrorUndefined;
 
-  OMX_ERRORTYPE omx_err = OMX_EmptyThisBuffer(m_handle, omx_buffer);
+  OMX_ERRORTYPE omx_err = OMX_EmptyThisBuffer (m_handle, omx_buffer);
   if (omx_err != OMX_ErrorNone)
     cLog::Log (LOGERROR, "%s %s 0x%x",  __func__, m_componentName.c_str(), omx_err);
 
@@ -236,7 +236,7 @@ OMX_ERRORTYPE cOmxCoreComponent::FillThisBuffer (OMX_BUFFERHEADERTYPE* omx_buffe
   if (!m_handle || !omx_buffer)
     return OMX_ErrorUndefined;
 
-  OMX_ERRORTYPE omx_err = OMX_FillThisBuffer(m_handle, omx_buffer);
+  OMX_ERRORTYPE omx_err = OMX_FillThisBuffer (m_handle, omx_buffer);
   if (omx_err != OMX_ErrorNone)
     cLog::Log (LOGERROR, "%s %s result 0x%x",  __func__, m_componentName.c_str(), omx_err);
 
@@ -249,7 +249,7 @@ OMX_ERRORTYPE cOmxCoreComponent::FreeOutputBuffer (OMX_BUFFERHEADERTYPE* omx_buf
   if (!m_handle || !omx_buffer)
     return OMX_ErrorUndefined;
 
-  OMX_ERRORTYPE omx_err = OMX_FreeBuffer(m_handle, m_output_port, omx_buffer);
+  OMX_ERRORTYPE omx_err = OMX_FreeBuffer (m_handle, m_output_port, omx_buffer);
   if (omx_err != OMX_ErrorNone)
     cLog::Log (LOGERROR, "%s %s result 0x%x",  __func__, m_componentName.c_str(), omx_err);
 
@@ -268,6 +268,7 @@ void cOmxCoreComponent::FlushInput() {
 
   if (!m_handle || m_resource_error)
     return;
+
   if (OMX_SendCommand (m_handle, OMX_CommandFlush, m_input_port, NULL) != OMX_ErrorNone)
     cLog::Log (LOGERROR, "%s %s OMX_SendCommand", __func__, m_componentName.c_str());
   if (WaitForCommand (OMX_CommandFlush, m_input_port) != OMX_ErrorNone)
@@ -279,6 +280,7 @@ void cOmxCoreComponent::FlushOutput() {
 
   if (!m_handle || m_resource_error)
     return;
+
   if (OMX_SendCommand (m_handle, OMX_CommandFlush, m_output_port, NULL) != OMX_ErrorNone)
     cLog::Log (LOGERROR, "%s %s OMX_SendCommand",  __func__, m_componentName.c_str());
   if (WaitForCommand (OMX_CommandFlush, m_output_port) != OMX_ErrorNone)
@@ -342,7 +344,7 @@ OMX_BUFFERHEADERTYPE* cOmxCoreComponent::GetOutputBuffer (long timeout /*=200*/)
       break;
       }
 
-    if (pthread_cond_timedwait(&m_output_buffer_cond, &m_omx_output_mutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&m_output_buffer_cond, &m_omx_output_mutex, &endtime) != 0) {
       if (timeout != 0)
         cLog::Log (LOGERROR, "%s %s wait event timeout", __func__, m_componentName.c_str());
       break;
@@ -369,7 +371,7 @@ OMX_ERRORTYPE cOmxCoreComponent::WaitForInputDone (long timeout /*=200*/) {
   while (m_input_buffer_count != m_omx_input_avaliable.size()) {
     if (m_resource_error)
       break;
-    if (pthread_cond_timedwait(&m_input_buffer_cond, &m_omx_input_mutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&m_input_buffer_cond, &m_omx_input_mutex, &endtime) != 0) {
       if (timeout != 0)
         cLog::Log (LOGERROR, "%s %s wait event timeout", __func__, m_componentName.c_str());
       omx_err = OMX_ErrorTimeout;
@@ -395,7 +397,7 @@ OMX_ERRORTYPE cOmxCoreComponent::WaitForOutputDone (long timeout /*=200*/) {
   while (m_output_buffer_count != m_omx_output_available.size()) {
     if (m_resource_error)
       break;
-    if (pthread_cond_timedwait(&m_output_buffer_cond, &m_omx_output_mutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&m_output_buffer_cond, &m_omx_output_mutex, &endtime) != 0) {
       if (timeout != 0)
         cLog::Log (LOGERROR, "%s %s wait event timeout", __func__, m_componentName.c_str());
       omx_err = OMX_ErrorTimeout;
@@ -436,7 +438,7 @@ OMX_ERRORTYPE cOmxCoreComponent::AllocInputBuffers (bool use_buffers /* = false 
   m_input_buffer_count = portFormat.nBufferCountActual;
   m_input_buffer_size= portFormat.nBufferSize;
 
-  cLog::Log (LOGDEBUG, "%s %s - port(%d), nBufferCountMin(%u), nBufferCountActual(%u), nBufferSize(%u), nBufferAlignmen(%u)",
+  cLog::Log (LOGDEBUG, "%s %s port:%d, bufCntMin:%u, bufCntAct:%u, bufSize:%u, bufAlign:%u",
              __func__, m_componentName.c_str(), GetInputPort(), portFormat.nBufferCountMin,
              portFormat.nBufferCountActual, portFormat.nBufferSize, portFormat.nBufferAlignment);
 
