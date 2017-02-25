@@ -80,13 +80,29 @@ void cLog::SetLogLevel (enum eLogLevel level) {
 //{{{
 void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
 
+  //{{{  const
   const char* prefixFormat = "%02.2d:%02.2d:%02.2d.%06d %s ";
-  const char levelColours[][12] = { "\033[38;5;255m", "\033[38;5;220m", "\033[38;5;208m", "\033[38;5;207m",
-                                    "\033[38;5;202m", "\033[38;5;63m",  "\033[38;5;91m",  "\033[38;5;244m" };
-  const char levelNames[][6] =    { "debug",          " info",          " note",          " warn",
-                                    "error",          "svere",          "fatal",          "" };
-  const char* postfix = "\033[cm";
 
+  const char levelColours[][12] = { "\033[38;5;230m",   // debug  white
+                                    "\033[38;5;220m",   // info   yellow
+                                    "\033[38;5;208m",   // note   orange
+                                    "\033[38;5;207m",   // warn   mauve
+                                    "\033[38;5;196m",   // error  light red
+                                    "\033[38;5;9m",     // svere  deep red
+                                    "\033[38;5;1m",     // fatal  dark red
+                                    "\033[38;5;244m" }; // none   mid grey
+
+  const char* postfix =             "\033[m";
+
+  const char levelNames[][6] =    { "debug",          
+                                    " info", 
+                                    " note", 
+                                    " warn",
+                                    "error",  
+                                    "svere", 
+                                    "fatal",
+                                    "" };
+  //}}}
   pthread_mutex_lock (&m_log_mutex);
 
   if ((mLogLevel > LOG_LEVEL_NORMAL) ||
@@ -128,7 +144,7 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
       fputs (str.c_str(), stdout);
       fputs (postfix, stdout);
 
-      if (mFile) { 
+      if (mFile) {
         prefixStr.Format (prefixFormat, time.wHour, time.wMinute, time.wSecond, usec, levelNames[mRepeatLogCode]);
         fputs (prefixStr.c_str(), mFile);
         fputs (str.c_str(), mFile);

@@ -40,13 +40,15 @@ CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
 	   -D HAVE_LIBAVUTIL_MEM_H \
 	   -U _FORTIFY_SOURCE \
 
-INCLUDES=  -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/include \
-	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include \
+INCLUDES=  -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vcos/pthreads \
 	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host/linux \
+	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/include \
 
 LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
+	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/lib \
+	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/lib \
 	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/lib/arm-linux-gnueabihf \
 	   -l pthread \
 	   -l asound \
