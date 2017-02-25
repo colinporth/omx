@@ -109,6 +109,9 @@ bool cSwAudio::Open (cOmxStreamInfo &hints, enum PCMLayout layout) {
   m_bOpenedCodec = true;
   m_iSampleFormat = AV_SAMPLE_FMT_NONE;
   m_desiredSampleFormat = m_pCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
+
+  cLog::Log (LOGDEBUG, "cOmxAudio::Open");
+
   return true;
   }
 //}}}
@@ -204,10 +207,10 @@ int cSwAudio::Decode (BYTE* pData, int iSize, double dts, double pts) {
 
   if (m_bFirstFrame)
     cLog::Log (LOGDEBUG, "cSwAudio::Decode %p:%d f:%d:%d ch:%d sm:%d sz:%d %p:%p:%p:%p:%p:%p:%p:%p",
-               pData, iSize, 
-               m_pCodecContext->sample_fmt, m_desiredSampleFormat, 
+               pData, iSize,
+               m_pCodecContext->sample_fmt, m_desiredSampleFormat,
                m_pCodecContext->channels, m_pFrame1->nb_samples, m_pFrame1->linesize[0],
-               m_pFrame1->data[0], m_pFrame1->data[1], m_pFrame1->data[2], m_pFrame1->data[3], 
+               m_pFrame1->data[0], m_pFrame1->data[1], m_pFrame1->data[2], m_pFrame1->data[3],
                m_pFrame1->data[4], m_pFrame1->data[5], m_pFrame1->data[6], m_pFrame1->data[7]
                );
 

@@ -281,9 +281,10 @@ public:
   void SubmitEOS();
   bool IsEOS();
 
-protected:
+private:
   void Lock();
   void UnLock();
+
   void LockDecoder();
   void UnLockDecoder();
 

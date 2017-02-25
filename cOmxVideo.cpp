@@ -425,7 +425,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
     //}}}
     }
 
-  if (!m_omx_decoder.Initialize(decoder_name, OMX_IndexParamVideoInit))
+  if (!m_omx_decoder.Initialize (decoder_name, OMX_IndexParamVideoInit))
     return false;
   if (clock == NULL)
     return false;

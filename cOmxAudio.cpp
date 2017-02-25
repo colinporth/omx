@@ -343,7 +343,7 @@ bool cOmxAudio::Initialize (cOmxClock *clock, const cOmxAudioConfig &config,
     m_OutputChannels = BuildChannelMapCEA(outLayout, GetChannelLayout(m_config.layout));
     cPcmRemap m_remap;
     m_remap.Reset();
-    /*outLayout = */m_remap.SetInputFormat (m_InputChannels, inLayout, uiBitsPerSample / 8, m_config.hints.samplerate, m_config.layout, m_config.boostOnDownmix);
+    m_remap.SetInputFormat (m_InputChannels, inLayout, uiBitsPerSample / 8, m_config.hints.samplerate, m_config.layout, m_config.boostOnDownmix);
     m_remap.SetOutputFormat(m_OutputChannels, outLayout);
     m_remap.GetDownmixMatrix(m_downmix_matrix);
     m_wave_header.dwChannelMask = channelMap;
@@ -363,8 +363,7 @@ bool cOmxAudio::Initialize (cOmxClock *clock, const cOmxAudioConfig &config,
 
   m_wave_header.Samples.wSamplesPerBlock    = 0;
   m_wave_header.Format.nChannels            = m_InputChannels;
-  m_wave_header.Format.nBlockAlign          = m_InputChannels *
-    (m_BitsPerSample >> 3);
+  m_wave_header.Format.nBlockAlign          = m_InputChannels * (m_BitsPerSample >> 3);
   // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
   m_wave_header.Format.wFormatTag           = m_BitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
   m_wave_header.Format.nSamplesPerSec       = m_config.hints.samplerate;
@@ -940,7 +939,7 @@ void cOmxAudio::UpdateAttenuation() {
     /* we'll also consume if queue gets unexpectedly long to avoid filling memory */
     if (v.pts == DVD_NOPTS_VALUE || v.pts < stamp || v.pts - stamp > DVD_SEC_TO_TIME(15.0))
       m_ampqueue.pop_front();
-    else 
+    else
       break;
     }
 
