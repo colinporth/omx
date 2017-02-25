@@ -338,10 +338,12 @@ int main (int argc, char* argv[]) {
           video_fifo_high = !m_has_video || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
           }
 
-        cLog::Log (LOGDEBUG, "Normal M:%.0f (A:%.0f V:%.0f) P:%d A:%.2f V:%.2f/T:%.2f (%d,%d,%d,%d) A:%d%% V:%d%% (%.2f,%.2f)\n",
-                   stamp, audio_pts, video_pts, mClock.isPaused(),
-                   audio_pts == DVD_NOPTS_VALUE ? 0.0:audio_fifo,
-                   video_pts == DVD_NOPTS_VALUE ? 0.0:video_fifo,
+        cLog::Log (LOGINFO, "p:%d m:%.0f a:%.0f v:%.0f a:%.2f v:%.2f th:%.2f %d%d%d%d A:%d%% V:%d%% d:%.2f c:%.2f\n",
+                   mClock.isPaused(),
+                   stamp, 
+                   audio_pts, video_pts,
+                   (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
+                   (video_pts == DVD_NOPTS_VALUE) ? 0.0 : video_fifo,
                    m_threshold, audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
                    mPlayerAudio.GetLevel(), mPlayerVideo.GetLevel(),
                    mPlayerAudio.GetDelay(), (float)mPlayerAudio.GetCacheTotal());
