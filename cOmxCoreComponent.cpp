@@ -147,7 +147,7 @@ bool cOmxCoreComponent::Initialize (const std::string &component_name,
       omx_err = mOmx->OMX_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
 
     if (!m_handle || omx_err != OMX_ErrorNone) {
-      cLog::Log (LOGERROR, "cOmxCoreComponent::Initialize no component handle %s 0x%08x",
+      cLog::Log (LOGERROR, "omxCoreComp::Initialize no component handle %s 0x%08x",
                  component_name.c_str(), (int)omx_err);
       Deinitialize();
       return false;
@@ -160,7 +160,7 @@ bool cOmxCoreComponent::Initialize (const std::string &component_name,
     cLog::Log (LOGERROR, "%s no get port_param %s",  __func__, component_name.c_str());
 
   if (DisableAllPorts() != OMX_ErrorNone)
-    cLog::Log (LOGERROR, "cOmxCoreComponent::Initialize disable ports %s", component_name.c_str());
+    cLog::Log (LOGERROR, "omxCoreComp::Initialize disable ports %s", component_name.c_str());
 
   m_input_port  = port_param.nStartPortNumber;
   m_output_port = m_input_port + 1;
@@ -172,7 +172,7 @@ bool cOmxCoreComponent::Initialize (const std::string &component_name,
   if (m_output_port > port_param.nStartPortNumber+port_param.nPorts-1)
     m_output_port = port_param.nStartPortNumber+port_param.nPorts-1;
 
-  cLog::Log (LOGDEBUG, "cOmxCoreComponent::Initialize %s in:%d out:%d h:%p",
+  cLog::Log (LOGDEBUG, "omxCoreComp::Initialize %s in:%d out:%d h:%p",
              m_componentName.c_str(), m_input_port, m_output_port, m_handle);
 
   m_exit = false;
@@ -195,7 +195,7 @@ bool cOmxCoreComponent::Deinitialize() {
     FreeInputBuffers();
     TransitionToStateLoaded();
 
-    cLog::Log (LOGDEBUG, "cOmxCoreComponent::Deinitialize() %s h:%p", m_componentName.c_str(), m_handle);
+    cLog::Log (LOGDEBUG, "omxCoreComp::Deinitialize() %s h:%p", m_componentName.c_str(), m_handle);
 
     OMX_ERRORTYPE omx_err;
     if (strncmp ("OMX.alsa.", m_componentName.c_str(), 9) == 0)
@@ -203,7 +203,7 @@ bool cOmxCoreComponent::Deinitialize() {
     else
       omx_err = mOmx->OMX_FreeHandle (m_handle);
     if (omx_err != OMX_ErrorNone)
-      cLog::Log (LOGERROR, "cOmxCoreComponent::Deinitialize() no free handle %s 0x%08x",
+      cLog::Log (LOGERROR, "omxCoreComp::Deinitialize() no free handle %s 0x%08x",
                  m_componentName.c_str(), omx_err);
     m_handle = NULL;
 
