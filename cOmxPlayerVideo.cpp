@@ -171,20 +171,18 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
   if (dts != DVD_NOPTS_VALUE)
     dts += m_iVideoDelay;
-
   if (pts != DVD_NOPTS_VALUE)
     pts += m_iVideoDelay;
-
   if(pts != DVD_NOPTS_VALUE)
     m_iCurrentPts = pts;
 
-  while((int) m_decoder->GetFreeSpace() < pkt->size) {
-    cOmxClock::sleep(10);
+  while( (int) m_decoder->GetFreeSpace() < pkt->size) {
+    cOmxClock::sleep (10);
     if (m_flush_requested)
       return true;
     }
 
-  cLog::Log (LOGINFO, "vid:Decode dts:%.0f pts:%.0f curPts:%.0f, size:%d", pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
+  cLog::Log (LOGINFO, "vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d", pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
   m_decoder->Decode (pkt->data, pkt->size, dts, pts);
   return true;
   }
@@ -204,7 +202,7 @@ void cOmxPlayerVideo::Process() {
       }
 
     if(m_flush && omx_pkt) {
-      cOmxReader::FreePacket(omx_pkt);
+      cOmxReader::FreePacket (omx_pkt);
       omx_pkt = NULL;
       m_flush = false;
       }
@@ -226,7 +224,7 @@ void cOmxPlayerVideo::Process() {
       omx_pkt = NULL;
       }
     UnLockDecoder();
-   }
+     }
 
   if (omx_pkt)
     cOmxReader::FreePacket (omx_pkt);
@@ -244,7 +242,7 @@ void cOmxPlayerVideo::Flush() {
   while (!m_packets.empty()) {
     OMXPacket *pkt = m_packets.front();
     m_packets.pop_front();
-    cOmxReader::FreePacket(pkt);
+    cOmxReader::FreePacket (pkt);
     }
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
