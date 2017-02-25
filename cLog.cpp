@@ -15,6 +15,25 @@
 #define fopen64_utf8  fopen
 #define stat64_utf8   stat64
 //}}}
+//{{{  const
+const char* prefixFormat = "%02.2d:%02.2d:%02.2d.%06d%s ";
+
+const char levelColours[][12] = { "\033[38;5;195m",   // debug  bluewhite
+                                  "\033[38;5;220m",   // info   yellow
+                                  "\033[38;5;208m",   // note   orange
+                                  "\033[38;5;207m",   // warn   mauve
+                                  "\033[38;5;196m",   // error  light red
+                                   };
+
+const char* postfix =             "\033[m";
+
+const char levelNames[][6] =    { " Deb ",
+                                  " info",
+                                  " note",
+                                  " warn",
+                                  " ERR ",
+                                  };
+//}}}
 
 // vars
 pthread_mutex_t m_log_mutex;
@@ -80,25 +99,6 @@ void cLog::SetLogLevel (enum eLogLevel level) {
 //{{{
 void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
 
-  //{{{  const
-  const char* prefixFormat = "%02.2d:%02.2d:%02.2d.%06d%s ";
-
-  const char levelColours[][12] = { "\033[38;5;230m",   // debug  white
-                                    "\033[38;5;220m",   // info   yellow
-                                    "\033[38;5;208m",   // note   orange
-                                    "\033[38;5;207m",   // warn   mauve
-                                    "\033[38;5;196m",   // error  light red
-                                     };
-
-  const char* postfix =             "\033[m";
-
-  const char levelNames[][6] =    { " Deb ",
-                                    " info",
-                                    " note",
-                                    " warn",
-                                    " ERR ",
-                                    };
-  //}}}
   pthread_mutex_lock (&m_log_mutex);
 
   if ((mLogLevel > LOG_LEVEL_NORMAL) ||
