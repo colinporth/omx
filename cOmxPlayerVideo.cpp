@@ -291,20 +291,19 @@ bool cOmxPlayerVideo::OpenDecoder() {
     printf ("Invalid framerate %d, using forced 25fps and just trust timestamps\n", (int)m_fps);
     m_fps = 25;
     }
-
   m_frametime = (double)DVD_TIME_BASE / m_fps;
 
   m_decoder = new cOmxVideo();
-  if (!m_decoder->Open (m_av_clock, m_config)) {
+  if (m_decoder->Open (m_av_clock, m_config)) {
+    cLog::Log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s w:%d h:%d profile:%d fps %f\n",
+               m_decoder->GetDecoderName().c_str(),
+               m_config.hints.width, m_config.hints.height, m_config.hints.profile, m_fps);
+    return true;
+    }
+  else {
     CloseDecoder();
     return false;
     }
-  else
-    printf ("Video codec %s width %d height %d profile %d fps %f\n",
-            m_decoder->GetDecoderName().c_str(),
-            m_config.hints.width, m_config.hints.height, m_config.hints.profile, m_fps);
-
-  return true;
   }
 //}}}
 //{{{
