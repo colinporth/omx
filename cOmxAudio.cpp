@@ -267,7 +267,7 @@ bool cOmxAudio::Initialize (cOmxClock *clock, const cOmxAudioConfig &config,
   m_maxLevel = 0.0f;
 
   cLog::Log (LOGDEBUG, "cOmxAudio::Initialize Input bitsPer:%d rate:%d ch:%d buffer size:%d bytesPer:%d",
-             (int)m_pcm_input.nBitPerSample, (int)m_pcm_input.nSamplingRate, 
+             (int)m_pcm_input.nBitPerSample, (int)m_pcm_input.nSamplingRate,
              (int)m_pcm_input.nChannels, m_BufferLen, m_InputBytesPerSec);
   PrintPCM (&m_pcm_input, std::string ("input"));
   cLog::Log (LOGDEBUG, "cOmxAudio::Initialize dev:%s pass:%d hw:%d",
@@ -932,17 +932,17 @@ void cOmxAudio::SubmitEOS() {
 bool cOmxAudio::CanHWDecode (AVCodecID codec) {
 
   switch(codec) {
-    case AV_CODEC_ID_VORBIS:
-      cLog::Log (LOGDEBUG, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingVORBIS");
-      m_eEncoding = OMX_AUDIO_CodingVORBIS;
-      m_config.hwdecode = true;
-      break;
+    //case AV_CODEC_ID_VORBIS:
+    //  cLog::Log (LOGDEBUG, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingVORBIS");
+    //  m_eEncoding = OMX_AUDIO_CodingVORBIS;
+    //  m_config.hwdecode = true;
+    //  break;
 
-    case AV_CODEC_ID_AAC:
-      cLog::Log (LOGDEBUG, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingAAC");
-      m_eEncoding = OMX_AUDIO_CodingAAC;
-      m_config.hwdecode = true;
-      break;
+    //case AV_CODEC_ID_AAC:
+    //  cLog::Log (LOGDEBUG, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingAAC");
+    //  m_eEncoding = OMX_AUDIO_CodingAAC;
+    //  m_config.hwdecode = true;
+    //  break;
 
     case AV_CODEC_ID_MP2:
     case AV_CODEC_ID_MP3:
