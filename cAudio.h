@@ -68,21 +68,20 @@ public:
   int GetData (BYTE** dst, double &dts, double &pts);
   void Reset();
 
-  //static const char* GetName() { return "FFmpeg"; }
-
 protected:
-  cAvCodec mAvCodec;
   cAvUtil mAvUtil;
-  cSwResample mSwResample;
 
-  AVCodecContext* m_pCodecContext;
-  SwrContext* m_pConvert;
+  cAvCodec mAvCodec;
+  AVCodecContext* mCodecContext;
+
+  cSwResample mSwResample;
+  SwrContext* mConvert;
 
   enum AVSampleFormat m_iSampleFormat;
   enum AVSampleFormat m_desiredSampleFormat;
-  AVFrame* m_pFrame1;
+  AVFrame* mFrame1;
 
-  BYTE* m_pBufferOutput;
+  BYTE* mBufferOutput;
   int m_iBufferOutputUsed;
   int m_iBufferOutputAlloced;
 
