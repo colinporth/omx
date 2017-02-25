@@ -3,7 +3,7 @@
 #include <string>
 
 enum eLogLevel { LOG_LEVEL_NONE = -1, LOG_LEVEL_NORMAL, LOG_LEVEL_DEBUG };
-enum eLogCode  { LOGDEBUG = 0, LOGINFO, LOGNOTICE, LOGWARNING, LOGERROR, LOGSEVERE, LOGFATAL, LOGNONE } ;
+enum eLogCode  { LOGDEBUG = 0, LOGINFO, LOGNOTICE, LOGWARNING, LOGERROR } ;
 
 class cLog {
 public:

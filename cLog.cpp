@@ -81,27 +81,23 @@ void cLog::SetLogLevel (enum eLogLevel level) {
 void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
 
   //{{{  const
-  const char* prefixFormat = "%02.2d:%02.2d:%02.2d.%06d %s ";
+  const char* prefixFormat = "%02.2d:%02.2d:%02.2d.%06d%s ";
 
   const char levelColours[][12] = { "\033[38;5;230m",   // debug  white
                                     "\033[38;5;220m",   // info   yellow
                                     "\033[38;5;208m",   // note   orange
                                     "\033[38;5;207m",   // warn   mauve
                                     "\033[38;5;196m",   // error  light red
-                                    "\033[38;5;9m",     // svere  deep red
-                                    "\033[38;5;1m",     // fatal  dark red
-                                    "\033[38;5;244m" }; // none   mid grey
+                                     };
 
   const char* postfix =             "\033[m";
 
-  const char levelNames[][6] =    { "debug",
+  const char levelNames[][6] =    { " deb ",
                                     " info",
                                     " note",
                                     " warn",
-                                    "error",
-                                    "svere",
-                                    "fatal",
-                                    "" };
+                                    " err ",
+                                    };
   //}}}
   pthread_mutex_lock (&m_log_mutex);
 
