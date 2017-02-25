@@ -140,7 +140,6 @@ public:
   bool IsEOS();
   void SubmitEOS();
 
-  bool CanHWDecode (AVCodecID codec);
   static bool HWDecode (AVCodecID codec);
 
   void BuildChannelMap (enum PCMChannels *channelMap, uint64_t layout);
@@ -165,6 +164,8 @@ protected:
   cAvUtil           mAvUtil;
 
 private:
+  bool CanHWDecode (AVCodecID codec);
+
   bool ApplyVolume();
   void UpdateAttenuation();
 
