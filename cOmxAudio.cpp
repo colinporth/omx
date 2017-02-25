@@ -609,7 +609,7 @@ float cOmxAudio::GetVolume() {
 //}}}
 
 //{{{
-unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len, 
+unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len,
                                     double dts, double pts, unsigned int frame_size) {
 
   if (!m_Initialized) {
@@ -933,7 +933,6 @@ bool cOmxAudio::IsEOS() {
 bool cOmxAudio::CanHWDecode (AVCodecID codec) {
 
   switch(codec) {
-    /*
     case AV_CODEC_ID_VORBIS:
       cLog::Log(LOGDEBUG, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingVORBIS");
       m_eEncoding = OMX_AUDIO_CodingVORBIS;
@@ -944,7 +943,6 @@ bool cOmxAudio::CanHWDecode (AVCodecID codec) {
       m_eEncoding = OMX_AUDIO_CodingAAC;
       m_config.hwdecode = true;
       break;
-    */
     case AV_CODEC_ID_MP2:
     case AV_CODEC_ID_MP3:
       cLog::Log (LOGDEBUG, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingMP3");
@@ -980,7 +978,6 @@ bool cOmxAudio::HWDecode (AVCodecID codec) {
 
   bool ret = false;
   switch(codec) {
-    /*
     case AV_CODEC_ID_VORBIS:
       cLog::Log(LOGDEBUG, "cOmxAudio::HWDecode AV_CODEC_ID_VORBIS");
       ret = true;
@@ -989,7 +986,6 @@ bool cOmxAudio::HWDecode (AVCodecID codec) {
       cLog::Log(LOGDEBUG, "cOmxAudio::HWDecode AV_CODEC_ID_AAC");
       ret = true;
       break;
-    */
     case AV_CODEC_ID_MP2:
     case AV_CODEC_ID_MP3:
       cLog::Log (LOGDEBUG, "cOmxAudio::HWDecode AV_CODEC_ID_MP2 / AV_CODEC_ID_MP3");
