@@ -18,7 +18,7 @@
 //{{{  const
 const char* prefixFormat = "%02.2d:%02.2d:%02.2d.%06d%s ";
 
-const char levelColours[][12] = { "\033[38;5;195m",   // debug  bluewhite
+const char levelColours[][12] = { "\033[38;5;159m",   // debug  bluewhite
                                   "\033[38;5;220m",   // info   yellow
                                   "\033[38;5;208m",   // note   orange
                                   "\033[38;5;207m",   // warn   mauve
