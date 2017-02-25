@@ -210,6 +210,7 @@ int main (int argc, char* argv[]) {
     if (mAudioConfig.device == "omx:alsa" && mAudioConfig.subdevice.empty())
       mAudioConfig.subdevice = "default";
 
+    mAudioConfig.hwdecode = true;
     if (m_has_audio) {
       m_stop |= !mPlayerAudio.Open (&mClock, mAudioConfig, &mReader);
       mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
