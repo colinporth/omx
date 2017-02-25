@@ -244,8 +244,7 @@ OMX_ERRORTYPE cOmxCoreComponent::AllocInputBuffers (bool use_buffers /* = false 
   m_input_alignment = portFormat.nBufferAlignment;
   m_input_buffer_count = portFormat.nBufferCountActual;
   m_input_buffer_size= portFormat.nBufferSize;
-
-  cLog::Log (LOGDEBUG, "%s %s port:%d, bufCntMin:%u, bufCntAct:%u, bufSize:%u, bufAlign:%u",
+  cLog::Log (LOGDEBUG, "%s %s port:%d, min:%u, act:%u, size:%u, a:%u",
              __func__, m_componentName.c_str(), GetInputPort(), portFormat.nBufferCountMin,
              portFormat.nBufferCountActual, portFormat.nBufferSize, portFormat.nBufferAlignment);
 
@@ -311,7 +310,7 @@ OMX_ERRORTYPE cOmxCoreComponent::AllocOutputBuffers (bool use_buffers /* = false
   m_output_alignment = portFormat.nBufferAlignment;
   m_output_buffer_count = portFormat.nBufferCountActual;
   m_output_buffer_size = portFormat.nBufferSize;
-  cLog::Log (LOGDEBUG, "%s %s port(%d), nBufferCountMin(%u), nBufferCountActual(%u), nBufferSize(%u) nBufferAlignmen(%u)",
+  cLog::Log (LOGDEBUG, "%s %s port:%d, min:%u, act:%u, size:%u, a:%u",
              __func__, m_componentName.c_str(), m_output_port, portFormat.nBufferCountMin,
              portFormat.nBufferCountActual, portFormat.nBufferSize, portFormat.nBufferAlignment);
 
