@@ -50,6 +50,7 @@ LDFLAGS=   -L /opt/vc/lib \
 	   -l asound \
 	   -l WFC \
 	   -l EGL \
+	   -l brcmGLESv2 \
 	   -l GLESv2 \
 	   -l bcm_host \
 	   -l vcos \
