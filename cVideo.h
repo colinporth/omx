@@ -229,8 +229,8 @@ public:
 //{{{
 class cOmxVideo {
 public:
-  cOmxVideo() {}
-  ~cOmxVideo() { Close(); }
+  cOmxVideo();
+  ~cOmxVideo();
 
   bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
 
@@ -272,33 +272,34 @@ public:
 
 protected:
   cCriticalSection  m_critSection;
-
+  //{{{  vars
+  bool               m_drop_state;
   OMX_VIDEO_CODINGTYPE m_codingType;
 
-  cOmxVideoConfig m_config;
-  std::string m_video_codec_name;
-  cOmxCoreComponent m_omx_decoder;
-  cOmxCoreComponent m_omx_render;
-  cOmxCoreComponent m_omx_sched;
-  cOmxCoreComponent m_omx_image_fx;
+  cOmxCoreComponent  m_omx_decoder;
+  cOmxCoreComponent  m_omx_render;
+  cOmxCoreComponent  m_omx_sched;
+  cOmxCoreComponent  m_omx_image_fx;
+  cOmxCoreComponent* m_omx_clock;
+  cOmxClock*         m_av_clock;
 
-  cOmxCoreTunnel m_omx_tunnel_decoder;
-  cOmxCoreTunnel m_omx_tunnel_clock;
-  cOmxCoreTunnel m_omx_tunnel_sched;
-  cOmxCoreTunnel m_omx_tunnel_image_fx;
+  cOmxCoreTunnel     m_omx_tunnel_decoder;
+  cOmxCoreTunnel     m_omx_tunnel_clock;
+  cOmxCoreTunnel     m_omx_tunnel_sched;
+  cOmxCoreTunnel     m_omx_tunnel_image_fx;
+  bool               m_is_open;
 
-  cOmxClock* m_av_clock = NULL;
-  cOmxCoreComponent* m_omx_clock = NULL;
+  bool               m_setStartTime;
+  std::string        m_video_codec_name;
+  bool               m_deinterlace;
 
-  bool m_is_open = false;
-  bool m_settings_changed = false;
-  bool m_setStartTime = false;
-  bool m_deinterlace = false;
-  bool m_drop_state = false;
-  bool m_submitted_eos = false;
-  bool m_failed_eos = false;
-
-  float m_pixel_aspect = 1.0f;
+  cOmxVideoConfig    m_config;
+  float              m_pixel_aspect;
+  bool               m_submitted_eos;
+  bool               m_failed_eos;
+  OMX_DISPLAYTRANSFORMTYPE m_transform;
+  bool               m_settings_changed;
+  //}}}
 
 private:
   void Close();
