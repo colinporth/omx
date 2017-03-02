@@ -234,16 +234,16 @@ public:
   bool NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize);
 
   bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
-  bool PortSettingsChanged();
-  void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
   void Close ();
 
-  unsigned int GetFreeSpace();
+  bool PortSettingsChanged();
+  void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
+
   unsigned int GetSize();
-  std::string GetDecoderName() { return m_video_codec_name; };
   int GetInputBufferSize();
-  bool IsEOS();
-  bool SubmittedEOS() { return m_submitted_eos; }
+  unsigned int GetFreeSpace();
+
+  std::string GetDecoderName() { return m_video_codec_name; };
   bool BadState() { return m_omx_decoder.BadState(); };
 
   void SetDropState (bool bDrop);
@@ -255,7 +255,9 @@ public:
   int Decode (uint8_t *pData, int iSize, double dts, double pts);
   void Reset();
 
+  bool IsEOS();
   void SubmitEOS();
+  bool SubmittedEOS() { return m_submitted_eos; }
 
 protected:
   cCriticalSection  m_critSection;
@@ -293,15 +295,10 @@ class cOmxPlayerVideo : public cOmxThread {
 public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
+  bool Reset();
 
   bool Open (cOmxClock* av_clock, const cOmxVideoConfig& config);
   bool Close();
-
-  bool OpenDecoder();
-  bool CloseDecoder();
-
-  bool Reset();
-  void Flush();
 
   int GetDecoderBufferSize();
   int GetDecoderFreeSpace();
@@ -328,6 +325,7 @@ public:
 
   bool AddPacket (OMXPacket* pkt);
   void Process();
+  void Flush();
 
   void SubmitEOS();
   bool IsEOS();
@@ -367,6 +365,9 @@ private:
 
   void LockDecoder() { pthread_mutex_lock  (&m_lock_decoder); }
   void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
+
+  bool OpenDecoder();
+  void CloseDecoder();
 
   bool Decode (OMXPacket* pkt);
   };
