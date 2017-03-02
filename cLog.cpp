@@ -103,7 +103,7 @@ void cLog::Log (enum eLogCode logCode, const char *format, ... ) {
 
   pthread_mutex_lock (&m_log_mutex);
 
-  if (logCode <= mLogLevel || (logCode >= LOGWARNING)) {
+  if ((logCode <= mLogLevel) || (logCode >= LOGWARNING)) {
     //{{{  get usec time
     struct timeval now;
     gettimeofday (&now, NULL);

@@ -49,7 +49,7 @@ cOmxVideo::~cOmxVideo() {
 //}}}
 
 //{{{
-bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
+bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig& config) {
 
   cSingleLock lock (m_critSection);
 
