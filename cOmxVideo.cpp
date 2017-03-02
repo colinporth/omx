@@ -703,64 +703,60 @@ void cOmxVideo::SetAlpha (int alpha) {
 //}}}
 
 //{{{
-int cOmxVideo::Decode (uint8_t *pData, int iSize, double dts, double pts) {
+bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
 
   cSingleLock lock (m_critSection);
 
   if (m_drop_state || !m_is_open )
     return true;
 
-  unsigned int demuxer_bytes = (unsigned int)iSize;
-  auto demuxer_content = pData;
+  auto demuxer_content = data;
+  unsigned int demuxer_bytes = (unsigned int)size;
+  OMX_U32 nFlags = 0;
+  if (m_setStartTime) {
+    nFlags |= OMX_BUFFERFLAG_STARTTIME;
+    cLog::Log (LOGDEBUG, "cOmxVideo::Decode setStartTime:%f", (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / DVD_TIME_BASE);
+    m_setStartTime = false;
+    }
+  if ((pts == DVD_NOPTS_VALUE) && (dts == DVD_NOPTS_VALUE))
+    nFlags |= OMX_BUFFERFLAG_TIME_UNKNOWN;
+  else if (pts == DVD_NOPTS_VALUE)
+    nFlags |= OMX_BUFFERFLAG_TIME_IS_DTS;
 
-  if (demuxer_content && demuxer_bytes > 0) {
-    OMX_U32 nFlags = 0;
-    if (m_setStartTime) {
-      nFlags |= OMX_BUFFERFLAG_STARTTIME;
-      cLog::Log (LOGDEBUG, "cOmxVideo::Decode setStartTime:%f", (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / DVD_TIME_BASE);
-      m_setStartTime = false;
+  while (demuxer_bytes) {
+    // 500ms timeout
+    auto omx_buffer = m_omx_decoder.GetInputBuffer (500);
+    if (omx_buffer == NULL) {
+      cLog::Log (LOGERROR, "cOmxVideo::Decode timeout");
+      return false;
       }
-    if ((pts == DVD_NOPTS_VALUE) && (dts == DVD_NOPTS_VALUE))
-      nFlags |= OMX_BUFFERFLAG_TIME_UNKNOWN;
-    else if (pts == DVD_NOPTS_VALUE)
-      nFlags |= OMX_BUFFERFLAG_TIME_IS_DTS;
+    omx_buffer->nFlags = nFlags;
+    omx_buffer->nOffset = 0;
+    omx_buffer->nTimeStamp = toOmxTime ((uint64_t)(pts != DVD_NOPTS_VALUE ? pts : dts != DVD_NOPTS_VALUE ? dts : 0));
+    omx_buffer->nFilledLen = std::min ((OMX_U32)demuxer_bytes, omx_buffer->nAllocLen);
+    memcpy (omx_buffer->pBuffer, demuxer_content, omx_buffer->nFilledLen);
+    demuxer_bytes -= omx_buffer->nFilledLen;
+    demuxer_content += omx_buffer->nFilledLen;
+    if (demuxer_bytes == 0)
+      omx_buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+    if (m_omx_decoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
+      cLog::Log (LOGERROR, "cOmxVideo::Decode OMX_EmptyThisBuffer");
+      m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
+      return false;
+      }
 
-    while (demuxer_bytes) {
-      // 500ms timeout
-      auto omx_buffer = m_omx_decoder.GetInputBuffer (500);
-      if (omx_buffer == NULL) {
-        cLog::Log (LOGERROR, "cOmxVideo::Decode timeout");
+    if (m_omx_decoder.WaitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
+      if (!PortSettingsChanged()) {
+        cLog::Log (LOGERROR, "cOmxVideo::Decode PortSettingsChanged");
         return false;
         }
-      omx_buffer->nFlags = nFlags;
-      omx_buffer->nOffset = 0;
-      omx_buffer->nTimeStamp = toOmxTime ((uint64_t)(pts != DVD_NOPTS_VALUE ? pts : dts != DVD_NOPTS_VALUE ? dts : 0));
-      omx_buffer->nFilledLen = std::min ((OMX_U32)demuxer_bytes, omx_buffer->nAllocLen);
-      memcpy (omx_buffer->pBuffer, demuxer_content, omx_buffer->nFilledLen);
-      demuxer_bytes -= omx_buffer->nFilledLen;
-      demuxer_content += omx_buffer->nFilledLen;
-      if (demuxer_bytes == 0)
-        omx_buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
-      if (m_omx_decoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
-        cLog::Log (LOGERROR, "cOmxVideo::Decode OMX_EmptyThisBuffer");
-        m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
-        return false;
-        }
-
-      if (m_omx_decoder.WaitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
-        if (!PortSettingsChanged()) {
-          cLog::Log (LOGERROR, "cOmxVideo::Decode PortSettingsChanged");
-          return false;
-          }
-        }
-      if (m_omx_decoder.WaitForEvent (OMX_EventParamOrConfigChanged, 0) == OMX_ErrorNone)
-        if (!PortSettingsChanged())
-          cLog::Log (LOGERROR, "OMXVideo::Decode PortSettingsChanged (EventParamOrConfigChanged)");
       }
-    return true;
+    if (m_omx_decoder.WaitForEvent (OMX_EventParamOrConfigChanged, 0) == OMX_ErrorNone)
+      if (!PortSettingsChanged())
+        cLog::Log (LOGERROR, "OMXVideo::Decode PortSettingsChanged (EventParamOrConfigChanged)");
     }
 
-  return false;
+  return true;
   }
 //}}}
 //{{{
