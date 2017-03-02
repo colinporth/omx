@@ -465,7 +465,6 @@ int main (int argc, char* argv[]) {
     mReader.FreePacket (mOmxPacket);
     mOmxPacket = NULL;
     }
-  mReader.Close();
 
   return EXIT_SUCCESS;
   }
