@@ -51,7 +51,6 @@ LDFLAGS=   -L /opt/vc/lib \
 	   -l WFC \
 	   -l EGL \
 	   -l brcmGLESv2 \
-	   -l brcmEGL \
 	   -l GLESv2 \
 	   -l bcm_host \
 	   -l vcos \
