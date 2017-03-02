@@ -69,15 +69,15 @@ public:
   };
 //}}}
 //{{{
-class CRect {
+class cRect {
 public:
   //{{{
-  CRect() {
+  cRect() {
     x1 = y1 = x2 = y2 = 0;
     };
   //}}}
   //{{{
-  CRect (float left, float top, float right, float bottom) {
+  cRect (float left, float top, float right, float bottom) {
     x1 = left; y1 = top; x2 = right; y2 = bottom;
     };
   //}}}
@@ -96,7 +96,7 @@ public:
   //}}}
 
   //{{{
-  inline const CRect &operator -=(const CPoint &point)  {
+  inline const cRect &operator -=(const CPoint &point)  {
     x1 -= point.x;
     y1 -= point.y;
     x2 -= point.x;
@@ -105,7 +105,7 @@ public:
   };
   //}}}
   //{{{
-  inline const CRect &operator +=(const CPoint &point)  {
+  inline const cRect &operator +=(const CPoint &point)  {
     x1 += point.x;
     y1 += point.y;
     x2 += point.x;
@@ -115,7 +115,7 @@ public:
   //}}}
 
   //{{{
-  const CRect &Intersect(const CRect &rect) {
+  const cRect &Intersect(const cRect &rect) {
     x1 = clamp_range(x1, rect.x1, rect.x2);
     x2 = clamp_range(x2, rect.x1, rect.x2);
     y1 = clamp_range(y1, rect.y1, rect.y2);
@@ -124,7 +124,7 @@ public:
   };
   //}}}
   //{{{
-  const CRect &Union(const CRect &rect) {
+  const cRect &Union(const cRect &rect) {
     if (IsEmpty())
       *this = rect;
     else if (!rect.IsEmpty())
@@ -163,7 +163,7 @@ public:
   //}}}
 
   //{{{
-  bool operator !=(const CRect &rect) const {
+  bool operator !=(const cRect &rect) const {
     if (x1 != rect.x1) return true;
     if (x2 != rect.x2) return true;
     if (y1 != rect.y1) return true;
@@ -189,9 +189,11 @@ enum EDEINTERLACEMODE { VS_DEINTERLACEMODE_OFF=0, VS_DEINTERLACEMODE_AUTO=1, VS_
 //{{{
 class cOmxVideoConfig {
 public:
+  //{{{
   cOmxVideoConfig() {
     dst_rect.SetRect (0, 0, 0, 0);
     src_rect.SetRect (0, 0, 0, 0);
+
     display_aspect = 0.0f;
     deinterlace = VS_DEINTERLACEMODE_AUTO;
     advanced_hd_deinterlace = true;
@@ -204,11 +206,12 @@ public:
     queue_size = 10.0f;
     fifo_size = (float)80*1024*60 / (1024*1024);
     }
+  //}}}
 
   cOmxStreamInfo hints;
 
-  CRect dst_rect;
-  CRect src_rect;
+  cRect dst_rect;
+  cRect src_rect;
   float display_aspect;
   EDEINTERLACEMODE deinterlace;
   bool advanced_hd_deinterlace;
@@ -229,15 +232,13 @@ public:
   cOmxVideo();
   ~cOmxVideo();
 
-  // Required overrides
-  bool SendDecoderConfig();
-  bool NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize);
-
   bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
   void Close ();
 
   bool PortSettingsChanged();
   void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
+  bool SendDecoderConfig();
+  bool NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize);
 
   unsigned int GetSize();
   int GetInputBufferSize();
@@ -246,11 +247,22 @@ public:
   std::string GetDecoderName() { return m_video_codec_name; };
   bool BadState() { return m_omx_decoder.BadState(); };
 
-  void SetDropState (bool bDrop);
-  void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
-  void SetVideoRect (int aspectMode);
   void SetVideoRect();
   void SetAlpha (int alpha);
+  void SetDropState (bool bDrop) { m_drop_state = bDrop; }
+  //{{{
+  void SetVideoRect (int aspectMode) {
+    m_config.aspectMode = aspectMode;
+    SetVideoRect();
+    }
+  //}}}
+  //{{{
+  void SetVideoRect (cRect& SrcRect, cRect& DestRect) {
+    m_config.src_rect = SrcRect;
+    m_config.dst_rect = DestRect;
+    SetVideoRect();
+    }
+  //}}}
 
   bool Decode (uint8_t* data, int size, double dts, double pts);
   void Reset();
@@ -261,7 +273,7 @@ public:
 
 protected:
   cCriticalSection  m_critSection;
-
+  //{{{  vars
   bool               m_drop_state;
   OMX_VIDEO_CODINGTYPE m_codingType;
 
@@ -288,6 +300,7 @@ protected:
   bool               m_failed_eos;
   OMX_DISPLAYTRANSFORMTYPE m_transform;
   bool               m_settings_changed;
+  //}}}
   };
 //}}}
 //{{{
@@ -315,22 +328,22 @@ public:
     return m_config.queue_size ? 100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f) : 0;
     };
   //}}}
-
-  void SetDelay (double delay) { m_iVideoDelay = delay; }
   double GetDelay() { return m_iVideoDelay; }
 
-  void SetAlpha (int alpha);
-  void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
+  void SetDelay (double delay) { m_iVideoDelay = delay; }
+  void SetVideoRect (cRect& SrcRect, cRect& DestRect);
   void SetVideoRect (int aspectMode);
+  void SetAlpha (int alpha);
 
-  bool AddPacket (OMXPacket* pkt);
+  bool AddPacket (OMXPacket* omxPacket);
   void Process();
   void Flush();
 
-  void SubmitEOS();
   bool IsEOS();
+  void SubmitEOS();
 
 protected:
+  //{{{  vars
   pthread_cond_t         m_packet_cond;
   pthread_cond_t         m_picture_cond;
 
@@ -358,6 +371,7 @@ protected:
   std::atomic<bool>      m_flush_requested;
   unsigned int           m_cached_size;
   double                 m_iVideoDelay;
+  //}}}
 
 private:
   void Lock() { pthread_mutex_lock (&m_lock); }
@@ -369,6 +383,6 @@ private:
   bool OpenDecoder();
   void CloseDecoder();
 
-  bool Decode (OMXPacket* pkt);
+  bool Decode (OMXPacket* omxPacket);
   };
 //}}}

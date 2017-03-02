@@ -269,7 +269,7 @@ public:
     }
   //}}}
 
-  bool AddPacket (OMXPacket *pkt);
+  bool AddPacket (OMXPacket* omxPacket);
   void Process();
   void Flush();
 
@@ -289,7 +289,7 @@ private:
   bool OpenAudioCodec();
   void CloseAudioCodec();
 
-  bool Decode (OMXPacket *pkt);
+  bool Decode (OMXPacket* omxPacket);
 
   //{{{  vars
   pthread_cond_t         m_packet_cond;
