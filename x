@@ -52,10 +52,12 @@ LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
 	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/lib/arm-linux-gnueabihf \
 	   -l pthread \
 	   -l asound \
+	   -l brcmGLESv2 \
+	   -l brcmEGL \
+	   -l bcm_host \
 	   -l WFC \
 	   -l EGL \
 	   -l GLESv2 \
-	   -l bcm_host \
 	   -l vcos \
 	   -l vchostif \
 	   -l vchiq_arm \

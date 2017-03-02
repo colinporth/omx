@@ -48,12 +48,12 @@ INCLUDES = -I/opt/vc/include \
 LDFLAGS=   -L /opt/vc/lib \
 	   -l pthread \
 	   -l asound \
-	   -l WFC \
-	   -l EGL \
 	   -l brcmGLESv2 \
 	   -l brcmEGL \
-	   -l GLESv2 \
 	   -l bcm_host \
+	   -l WFC \
+	   -l EGL \
+	   -l GLESv2 \
 	   -l vcos \
 	   -l vchostif \
 	   -l vchiq_arm \
