@@ -317,8 +317,10 @@ bool cOmxVideo::PortSettingsChanged() {
   if (m_omx_decoder.GetParameter (OMX_IndexParamBrcmPixelAspectRatio, &pixel_aspect) != OMX_ErrorNone)
     cLog::Log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexParamBrcmPixelAspectRatio");
 
-  if (pixel_aspect.nX && pixel_aspect.nY && !m_config.hints.forced_aspect)
-    m_pixel_aspect = ((float)pixel_aspect.nX / (float)pixel_aspect.nY) / m_config.display_aspect;
+  if (pixel_aspect.nX && pixel_aspect.nY && !m_config.hints.forced_aspect) {
+    float fAspect = (float)pixel_aspect.nX / (float)pixel_aspect.nY;
+    m_pixel_aspect = fAspect / m_config.display_aspect;
+    }
 
   if (m_settings_changed) {
     PortSettingsChangedLogger (port_image, -1);
@@ -356,7 +358,7 @@ bool cOmxVideo::PortSettingsChanged() {
   OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
   OMX_INIT_STRUCTURE(configDisplay);
   configDisplay.nPortIndex = m_omx_render.GetInputPort();
-  configDisplay.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_ALPHA | OMX_DISPLAY_SET_TRANSFORM |
+  configDisplay.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_ALPHA | OMX_DISPLAY_SET_TRANSFORM | 
                                            OMX_DISPLAY_SET_LAYER | OMX_DISPLAY_SET_NUM);
   configDisplay.alpha = m_config.alpha;
   configDisplay.transform = OMX_DISPLAY_ROT0;
@@ -387,7 +389,7 @@ bool cOmxVideo::PortSettingsChanged() {
     }
 
   if (m_deinterlace) {
-    bool advanced_deinterlace = m_config.advanced_hd_deinterlace ||
+    bool advanced_deinterlace = m_config.advanced_hd_deinterlace || 
                               port_image.format.video.nFrameWidth * port_image.format.video.nFrameHeight <= 576 * 720;
     if (!advanced_deinterlace) {
       // Image_fx assumed 3 frames of context. and simple deinterlace don't require this
@@ -408,7 +410,10 @@ bool cOmxVideo::PortSettingsChanged() {
     image_filter.nParams[1] = 0; // default frame interval
     image_filter.nParams[2] = 0; // half framerate
     image_filter.nParams[3] = 1; // use qpus
-    image_filter.eImageFilter = advanced_deinterlace ? OMX_ImageFilterDeInterlaceAdvanced : OMX_ImageFilterDeInterlaceFast;
+    if (advanced_deinterlace)
+      image_filter.eImageFilter = OMX_ImageFilterDeInterlaceAdvanced;
+    else
+      image_filter.eImageFilter = OMX_ImageFilterDeInterlaceFast;
     if (m_omx_image_fx.SetConfig (OMX_IndexConfigCommonImageFilterParameters, &image_filter) != OMX_ErrorNone) {
       cLog::Log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexConfigCommonImageFilterParameters");
       return false;
@@ -416,17 +421,17 @@ bool cOmxVideo::PortSettingsChanged() {
     }
 
   if (m_deinterlace) {
-    m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(),
+    m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(), 
                                      &m_omx_image_fx, m_omx_image_fx.GetInputPort());
-    m_omx_tunnel_image_fx.Initialize (&m_omx_image_fx, m_omx_image_fx.GetOutputPort(),
+    m_omx_tunnel_image_fx.Initialize (&m_omx_image_fx, m_omx_image_fx.GetOutputPort(), 
                                       &m_omx_sched, m_omx_sched.GetInputPort());
     }
   else
-    m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(),
+    m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(), 
                                      &m_omx_sched, m_omx_sched.GetInputPort());
-  m_omx_tunnel_sched.Initialize (&m_omx_sched, m_omx_sched.GetOutputPort(), &m_omx_render,
+  m_omx_tunnel_sched.Initialize (&m_omx_sched, m_omx_sched.GetOutputPort(), &m_omx_render, 
                                  m_omx_render.GetInputPort());
-  m_omx_tunnel_clock.Initialize (m_omx_clock, m_omx_clock->GetInputPort() + 1, &m_omx_sched,
+  m_omx_tunnel_clock.Initialize (m_omx_clock, m_omx_clock->GetInputPort() + 1, &m_omx_sched, 
                                  m_omx_sched.GetOutputPort() + 1);
   if (m_omx_tunnel_clock.Establish() != OMX_ErrorNone) {
     cLog::Log (LOGERROR, "cOmxVideo::PortSettingsChanged m_omx_tunnel_clock.Establish");
