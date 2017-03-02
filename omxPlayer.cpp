@@ -70,35 +70,30 @@ public:
   #define KEY_DOWN 0x5b42
   #define KEY_ESC 27
 
-  static std::map<int, int> buildDefaultKeymap();
+  static map<int, int> buildDefaultKeymap() {
+    map<int,int> keymap;
+    keymap['j'] = ACTION_PREVIOUS_AUDIO;
+    keymap['k'] = ACTION_NEXT_AUDIO;
+    keymap['n'] = ACTION_PREVIOUS_VIDEO;
+    keymap['m'] = ACTION_NEXT_VIDEO;
+
+    keymap['q'] = ACTION_EXIT;
+    keymap[KEY_ESC] = ACTION_EXIT;
+
+    keymap[' '] = ACTION_PLAYPAUSE;
+
+    keymap['-'] = ACTION_DECREASE_VOLUME;
+    keymap['+'] = ACTION_INCREASE_VOLUME;
+    keymap['='] = ACTION_INCREASE_VOLUME;
+
+    keymap[KEY_LEFT] = ACTION_SEEK_BACK_SMALL;
+    keymap[KEY_RIGHT] = ACTION_SEEK_FORWARD_SMALL;
+    keymap[KEY_DOWN] = ACTION_SEEK_BACK_LARGE;
+    keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
+
+    return keymap;
+    }
   };
-//}}}
-//{{{
-map<int, int> cKeyConfig::buildDefaultKeymap() {
-
-  map<int,int> keymap;
-
-  keymap['j'] = ACTION_PREVIOUS_AUDIO;
-  keymap['k'] = ACTION_NEXT_AUDIO;
-  keymap['n'] = ACTION_PREVIOUS_VIDEO;
-  keymap['m'] = ACTION_NEXT_VIDEO;
-
-  keymap['q'] = ACTION_EXIT;
-  keymap[KEY_ESC] = ACTION_EXIT;
-
-  keymap[' '] = ACTION_PLAYPAUSE;
-
-  keymap['-'] = ACTION_DECREASE_VOLUME;
-  keymap['+'] = ACTION_INCREASE_VOLUME;
-  keymap['='] = ACTION_INCREASE_VOLUME;
-
-  keymap[KEY_LEFT] = ACTION_SEEK_BACK_SMALL;
-  keymap[KEY_RIGHT] = ACTION_SEEK_FORWARD_SMALL;
-  keymap[KEY_DOWN] = ACTION_SEEK_BACK_LARGE;
-  keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
-
-  return keymap;
-  }
 //}}}
 
 //{{{
@@ -272,18 +267,20 @@ int main (int argc, char* argv[]) {
       double now = mClock.getAbsoluteClock();
       bool update = (m_last_check_time == 0.0) || (m_last_check_time + DVD_MSEC_TO_TIME(20) <= now);
       if (update) {
-        //{{{  update
+        //{{{  keyboard update
         m_last_check_time = now;
 
         // decode keyboard
         switch (mKeyboard.getEvent()) {
+
+          case cKeyConfig::ACTION_EXIT: g_abort = true; m_stop = true; break;
+          case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
           case cKeyConfig::ACTION_STEP: mClock.step(); break;
 
           case cKeyConfig::ACTION_SEEK_BACK_SMALL: if (mReader.CanSeek()) m_incr = -30.0; break;
           case cKeyConfig::ACTION_SEEK_FORWARD_SMALL: if (mReader.CanSeek()) m_incr = 30.0; break;
           case cKeyConfig::ACTION_SEEK_FORWARD_LARGE: if (mReader.CanSeek()) m_incr = 600.0; break;
           case cKeyConfig::ACTION_SEEK_BACK_LARGE: if (mReader.CanSeek()) m_incr = -600.0; break;
-          case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
 
           //{{{
           case cKeyConfig::ACTION_DECREASE_VOLUME:
@@ -329,7 +326,6 @@ int main (int argc, char* argv[]) {
             break;
           //}}}
 
-          case cKeyConfig::ACTION_EXIT: g_abort = true; m_stop = true; break;
           default: break;
           }
         }
@@ -356,30 +352,16 @@ int main (int argc, char* argv[]) {
         }
         //}}}
       if (update) {
-        //{{{  update
+        //{{{  player update
         /* when the video/audio fifos are low, we pause clock, when high we resume */
         double stamp = mClock.getMediaTime();
+
         double audio_pts = mPlayerAudio.GetCurrentPTS();
-        double video_pts = mPlayerVideo.GetCurrentPTS();
-
-        if (0 && mClock.isPaused()) {
-          //{{{  paused stamp adjust
-          double old_stamp = stamp;
-          if (audio_pts != DVD_NOPTS_VALUE && (stamp == 0 || audio_pts < stamp))
-            stamp = audio_pts;
-
-          if (video_pts != DVD_NOPTS_VALUE && (stamp == 0 || video_pts < stamp))
-            stamp = video_pts;
-
-          if (old_stamp != stamp) {
-            mClock.setMediaTime(stamp);
-            stamp = mClock.getMediaTime();
-            }
-          }
-          //}}}
-
         float audio_fifo = audio_pts == DVD_NOPTS_VALUE ? 0.0f : audio_pts / DVD_TIME_BASE - stamp * 1e-6;
+
+        double video_pts = mPlayerVideo.GetCurrentPTS();
         float video_fifo = video_pts == DVD_NOPTS_VALUE ? 0.0f : video_pts / DVD_TIME_BASE - stamp * 1e-6;
+
         float threshold = std::min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
 
         bool audio_fifo_low = false;
@@ -408,10 +390,12 @@ int main (int argc, char* argv[]) {
 
         // keep latency under control by adjusting clock (and so resampling audio)
         if (mAudioConfig.is_live) {
-          //{{{  live audio
+          //{{{  live latency 
           float latency = DVD_NOPTS_VALUE;
+
           if (m_has_audio && audio_pts != DVD_NOPTS_VALUE)
             latency = audio_fifo;
+
           else if (!m_has_audio && m_has_video && video_pts != DVD_NOPTS_VALUE)
             latency = video_fifo;
 
@@ -477,10 +461,9 @@ int main (int argc, char* argv[]) {
         sentStarted = true;
         }
         //}}}
-      //{{{  read
+      //{{{  packet reader
       if (!mOmxPacket)
         mOmxPacket = mReader.Read();
-
       if (mOmxPacket)
         m_send_eos = false;
 
