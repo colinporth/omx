@@ -297,14 +297,11 @@ public:
   bool Open (cOmxClock* av_clock, const cOmxVideoConfig& config);
   bool Close();
 
-  bool Reset();
-  bool Decode (OMXPacket* pkt);
-  void Process();
-  void Flush();
-  bool AddPacket (OMXPacket* pkt);
-
   bool OpenDecoder();
   bool CloseDecoder();
+
+  bool Reset();
+  void Flush();
 
   int GetDecoderBufferSize();
   int GetDecoderFreeSpace();
@@ -322,9 +319,6 @@ public:
     };
   //}}}
 
-  void SubmitEOS();
-  bool IsEOS();
-
   void SetDelay (double delay) { m_iVideoDelay = delay; }
   double GetDelay() { return m_iVideoDelay; }
 
@@ -332,12 +326,13 @@ public:
   void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
   void SetVideoRect (int aspectMode);
 
-protected:
-  void Lock();
-  void UnLock();
-  void LockDecoder();
-  void UnLockDecoder();
+  bool AddPacket (OMXPacket* pkt);
+  void Process();
 
+  void SubmitEOS();
+  bool IsEOS();
+
+protected:
   pthread_cond_t         m_packet_cond;
   pthread_cond_t         m_picture_cond;
   pthread_mutex_t        m_lock;
@@ -364,5 +359,14 @@ protected:
   std::atomic<bool>      m_flush_requested;
   unsigned int           m_cached_size;
   double                 m_iVideoDelay;
+
+private:
+  void Lock();
+  void UnLock();
+
+  void LockDecoder();
+  void UnLockDecoder();
+
+  bool Decode (OMXPacket* pkt);
   };
 //}}}

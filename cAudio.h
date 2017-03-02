@@ -228,16 +228,11 @@ public:
   bool Open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader);
   bool Close();
 
-  bool Decode (OMXPacket *pkt);
-  void Process();
-  void Flush();
-
-  bool AddPacket (OMXPacket *pkt);
-  bool OpenAudioCodec();
-  void CloseAudioCodec();
-  bool IsPassthrough (cOmxStreamInfo hints);
   bool OpenDecoder();
   bool CloseDecoder();
+
+  bool OpenAudioCodec();
+  void CloseAudioCodec();
 
   double GetDelay();
   double GetCacheTime();
@@ -254,6 +249,9 @@ public:
     return m_config.queue_size ? 100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f) : 0;
     };
   //}}}
+  float GetVolume() { return m_CurrentVolume; }
+  bool IsPassthrough (cOmxStreamInfo hints);
+  bool Error() { return !m_player_error; };
 
   //{{{
   void SetVolume (float fVolume) {
@@ -262,7 +260,6 @@ public:
       m_decoder->SetVolume(fVolume);
     }
   //}}}
-  float GetVolume() { return m_CurrentVolume; }
   //{{{
   void SetMute (bool bOnOff) {
     m_mute = bOnOff;
@@ -277,7 +274,10 @@ public:
       m_decoder->SetDynamicRangeCompression(drc);
     }
   //}}}
-  bool Error() { return !m_player_error; };
+
+  bool AddPacket (OMXPacket *pkt);
+  void Process();
+  void Flush();
 
   void SubmitEOS();
   bool IsEOS();
@@ -288,6 +288,8 @@ private:
 
   void LockDecoder();
   void UnLockDecoder();
+
+  bool Decode (OMXPacket *pkt);
 
   //{{{  vars
   pthread_cond_t         m_packet_cond;
