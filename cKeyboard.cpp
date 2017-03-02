@@ -14,34 +14,6 @@ using namespace std;
 //}}}
 
 //{{{
-map<int, int> cKeyConfig::buildDefaultKeymap() {
-
-  map<int,int> keymap;
-
-  keymap['j'] = ACTION_PREVIOUS_AUDIO;
-  keymap['k'] = ACTION_NEXT_AUDIO;
-  keymap['n'] = ACTION_PREVIOUS_VIDEO;
-  keymap['m'] = ACTION_NEXT_VIDEO;
-
-  keymap['q'] = ACTION_EXIT;
-  keymap[KEY_ESC] = ACTION_EXIT;
-
-  keymap[' '] = ACTION_PLAYPAUSE;
-
-  keymap['-'] = ACTION_DECREASE_VOLUME;
-  keymap['+'] = ACTION_INCREASE_VOLUME;
-  keymap['='] = ACTION_INCREASE_VOLUME;
-
-  keymap[KEY_LEFT] = ACTION_SEEK_BACK_SMALL;
-  keymap[KEY_RIGHT] = ACTION_SEEK_FORWARD_SMALL;
-  keymap[KEY_DOWN] = ACTION_SEEK_BACK_LARGE;
-  keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
-
-  return keymap;
-  }
-//}}}
-
-//{{{
 cKeyboard::cKeyboard() {
 
   if (isatty (STDIN_FILENO)) {
@@ -68,6 +40,14 @@ cKeyboard::~cKeyboard() {
   if (ThreadHandle())
     StopThread();
   restore_term();
+  }
+//}}}
+
+//{{{
+int cKeyboard::getEvent() {
+  int ret = m_action;
+  m_action = -1;
+  return ret;
   }
 //}}}
 
@@ -105,13 +85,5 @@ void cKeyboard::Process() {
     else
       Sleep(20);
     }
-  }
-//}}}
-
-//{{{
-int cKeyboard::getEvent() {
-  int ret = m_action;
-  m_action = -1;
-  return ret;
   }
 //}}}

@@ -53,6 +53,55 @@ enum PCMChannels* m_pChannelMap = NULL;
 //}}}
 
 //{{{
+class cKeyConfig {
+public:
+  enum { ACTION_EXIT, ACTION_PLAYPAUSE,
+         ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
+         ACTION_SEEK_BACK_SMALL, ACTION_SEEK_FORWARD_SMALL,
+         ACTION_SEEK_BACK_LARGE, ACTION_SEEK_FORWARD_LARGE,
+         ACTION_STEP,
+         ACTION_PREVIOUS_AUDIO, ACTION_NEXT_AUDIO,
+         ACTION_PREVIOUS_VIDEO, ACTION_NEXT_VIDEO,
+         };
+
+  #define KEY_LEFT 0x5b44
+  #define KEY_RIGHT 0x5b43
+  #define KEY_UP 0x5b41
+  #define KEY_DOWN 0x5b42
+  #define KEY_ESC 27
+
+  static std::map<int, int> buildDefaultKeymap();
+  };
+//}}}
+//{{{
+map<int, int> cKeyConfig::buildDefaultKeymap() {
+
+  map<int,int> keymap;
+
+  keymap['j'] = ACTION_PREVIOUS_AUDIO;
+  keymap['k'] = ACTION_NEXT_AUDIO;
+  keymap['n'] = ACTION_PREVIOUS_VIDEO;
+  keymap['m'] = ACTION_NEXT_VIDEO;
+
+  keymap['q'] = ACTION_EXIT;
+  keymap[KEY_ESC] = ACTION_EXIT;
+
+  keymap[' '] = ACTION_PLAYPAUSE;
+
+  keymap['-'] = ACTION_DECREASE_VOLUME;
+  keymap['+'] = ACTION_INCREASE_VOLUME;
+  keymap['='] = ACTION_INCREASE_VOLUME;
+
+  keymap[KEY_LEFT] = ACTION_SEEK_BACK_SMALL;
+  keymap[KEY_RIGHT] = ACTION_SEEK_FORWARD_SMALL;
+  keymap[KEY_DOWN] = ACTION_SEEK_BACK_LARGE;
+  keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
+
+  return keymap;
+  }
+//}}}
+
+//{{{
 bool exists (const std::string& path) {
 
   struct stat buf;
