@@ -195,7 +195,7 @@ bool cOmxCoreComponent::Deinitialize() {
     FreeInputBuffers();
     TransitionToStateLoaded();
 
-    cLog::Log (LOGDEBUG, "omxCoreComp::Deinitialize() %s h:%p", m_componentName.c_str(), m_handle);
+    cLog::Log (LOGDEBUG, "omxCoreComp::Deinitialize %s h:%p", m_componentName.c_str(), m_handle);
 
     OMX_ERRORTYPE omx_err;
     if (strncmp ("OMX.alsa.", m_componentName.c_str(), 9) == 0)
@@ -203,7 +203,7 @@ bool cOmxCoreComponent::Deinitialize() {
     else
       omx_err = mOmx->OMX_FreeHandle (m_handle);
     if (omx_err != OMX_ErrorNone)
-      cLog::Log (LOGERROR, "omxCoreComp::Deinitialize() no free handle %s 0x%08x",
+      cLog::Log (LOGERROR, "omxCoreComp::Deinitialize freeHandle %s 0x%08x",
                  m_componentName.c_str(), omx_err);
     m_handle = NULL;
 
