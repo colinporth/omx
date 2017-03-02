@@ -229,6 +229,26 @@ int main (int argc, char* argv[]) {
         // decode keyboard
         switch (mKeyboard.getEvent()) {
           case cKeyConfig::ACTION_STEP: mClock.step(); break;
+
+          case cKeyConfig::ACTION_SEEK_BACK_SMALL: if (mReader.CanSeek()) m_incr = -30.0; break;
+          case cKeyConfig::ACTION_SEEK_FORWARD_SMALL: if (mReader.CanSeek()) m_incr = 30.0; break;
+          case cKeyConfig::ACTION_SEEK_FORWARD_LARGE: if (mReader.CanSeek()) m_incr = 600.0; break;
+          case cKeyConfig::ACTION_SEEK_BACK_LARGE: if (mReader.CanSeek()) m_incr = -600.0; break;
+          case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
+
+          //{{{
+          case cKeyConfig::ACTION_DECREASE_VOLUME:
+            m_Volume -= 300;
+            mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
+            break;
+          //}}}
+          //{{{
+          case cKeyConfig::ACTION_INCREASE_VOLUME:
+            m_Volume += 300;
+            mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
+            break;
+          //}}}
+
           //{{{
           case cKeyConfig::ACTION_PREVIOUS_AUDIO:
             if (m_has_audio) {
@@ -244,23 +264,22 @@ int main (int argc, char* argv[]) {
               mReader.SetActiveStream (OMXSTREAM_AUDIO, mReader.GetAudioIndex() + 1);
             break;
           //}}}
-          case cKeyConfig::ACTION_SEEK_BACK_SMALL: if (mReader.CanSeek()) m_incr = -30.0; break;
-          case cKeyConfig::ACTION_SEEK_FORWARD_SMALL: if (mReader.CanSeek()) m_incr = 30.0; break;
-          case cKeyConfig::ACTION_SEEK_FORWARD_LARGE: if (mReader.CanSeek()) m_incr = 600.0; break;
-          case cKeyConfig::ACTION_SEEK_BACK_LARGE: if (mReader.CanSeek()) m_incr = -600.0; break;
-          case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
           //{{{
-          case cKeyConfig::ACTION_DECREASE_VOLUME:
-            m_Volume -= 300;
-            mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
+          case cKeyConfig::ACTION_PREVIOUS_VIDEO:
+            if (m_has_video) {
+              int new_index = mReader.GetVideoIndex() - 1;
+              if (new_index >= 0)
+                mReader.SetActiveStream (OMXSTREAM_VIDEO, new_index);
+              }
             break;
           //}}}
           //{{{
-          case cKeyConfig::ACTION_INCREASE_VOLUME:
-            m_Volume += 300;
-            mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
+          case cKeyConfig::ACTION_NEXT_VIDEO:
+            if (m_has_video)
+              mReader.SetActiveStream (OMXSTREAM_VIDEO, mReader.GetVideoIndex() + 1);
             break;
           //}}}
+
           case cKeyConfig::ACTION_EXIT: g_abort = true; m_stop = true; break;
           default: break;
           }

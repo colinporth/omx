@@ -20,6 +20,8 @@ map<int, int> cKeyConfig::buildDefaultKeymap() {
 
   keymap['j'] = ACTION_PREVIOUS_AUDIO;
   keymap['k'] = ACTION_NEXT_AUDIO;
+  keymap['n'] = ACTION_PREVIOUS_VIDEO;
+  keymap['m'] = ACTION_NEXT_VIDEO;
 
   keymap['q'] = ACTION_EXIT;
   keymap[KEY_ESC] = ACTION_EXIT;
