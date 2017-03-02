@@ -255,12 +255,12 @@ void cOmxPlayerVideo::Process() {
       break;
       }
 
-    if(m_flush && omx_pkt) {
+    if (m_flush && omx_pkt) {
       cOmxReader::FreePacket (omx_pkt);
       omx_pkt = NULL;
       m_flush = false;
       }
-    else if(!omx_pkt && !m_packets.empty()) {
+    else if (!omx_pkt && !m_packets.empty()) {
       omx_pkt = m_packets.front();
       m_cached_size -= omx_pkt->size;
       m_packets.pop_front();
@@ -302,52 +302,28 @@ bool cOmxPlayerVideo::IsEOS() {
 
 // private
 //{{{
-void cOmxPlayerVideo::Lock() {
-  pthread_mutex_lock(&m_lock);
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::UnLock() {
-  pthread_mutex_unlock(&m_lock);
-  }
-//}}}
-
-//{{{
-void cOmxPlayerVideo::LockDecoder() {
-  pthread_mutex_lock (&m_lock_decoder);
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::UnLockDecoder() {
-  pthread_mutex_unlock(&m_lock_decoder);
-  }
-//}}}
-
-//{{{
 bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
-  if (!pkt)
-    return false;
-
   double dts = pkt->dts;
-  double pts = pkt->pts;
-
   if (dts != DVD_NOPTS_VALUE)
     dts += m_iVideoDelay;
+
+  double pts = pkt->pts;
   if (pts != DVD_NOPTS_VALUE)
     pts += m_iVideoDelay;
-  if(pts != DVD_NOPTS_VALUE)
+  if (pts != DVD_NOPTS_VALUE)
     m_iCurrentPts = pts;
 
-  while( (int) m_decoder->GetFreeSpace() < pkt->size) {
+  while ((int)m_decoder->GetFreeSpace() < pkt->size) {
     cOmxClock::sleep (10);
     if (m_flush_requested)
       return true;
     }
 
-  cLog::Log (LOGINFO, "cOmxPlayerVideo::vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d", 
+  cLog::Log (LOGINFO, "cOmxPlayerVideo::vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d",
              pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
   m_decoder->Decode (pkt->data, pkt->size, dts, pts);
+
   return true;
   }
 //}}}

@@ -335,6 +335,7 @@ public:
 protected:
   pthread_cond_t         m_packet_cond;
   pthread_cond_t         m_picture_cond;
+
   pthread_mutex_t        m_lock;
   pthread_mutex_t        m_lock_decoder;
 
@@ -361,11 +362,11 @@ protected:
   double                 m_iVideoDelay;
 
 private:
-  void Lock();
-  void UnLock();
+  void Lock() { pthread_mutex_lock (&m_lock); }
+  void UnLock() { pthread_mutex_unlock (&m_lock); }
 
-  void LockDecoder();
-  void UnLockDecoder();
+  void LockDecoder() { pthread_mutex_lock  (&m_lock_decoder); }
+  void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
 
   bool Decode (OMXPacket* pkt);
   };
