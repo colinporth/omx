@@ -376,7 +376,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
       return false;
     }
 
-  cLog::Log (LOGINFO, "audDecode dts:%.0f pts:%.0f size:%d", pkt->dts, pkt->pts, pkt->size);
+  cLog::Log (LOGINFO, "cOmxPlayerAudio::audDecode dts:%.0f pts:%.0f size:%d", pkt->dts, pkt->pts, pkt->size);
 
   if (pkt->pts != DVD_NOPTS_VALUE)
     m_iCurrentPts = pkt->pts;
