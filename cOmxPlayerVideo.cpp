@@ -98,30 +98,6 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
   return true;
   }
 //}}}
-//{{{
-bool cOmxPlayerVideo::Close() {
-
-  m_bAbort  = true;
-
-  Flush();
-
-  if (ThreadHandle()) {
-    Lock();
-    pthread_cond_broadcast(&m_packet_cond);
-    UnLock();
-    StopThread();
-    }
-
-  CloseDecoder();
-
-  m_open = false;
-  m_stream_id = -1;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_pStream = NULL;
-
-  return true;
-  }
-//}}}
 
 int  cOmxPlayerVideo::GetDecoderBufferSize() { return m_decoder ? m_decoder->GetInputBufferSize() : 0; }
 int  cOmxPlayerVideo::GetDecoderFreeSpace() { return m_decoder ? m_decoder->GetFreeSpace() : 0; }
@@ -232,6 +208,31 @@ void cOmxPlayerVideo::SubmitEOS() {
 //}}}
 
 // private
+//{{{
+bool cOmxPlayerVideo::Close() {
+
+  m_bAbort  = true;
+
+  Flush();
+
+  if (ThreadHandle()) {
+    Lock();
+    pthread_cond_broadcast(&m_packet_cond);
+    UnLock();
+    StopThread();
+    }
+
+  CloseDecoder();
+
+  m_open = false;
+  m_stream_id = -1;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  m_pStream = NULL;
+
+  return true;
+  }
+//}}}
+
 //{{{
 bool cOmxPlayerVideo::OpenDecoder() {
 

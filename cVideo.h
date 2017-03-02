@@ -233,7 +233,6 @@ public:
   ~cOmxVideo();
 
   bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
-  void Close ();
 
   bool PortSettingsChanged();
   void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
@@ -301,6 +300,9 @@ protected:
   OMX_DISPLAYTRANSFORMTYPE m_transform;
   bool               m_settings_changed;
   //}}}
+
+private:
+  void Close();
   };
 //}}}
 //{{{
@@ -311,7 +313,6 @@ public:
   bool Reset();
 
   bool Open (cOmxClock* av_clock, const cOmxVideoConfig& config);
-  bool Close();
 
   int GetDecoderBufferSize();
   int GetDecoderFreeSpace();
@@ -379,6 +380,8 @@ private:
 
   void LockDecoder() { pthread_mutex_lock  (&m_lock_decoder); }
   void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
+
+  bool Close();
 
   bool OpenDecoder();
   void CloseDecoder();

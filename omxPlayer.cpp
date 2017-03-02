@@ -95,8 +95,6 @@ void sig_handler (int s) {
   signal (SIGABRT, SIG_DFL);
   signal (SIGSEGV, SIG_DFL);
   signal (SIGFPE, SIG_DFL);
-  mKeyboard.Close();
-
   abort();
   }
 //}}}
@@ -462,9 +460,6 @@ int main (int argc, char* argv[]) {
   // exit
   mClock.stop();
   mClock.stateIdle();
-  mPlayerVideo.Close();
-  mPlayerAudio.Close();
-  mKeyboard.Close();
 
   if (mOmxPacket) {
     mReader.FreePacket (mOmxPacket);

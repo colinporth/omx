@@ -351,31 +351,6 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
   return true;
   }
 //}}}
-//{{{
-void cOmxVideo::Close() {
-
-  cSingleLock lock (m_critSection);
-
-  m_omx_tunnel_clock.Deestablish();
-  m_omx_tunnel_decoder.Deestablish();
-  if (m_deinterlace)
-    m_omx_tunnel_image_fx.Deestablish();
-  m_omx_tunnel_sched.Deestablish();
-
-  m_omx_decoder.FlushInput();
-
-  m_omx_sched.Deinitialize();
-  m_omx_decoder.Deinitialize();
-  if (m_deinterlace)
-    m_omx_image_fx.Deinitialize();
-  m_omx_render.Deinitialize();
-
-  m_is_open = false;
-  m_video_codec_name = "";
-  m_deinterlace = false;
-  m_av_clock = NULL;
-  }
-//}}}
 
 //{{{
 void cOmxVideo::PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
@@ -803,5 +778,32 @@ void cOmxVideo::SubmitEOS() {
     }
 
   cLog::Log (LOGINFO, "cOmxVideo::SubmitEOS");
+  }
+//}}}
+
+// private
+//{{{
+void cOmxVideo::Close() {
+
+  cSingleLock lock (m_critSection);
+
+  m_omx_tunnel_clock.Deestablish();
+  m_omx_tunnel_decoder.Deestablish();
+  if (m_deinterlace)
+    m_omx_tunnel_image_fx.Deestablish();
+  m_omx_tunnel_sched.Deestablish();
+
+  m_omx_decoder.FlushInput();
+
+  m_omx_sched.Deinitialize();
+  m_omx_decoder.Deinitialize();
+  if (m_deinterlace)
+    m_omx_image_fx.Deinitialize();
+  m_omx_render.Deinitialize();
+
+  m_is_open = false;
+  m_video_codec_name = "";
+  m_deinterlace = false;
+  m_av_clock = NULL;
   }
 //}}}

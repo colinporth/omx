@@ -83,30 +83,6 @@ bool cOmxPlayerAudio::Open (cOmxClock* av_clock, const cOmxAudioConfig& config, 
   return true;
   }
 //}}}
-//{{{
-bool cOmxPlayerAudio::Close() {
-
-  m_bAbort  = true;
-  Flush();
-
-  if (ThreadHandle()) {
-    Lock();
-    pthread_cond_broadcast (&m_packet_cond);
-    UnLock();
-    StopThread();
-    }
-
-  CloseDecoder();
-  CloseAudioCodec();
-
-  m_open = false;
-  m_stream_id = -1;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_pStream = NULL;
-
-  return true;
-  }
-//}}}
 
 double cOmxPlayerAudio::GetDelay() { return m_decoder ? m_decoder->GetDelay() : 0; }
 double cOmxPlayerAudio::GetCacheTime() { return m_decoder ? m_decoder->GetCacheTime() : 0; }
@@ -230,6 +206,31 @@ bool cOmxPlayerAudio::IsEOS() {
 //}}}
 
 /// private
+//{{{
+bool cOmxPlayerAudio::Close() {
+
+  m_bAbort  = true;
+  Flush();
+
+  if (ThreadHandle()) {
+    Lock();
+    pthread_cond_broadcast (&m_packet_cond);
+    UnLock();
+    StopThread();
+    }
+
+  CloseDecoder();
+  CloseAudioCodec();
+
+  m_open = false;
+  m_stream_id = -1;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  m_pStream = NULL;
+
+  return true;
+  }
+//}}}
+
 //{{{
 bool cOmxPlayerAudio::OpenDecoder() {
 

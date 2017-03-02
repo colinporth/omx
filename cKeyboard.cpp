@@ -63,17 +63,12 @@ cKeyboard::cKeyboard() {
 //}}}
 //{{{
 cKeyboard::~cKeyboard() {
-  Close();
-  }
-//}}}
-
-//{{{
-void cKeyboard::Close() {
   if (ThreadHandle())
     StopThread();
   restore_term();
   }
 //}}}
+
 //{{{
 void cKeyboard::restore_term() {
   if (isatty (STDIN_FILENO))

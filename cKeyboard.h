@@ -61,7 +61,6 @@ public:
   cKeyboard();
   ~cKeyboard();
 
-  void Close();
   void Process();
   void setKeymap (std::map<int,int> keymap);
   void Sleep (unsigned int dwMilliSeconds);

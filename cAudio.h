@@ -226,7 +226,6 @@ public:
   ~cOmxPlayerAudio();
 
   bool Open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader);
-  bool Close();
 
   double GetDelay();
   double GetCacheTime();
@@ -282,6 +281,8 @@ private:
 
   void LockDecoder() { pthread_mutex_lock (&m_lock_decoder); }
   void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
+
+  bool Close();
 
   bool OpenDecoder();
   void CloseDecoder();
