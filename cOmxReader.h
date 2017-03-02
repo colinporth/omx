@@ -69,8 +69,6 @@ public:
   static double NormalizeFrameDuration (double frameduration);
 
   bool Open (std::string filename, bool dump_format, bool live = false, float timeout = 0.0f, std::string cookie = "", std::string user_agent = "", std::string lavfdopts = "", std::string avdict = "");
-  bool Close();
-  void ClearStreams();
 
   bool IsEof();
   bool IsActive (int stream_index);
@@ -115,6 +113,7 @@ public:
 
 private:
   bool getStreams();
+  void ClearStreams();
   void addStream (int id);
 
   double convertTimestamp (int64_t pts, int den, int num);
