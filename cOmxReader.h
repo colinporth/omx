@@ -42,7 +42,6 @@ enum OMXStreamType {
   OMXSTREAM_NONE      = 0,
   OMXSTREAM_AUDIO     = 1,
   OMXSTREAM_VIDEO     = 2,
-  OMXSTREAM_SUBTITLE  = 3
   };
 //}}}
 //{{{
@@ -70,61 +69,57 @@ public:
   static double NormalizeFrameDuration (double frameduration);
 
   bool Open (std::string filename, bool dump_format, bool live = false, float timeout = 0.0f, std::string cookie = "", std::string user_agent = "", std::string lavfdopts = "", std::string avdict = "");
-  void ClearStreams();
   bool Close();
+  void ClearStreams();
 
-  OMXPacket* Read();
-  AVMediaType PacketType (OMXPacket *pkt);
-  bool SeekTime (int time, bool backwords, double *startpts);
-
-  bool CanSeek();
   bool IsEof();
+  bool IsActive (int stream_index);
+  bool IsActive (OMXStreamType type, int stream_index);
+  bool CanSeek();
+
   std::string getFilename() const { return m_filename; }
+  int GetWidth() { return m_width; };
+  int GetHeight() { return m_height; };
+  double GetAspectRatio() { return m_aspect; };
 
   int AudioStreamCount() { return m_audio_count; };
   int VideoStreamCount() { return m_video_count; };
-  int SubtitleStreamCount() { return m_subtitle_count; };
-
-  int GetStreamLength();
-  bool IsActive (int stream_index);
-  bool IsActive (OMXStreamType type, int stream_index);
-
+  int GetAudioIndex() { return (m_audio_index >= 0) ? m_streams[m_audio_index].index : -1; };
+  int GetVideoIndex() { return (m_video_index >= 0) ? m_streams[m_video_index].index : -1; };
   //{{{
   int GetRelativeIndex (size_t index) {
     assert(index < MAX_STREAMS);
     return m_streams[index].index;
     }
   //}}}
-  int GetAudioIndex() { return (m_audio_index >= 0) ? m_streams[m_audio_index].index : -1; };
-  int GetSubtitleIndex() { return (m_subtitle_index >= 0) ? m_streams[m_subtitle_index].index : -1; };
-  int GetVideoIndex() { return (m_video_index >= 0) ? m_streams[m_video_index].index : -1; };
 
-  bool GetHints (AVStream *stream, cOmxStreamInfo *hints);
-  bool GetHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
-  bool GetHints (OMXStreamType type, cOmxStreamInfo &hints);
-
+  int GetStreamLength();
   std::string GetCodecName (OMXStreamType type);
   std::string GetCodecName (OMXStreamType type, unsigned int index);
   std::string GetStreamCodecName (AVStream *stream);
   std::string GetStreamLanguage (OMXStreamType type, unsigned int index);
   std::string GetStreamName (OMXStreamType type, unsigned int index);
   std::string GetStreamType (OMXStreamType type, unsigned int index);
-
-  int GetWidth() { return m_width; };
-  int GetHeight() { return m_height; };
-  double GetAspectRatio() { return m_aspect; };
+  bool GetHints (AVStream *stream, cOmxStreamInfo *hints);
+  bool GetHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
+  bool GetHints (OMXStreamType type, cOmxStreamInfo &hints);
+  AVMediaType PacketType (OMXPacket *pkt);
 
   bool SetActiveStream (OMXStreamType type, unsigned int index);
   double SelectAspect (AVStream* st, bool& forced);
   void SetSpeed (int iSpeed);
 
+  OMXPacket* Read();
+  bool SeekTime (int time, bool backwords, double *startpts);
   void UpdateCurrentPTS();
 
 private:
   bool getStreams();
   void addStream (int id);
+
   double convertTimestamp (int64_t pts, int den, int num);
   bool setActiveStreamInternal (OMXStreamType type, unsigned int index);
+
   OMXPacket* allocPacket (int size);
 
   //{{{  vars
@@ -143,10 +138,8 @@ private:
 
   int              m_video_index;
   int              m_audio_index;
-  int              m_subtitle_index;
   int              m_video_count;
   int              m_audio_count;
-  int              m_subtitle_count;
 
   bool             m_open;
   std::string      m_filename;

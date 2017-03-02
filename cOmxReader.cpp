@@ -459,8 +459,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
     return false;
     }
     //}}}
-  cLog::Log (LOGNOTICE, "cOmxReader::Open stream found a:%d v:%d s:%d",
-             AudioStreamCount(), VideoStreamCount(), SubtitleStreamCount());
+  cLog::Log (LOGNOTICE, "cOmxReader::Open stream found a:%d v:%d", AudioStreamCount(), VideoStreamCount());
 
   m_speed = DVD_PLAYSPEED_NORMAL;
   if (dump_format)
@@ -469,35 +468,6 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
   UpdateCurrentPTS();
   m_open = true;
   return true;
-  }
-//}}}
-//{{{
-void cOmxReader::ClearStreams() {
-
-  m_audio_index = -1;
-  m_video_index = -1;
-  m_subtitle_index = -1;
-
-  m_audio_count = 0;
-  m_video_count = 0;
-  m_subtitle_count = 0;
-
-  for (int i = 0; i < MAX_STREAMS; i++) {
-    if (m_streams[i].extradata)
-      free (m_streams[i].extradata);
-
-    memset (m_streams[i].language, 0, sizeof(m_streams[i].language));
-    m_streams[i].codec_name = "";
-    m_streams[i].name = "";
-    m_streams[i].type = OMXSTREAM_NONE;
-    m_streams[i].stream = NULL;
-    m_streams[i].extradata = NULL;
-    m_streams[i].extrasize = 0;
-    m_streams[i].index = 0;
-    m_streams[i].id = 0;
-    }
-
-  m_program = UINT_MAX;
   }
 //}}}
 //{{{
@@ -531,10 +501,8 @@ bool cOmxReader::Close() {
   m_bAVI = false;
   m_video_count = 0;
   m_audio_count = 0;
-  m_subtitle_count = 0;
   m_audio_index = -1;
   m_video_index = -1;
-  m_subtitle_index = -1;
   m_eof = false;
   m_iCurrentPts = DVD_NOPTS_VALUE;
   m_speed = DVD_PLAYSPEED_NORMAL;
@@ -543,166 +511,37 @@ bool cOmxReader::Close() {
   return true;
   }
 //}}}
-
 //{{{
-OMXPacket* cOmxReader::Read() {
+void cOmxReader::ClearStreams() {
 
-  if (!mAvFormatContext || m_eof)
-    return NULL;
+  m_audio_index = -1;
+  m_video_index = -1;
 
-  cSingleLock lock (m_critSection);
+  m_audio_count = 0;
+  m_video_count = 0;
 
-  // assume we are not eof
-  if (mAvFormatContext->pb)
-    mAvFormatContext->pb->eof_reached = 0;
+  for (int i = 0; i < MAX_STREAMS; i++) {
+    if (m_streams[i].extradata)
+      free (m_streams[i].extradata);
 
-  // keep track if ffmpeg doesn't always set these
-  AVPacket avPacket;
-  avPacket.size = 0;
-  avPacket.data = NULL;
-  avPacket.stream_index = MAX_OMX_STREAMS;
-
-  RESET_TIMEOUT(1);
-  if (mAvFormat.av_read_frame (mAvFormatContext, &avPacket) < 0) {
-    //{{{  error return
-    m_eof = true;
-    return NULL;
-    }
-    //}}}
-  if (avPacket.size < 0 || avPacket.stream_index >= MAX_OMX_STREAMS || interrupt_cb(NULL)) {
-    //{{{  ffmpeg can return neg packet size, eof return
-    if (mAvFormatContext->pb && !mAvFormatContext->pb->eof_reached)
-      cLog::Log (LOGERROR, "cOmxReader::Read no valid packet");
-    mAvCodec.av_free_packet (&avPacket);
-    m_eof = true;
-    return NULL;
-    }
-    //}}}
-
-  auto stream = mAvFormatContext->streams[avPacket.stream_index];
-  if (avPacket.dts == 0)
-    avPacket.dts = AV_NOPTS_VALUE;
-  if (avPacket.pts == 0)
-    avPacket.pts = AV_NOPTS_VALUE;
-
-  // AVI's borked pts, always use dts
-  if (m_bAVI && stream->codec && stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-    avPacket.pts = AV_NOPTS_VALUE;
-
-  auto omxPkt = allocPacket (avPacket.size);
-  if (!omxPkt) {
-    //{{{  error return
-    m_eof = true;
-    mAvCodec.av_free_packet (&avPacket);
-    return NULL;
-    }
-    //}}}
-  omxPkt->codec_type = stream->codec->codec_type;
-  omxPkt->size = avPacket.size;
-  if (avPacket.data)
-    memcpy (omxPkt->data, avPacket.data, omxPkt->size);
-  omxPkt->stream_index = avPacket.stream_index;
-  GetHints (stream, &omxPkt->hints);
-  omxPkt->dts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
-  omxPkt->pts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
-  omxPkt->duration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
-
-  // used to guess streamlength
-  if (omxPkt->dts != DVD_NOPTS_VALUE && (omxPkt->dts > m_iCurrentPts || m_iCurrentPts == DVD_NOPTS_VALUE))
-    m_iCurrentPts = omxPkt->dts;
-
-  // check if stream has passed full duration, needed for live streams
-  if (avPacket.dts != (int64_t)AV_NOPTS_VALUE) {
-    int64_t duration = avPacket.dts;
-    if (stream->start_time != (int64_t)AV_NOPTS_VALUE)
-      duration -= stream->start_time;
-    if (duration > stream->duration) {
-      stream->duration = duration;
-      duration = mAvUtil.av_rescale_rnd (
-       stream->duration, (int64_t)stream->time_base.num * AV_TIME_BASE, stream->time_base.den, AV_ROUND_NEAR_INF);
-      if ((mAvFormatContext->duration == (int64_t)AV_NOPTS_VALUE) ||
-          (mAvFormatContext->duration != (int64_t)AV_NOPTS_VALUE && duration > mAvFormatContext->duration))
-        mAvFormatContext->duration = duration;
-     }
-   }
-
-  mAvCodec.av_free_packet (&avPacket);
-  return omxPkt;
-  }
-//}}}
-//{{{
-AVMediaType cOmxReader::PacketType (OMXPacket* pkt) {
-  return (!mAvFormatContext || !pkt) ?
-    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[pkt->stream_index]->codec->codec_type;
-  }
-//}}}
-//{{{
-bool cOmxReader::SeekTime (int time, bool backwords, double* startpts) {
-
-  if (time < 0)
-    time = 0;
-
-  if (!mAvFormatContext)
-    return false;
-
-  if (mFile && !mFile->IoControl (IOCTRL_SEEK_POSSIBLE, NULL)) {
-    cLog::Log (LOGDEBUG, "cOmxReader::SeekTime input stream reports it is not seekable");
-    return false;
+    memset (m_streams[i].language, 0, sizeof(m_streams[i].language));
+    m_streams[i].codec_name = "";
+    m_streams[i].name = "";
+    m_streams[i].type = OMXSTREAM_NONE;
+    m_streams[i].stream = NULL;
+    m_streams[i].extradata = NULL;
+    m_streams[i].extrasize = 0;
+    m_streams[i].index = 0;
+    m_streams[i].id = 0;
     }
 
-  cSingleLock lock (m_critSection);
-
-  if (m_ioContext)
-    m_ioContext->buf_ptr = m_ioContext->buf_end;
-
-  int64_t seek_pts = (int64_t)time * (AV_TIME_BASE / 1000);
-  if (mAvFormatContext->start_time != (int64_t)AV_NOPTS_VALUE)
-    seek_pts += mAvFormatContext->start_time;
-
-  RESET_TIMEOUT(1);
-  int ret = mAvFormat.av_seek_frame (mAvFormatContext, -1, seek_pts, backwords ? AVSEEK_FLAG_BACKWARD : 0);
-  if (ret >= 0)
-    UpdateCurrentPTS();
-
-  // in this case the start time is requested time
-  if (startpts)
-    *startpts = DVD_MSEC_TO_TIME(time);
-
-  // demuxer will return failure, if you seek to eof
-  m_eof = false;
-  if (ret < 0) {
-    m_eof = true;
-    ret = 0;
-   }
-
-  cLog::Log (LOGDEBUG, "cOmxReader::SeekTime %d seek ended up on time %d",
-             time,(int)(m_iCurrentPts / DVD_TIME_BASE * 1000));
-
-  return (ret >= 0);
+  m_program = UINT_MAX;
   }
 //}}}
 
-//{{{
-bool cOmxReader::CanSeek() {
-
-  if (m_ioContext)
-    return m_ioContext->seekable;
-  if (!mAvFormatContext || !mAvFormatContext->pb)
-    return false;
-  if (mAvFormatContext->pb->seekable == AVIO_SEEKABLE_NORMAL)
-    return true;
-  return false;
-  }
-//}}}
 //{{{
 bool cOmxReader::IsEof() {
   return m_eof;
-  }
-//}}}
-
-//{{{
-int cOmxReader::GetStreamLength() {
-  return mAvFormatContext ? (int)(mAvFormatContext->duration / (AV_TIME_BASE / 1000)) : 0;
   }
 //}}}
 //{{{
@@ -712,8 +551,7 @@ bool cOmxReader::IsActive (int stream_index) {
     return true;
   if ((m_video_index != -1) && m_streams[m_video_index].id == stream_index)
     return true;
-  if ((m_subtitle_index != -1) && m_streams[m_subtitle_index].id == stream_index)
-    return true;
+
   return false;
   }
 //}}}
@@ -728,11 +566,25 @@ bool cOmxReader::IsActive (OMXStreamType type, int stream_index) {
       m_streams[m_video_index].id == stream_index && m_streams[m_video_index].type == type)
     return true;
 
-  if ((m_subtitle_index != -1) &&
-      m_streams[m_subtitle_index].id   == stream_index && m_streams[m_subtitle_index].type == type)
-    return true;
-
   return false;
+  }
+//}}}
+//{{{
+bool cOmxReader::CanSeek() {
+
+  if (m_ioContext)
+    return m_ioContext->seekable;
+  if (!mAvFormatContext || !mAvFormatContext->pb)
+    return false;
+  if (mAvFormatContext->pb->seekable == AVIO_SEEKABLE_NORMAL)
+    return true;
+  return false;
+  }
+//}}}
+
+//{{{
+int cOmxReader::GetStreamLength() {
+  return mAvFormatContext ? (int)(mAvFormatContext->duration / (AV_TIME_BASE / 1000)) : 0;
   }
 //}}}
 //{{{
@@ -751,11 +603,6 @@ std::string cOmxReader::GetCodecName (OMXStreamType type) {
     case OMXSTREAM_VIDEO:
       if (m_video_index != -1)
         strStreamName = m_streams[m_video_index].codec_name;
-      break;
-
-    case OMXSTREAM_SUBTITLE:
-      if (m_subtitle_index != -1)
-        strStreamName = m_streams[m_subtitle_index].codec_name;
       break;
 
     default:
@@ -972,18 +819,17 @@ bool cOmxReader::GetHints (OMXStreamType type, cOmxStreamInfo& hints) {
         }
       break;
 
-    case OMXSTREAM_SUBTITLE:
-      if (m_subtitle_index != -1) {
-        ret = true;
-        hints = m_streams[m_subtitle_index].hints;
-        }
-      break;
-
     default:
       break;
     }
 
   return ret;
+  }
+//}}}
+//{{{
+AVMediaType cOmxReader::PacketType (OMXPacket* pkt) {
+  return (!mAvFormatContext || !pkt) ?
+    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[pkt->stream_index]->codec->codec_type;
   }
 //}}}
 
@@ -1040,6 +886,138 @@ void cOmxReader::SetSpeed (int iSpeed) {
 //}}}
 
 //{{{
+OMXPacket* cOmxReader::Read() {
+
+  if (!mAvFormatContext || m_eof)
+    return NULL;
+
+  cSingleLock lock (m_critSection);
+
+  // assume we are not eof
+  if (mAvFormatContext->pb)
+    mAvFormatContext->pb->eof_reached = 0;
+
+  // keep track if ffmpeg doesn't always set these
+  AVPacket avPacket;
+  avPacket.size = 0;
+  avPacket.data = NULL;
+  avPacket.stream_index = MAX_OMX_STREAMS;
+
+  RESET_TIMEOUT(1);
+  if (mAvFormat.av_read_frame (mAvFormatContext, &avPacket) < 0) {
+    //{{{  error return
+    m_eof = true;
+    return NULL;
+    }
+    //}}}
+  if (avPacket.size < 0 || avPacket.stream_index >= MAX_OMX_STREAMS || interrupt_cb(NULL)) {
+    //{{{  ffmpeg can return neg packet size, eof return
+    if (mAvFormatContext->pb && !mAvFormatContext->pb->eof_reached)
+      cLog::Log (LOGERROR, "cOmxReader::Read no valid packet");
+    mAvCodec.av_free_packet (&avPacket);
+    m_eof = true;
+    return NULL;
+    }
+    //}}}
+
+  auto stream = mAvFormatContext->streams[avPacket.stream_index];
+  if (avPacket.dts == 0)
+    avPacket.dts = AV_NOPTS_VALUE;
+  if (avPacket.pts == 0)
+    avPacket.pts = AV_NOPTS_VALUE;
+
+  // AVI's borked pts, always use dts
+  if (m_bAVI && stream->codec && stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+    avPacket.pts = AV_NOPTS_VALUE;
+
+  auto omxPkt = allocPacket (avPacket.size);
+  if (!omxPkt) {
+    //{{{  error return
+    m_eof = true;
+    mAvCodec.av_free_packet (&avPacket);
+    return NULL;
+    }
+    //}}}
+  omxPkt->codec_type = stream->codec->codec_type;
+  omxPkt->size = avPacket.size;
+  if (avPacket.data)
+    memcpy (omxPkt->data, avPacket.data, omxPkt->size);
+  omxPkt->stream_index = avPacket.stream_index;
+  GetHints (stream, &omxPkt->hints);
+  omxPkt->dts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
+  omxPkt->pts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
+  omxPkt->duration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
+
+  // used to guess streamlength
+  if ((omxPkt->dts != DVD_NOPTS_VALUE) && 
+      (omxPkt->dts > m_iCurrentPts || m_iCurrentPts == DVD_NOPTS_VALUE))
+    m_iCurrentPts = omxPkt->dts;
+
+  // check if stream has passed full duration, needed for live streams
+  if (avPacket.dts != (int64_t)AV_NOPTS_VALUE) {
+    int64_t duration = avPacket.dts;
+    if (stream->start_time != (int64_t)AV_NOPTS_VALUE)
+      duration -= stream->start_time;
+    if (duration > stream->duration) {
+      stream->duration = duration;
+      duration = mAvUtil.av_rescale_rnd (
+        stream->duration, (int64_t)stream->time_base.num * AV_TIME_BASE, stream->time_base.den, AV_ROUND_NEAR_INF);
+      if ((mAvFormatContext->duration == (int64_t)AV_NOPTS_VALUE) ||
+          (mAvFormatContext->duration != (int64_t)AV_NOPTS_VALUE && duration > mAvFormatContext->duration))
+        mAvFormatContext->duration = duration;
+      }
+    }
+  mAvCodec.av_free_packet (&avPacket);
+
+  return omxPkt;
+  }
+//}}}
+//{{{
+bool cOmxReader::SeekTime (int time, bool backwords, double* startpts) {
+
+  if (time < 0)
+    time = 0;
+
+  if (!mAvFormatContext)
+    return false;
+
+  if (mFile && !mFile->IoControl (IOCTRL_SEEK_POSSIBLE, NULL)) {
+    cLog::Log (LOGDEBUG, "cOmxReader::SeekTime input stream reports it is not seekable");
+    return false;
+    }
+
+  cSingleLock lock (m_critSection);
+
+  if (m_ioContext)
+    m_ioContext->buf_ptr = m_ioContext->buf_end;
+
+  int64_t seek_pts = (int64_t)time * (AV_TIME_BASE / 1000);
+  if (mAvFormatContext->start_time != (int64_t)AV_NOPTS_VALUE)
+    seek_pts += mAvFormatContext->start_time;
+
+  RESET_TIMEOUT(1);
+  int ret = mAvFormat.av_seek_frame (mAvFormatContext, -1, seek_pts, backwords ? AVSEEK_FLAG_BACKWARD : 0);
+  if (ret >= 0)
+    UpdateCurrentPTS();
+
+  // in this case the start time is requested time
+  if (startpts)
+    *startpts = DVD_MSEC_TO_TIME(time);
+
+  // demuxer will return failure, if you seek to eof
+  m_eof = false;
+  if (ret < 0) {
+    m_eof = true;
+    ret = 0;
+   }
+
+  cLog::Log (LOGDEBUG, "cOmxReader::SeekTime %d seek ended up on time %d",
+             time,(int)(m_iCurrentPts / DVD_TIME_BASE * 1000));
+
+  return (ret >= 0);
+  }
+//}}}
+//{{{
 void cOmxReader::UpdateCurrentPTS() {
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
@@ -1087,8 +1065,6 @@ bool cOmxReader::getStreams() {
     setActiveStreamInternal (OMXSTREAM_VIDEO, 0);
   if (m_audio_count)
     setActiveStreamInternal (OMXSTREAM_AUDIO, 0);
-  if (m_subtitle_count)
-    setActiveStreamInternal (OMXSTREAM_SUBTITLE, 0);
 
   return true;
   }
@@ -1128,17 +1104,6 @@ void cOmxReader::addStream (int id) {
       break;
     //}}}
     //{{{
-    case AVMEDIA_TYPE_SUBTITLE:
-      m_streams[id].stream      = pStream;
-      m_streams[id].type        = OMXSTREAM_SUBTITLE;
-      m_streams[id].index       = m_subtitle_count;
-      m_streams[id].codec_name  = GetStreamCodecName(pStream);
-      m_streams[id].id          = id;
-      m_subtitle_count++;
-      GetHints(pStream, &m_streams[id].hints);
-      break;
-    //}}}
-    //{{{
     default:
       return;
     //}}}
@@ -1159,6 +1124,7 @@ void cOmxReader::addStream (int id) {
     }
   }
 //}}}
+
 //{{{
 double cOmxReader::convertTimestamp (int64_t pts, int den, int num) {
 
@@ -1202,12 +1168,6 @@ bool cOmxReader::setActiveStreamInternal (OMXStreamType type, unsigned int index
       break;
     //}}}
     //{{{
-    case OMXSTREAM_SUBTITLE:
-      if((int)index > (m_subtitle_count - 1))
-        index = (m_subtitle_count - 1);
-      break;
-    //}}}
-    //{{{
     default:
       break;
     //}}}
@@ -1225,12 +1185,6 @@ bool cOmxReader::setActiveStreamInternal (OMXStreamType type, unsigned int index
         //{{{
         case OMXSTREAM_VIDEO:
           m_video_index = i;
-          ret = true;
-          break;
-        //}}}
-        //{{{
-        case OMXSTREAM_SUBTITLE:
-          m_subtitle_index = i;
           ret = true;
           break;
         //}}}
@@ -1255,11 +1209,6 @@ bool cOmxReader::setActiveStreamInternal (OMXStreamType type, unsigned int index
         break;
       //}}}
       //{{{
-      case OMXSTREAM_SUBTITLE:
-        m_subtitle_index = -1;
-        break;
-      //}}}
-      //{{{
       default:
         break;
       //}}}
@@ -1269,6 +1218,7 @@ bool cOmxReader::setActiveStreamInternal (OMXStreamType type, unsigned int index
   return ret;
   }
 //}}}
+
 //{{{
 OMXPacket* cOmxReader::allocPacket (int size) {
 

@@ -443,7 +443,7 @@ int main (int argc, char* argv[]) {
         else
           cOmxClock::sleep (10);
         }
-      else if (m_has_audio && mOmxPacket && mOmxPacket->codec_type == AVMEDIA_TYPE_AUDIO) {
+      else if (m_has_audio && mOmxPacket && (mOmxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
         if (mPlayerAudio.AddPacket (mOmxPacket))
           mOmxPacket = NULL;
         else
