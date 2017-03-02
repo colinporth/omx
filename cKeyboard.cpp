@@ -115,3 +115,9 @@ int cKeyboard::getEvent() {
   return ret;
   }
 //}}}
+
+//{{{
+void cKeyboard::setKeymap (std::map<int,int> keymap) {
+  m_keymap = keymap;
+  }
+//}}}

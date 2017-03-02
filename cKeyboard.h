@@ -30,11 +30,10 @@ public:
   cKeyboard();
   ~cKeyboard();
 
-  int getEvent();
-  void setKeymap (std::map<int,int> keymap) { m_keymap = keymap; }
-
   void Process();
+  void setKeymap (std::map<int,int> keymap);
   void Sleep (unsigned int dwMilliSeconds);
+  int getEvent();
 
 protected:
   struct termios orig_termios;
