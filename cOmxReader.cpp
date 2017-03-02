@@ -280,42 +280,7 @@ cOmxReader::cOmxReader() {
 //}}}
 //{{{
 cOmxReader::~cOmxReader() {
-
-  if (mAvFormatContext) {
-    if (m_ioContext && mAvFormatContext->pb && mAvFormatContext->pb != m_ioContext) {
-      cLog::Log (LOGWARNING, "cOmxReader::Close  demuxer changed byteContext, possible memleak");
-      m_ioContext = mAvFormatContext->pb;
-      }
-    mAvFormat.avformat_close_input (&mAvFormatContext);
-    }
-
-  if (m_ioContext) {
-    mAvUtil.av_free (m_ioContext->buffer);
-    mAvUtil.av_free (m_ioContext);
-    }
-
-  m_ioContext = NULL;
-  mAvFormatContext = NULL;
-
-  if (mFile) {
-    delete mFile;
-    mFile = NULL;
-    }
-
-  mAvFormat.avformat_network_deinit();
-
-  m_open = false;
-  m_filename = "";
-  m_bAVI = false;
-  m_video_count = 0;
-  m_audio_count = 0;
-  m_audio_index = -1;
-  m_video_index = -1;
-  m_eof = false;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_speed = DVD_PLAYSPEED_NORMAL;
-
-  ClearStreams();
+  Close();
   }
 //}}}
 
@@ -386,6 +351,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
   if (result < 0) {
     //{{{  options error return
     cLog::Log (LOGERROR, "cOmxReader::Open nvalid lavfdopts %s ", lavfdopts.c_str());
+    Close();
     return false;
     }
     //}}}
@@ -395,6 +361,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
   //{{{  dict error return
   if (result < 0) {
     cLog::Log(LOGERROR, "cOmxReader::Open invalid avdict %s ", avdict.c_str());
+    Close();
     return false;
     }
   //}}}
@@ -437,6 +404,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
     av_dict_free (&d);
     if (result < 0) {
       cLog::Log (LOGERROR, "cOmxReader::Open avformat_open_input %s ", m_filename.c_str());
+      Close();
       return false;
       }
     }
@@ -446,6 +414,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
     mFile = new cFile();
     if (!mFile->Open (m_filename, flags)) {
       cLog::Log (LOGERROR, "cOmxReader::Open %s ", m_filename.c_str());
+      Close();
       return false;
       }
 
@@ -464,6 +433,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
 
     if (!iformat) {
       cLog::Log (LOGERROR, "cOmxReader::Open av_probe_input_buffer %s ", m_filename.c_str());
+      Close();
       return false;
       }
 
@@ -471,6 +441,7 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
     result = mAvFormat.avformat_open_input (&mAvFormatContext, m_filename.c_str(), iformat, &d);
     av_dict_free (&d);
     if (result < 0) {
+      Close();
       return false;
       }
     }
@@ -483,9 +454,11 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
 
   cLog::Log (LOGNOTICE, "cOmxReader::Open find streams");
   if ((mAvFormat.avformat_find_stream_info (mAvFormatContext, NULL) < 0) || !getStreams()) {
-    cLog::Log (LOGERROR, "cOmxReader::Open no streams");
+    //{{{  no streams, exit
+    Close();
     return false;
     }
+    //}}}
   cLog::Log (LOGNOTICE, "cOmxReader::Open stream found a:%d v:%d", AudioStreamCount(), VideoStreamCount());
 
   m_speed = DVD_PLAYSPEED_NORMAL;
@@ -495,6 +468,74 @@ bool cOmxReader::Open (std::string filename, bool dump_format,
   UpdateCurrentPTS();
   m_open = true;
   return true;
+  }
+//}}}
+//{{{
+bool cOmxReader::Close() {
+
+  if (mAvFormatContext) {
+    if (m_ioContext && mAvFormatContext->pb && mAvFormatContext->pb != m_ioContext) {
+      cLog::Log(LOGWARNING, "cOmxReader::Close  demuxer changed byteContext, possible memleak");
+      m_ioContext = mAvFormatContext->pb;
+      }
+    mAvFormat.avformat_close_input (&mAvFormatContext);
+    }
+
+  if (m_ioContext) {
+    mAvUtil.av_free (m_ioContext->buffer);
+    mAvUtil.av_free (m_ioContext);
+    }
+
+  m_ioContext = NULL;
+  mAvFormatContext = NULL;
+
+  if (mFile) {
+    delete mFile;
+    mFile = NULL;
+    }
+
+  mAvFormat.avformat_network_deinit();
+
+  m_open = false;
+  m_filename = "";
+  m_bAVI = false;
+  m_video_count = 0;
+  m_audio_count = 0;
+  m_audio_index = -1;
+  m_video_index = -1;
+  m_eof = false;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  m_speed = DVD_PLAYSPEED_NORMAL;
+
+  ClearStreams();
+  return true;
+  }
+//}}}
+//{{{
+void cOmxReader::ClearStreams() {
+
+  m_audio_index = -1;
+  m_video_index = -1;
+
+  m_audio_count = 0;
+  m_video_count = 0;
+
+  for (int i = 0; i < MAX_STREAMS; i++) {
+    if (m_streams[i].extradata)
+      free (m_streams[i].extradata);
+
+    memset (m_streams[i].language, 0, sizeof(m_streams[i].language));
+    m_streams[i].codec_name = "";
+    m_streams[i].name = "";
+    m_streams[i].type = OMXSTREAM_NONE;
+    m_streams[i].stream = NULL;
+    m_streams[i].extradata = NULL;
+    m_streams[i].extrasize = 0;
+    m_streams[i].index = 0;
+    m_streams[i].id = 0;
+    }
+
+  m_program = UINT_MAX;
   }
 //}}}
 
@@ -908,7 +949,7 @@ OMXPacket* cOmxReader::Read() {
   omxPkt->duration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
 
   // used to guess streamlength
-  if ((omxPkt->dts != DVD_NOPTS_VALUE) &&
+  if ((omxPkt->dts != DVD_NOPTS_VALUE) && 
       (omxPkt->dts > m_iCurrentPts || m_iCurrentPts == DVD_NOPTS_VALUE))
     m_iCurrentPts = omxPkt->dts;
 
@@ -1029,64 +1070,37 @@ bool cOmxReader::getStreams() {
   }
 //}}}
 //{{{
-void cOmxReader::ClearStreams() {
-
-  m_audio_index = -1;
-  m_video_index = -1;
-
-  m_audio_count = 0;
-  m_video_count = 0;
-
-  for (int i = 0; i < MAX_STREAMS; i++) {
-    if (m_streams[i].extradata)
-      free (m_streams[i].extradata);
-
-    memset (m_streams[i].language, 0, sizeof(m_streams[i].language));
-    m_streams[i].codec_name = "";
-    m_streams[i].name = "";
-    m_streams[i].type = OMXSTREAM_NONE;
-    m_streams[i].stream = NULL;
-    m_streams[i].extradata = NULL;
-    m_streams[i].extrasize = 0;
-    m_streams[i].index = 0;
-    m_streams[i].id = 0;
-    }
-
-  m_program = UINT_MAX;
-  }
-//}}}
-//{{{
 void cOmxReader::addStream (int id) {
 
   if (id > MAX_STREAMS || !mAvFormatContext)
     return;
 
   // discard if it's a picture attachment (e.g. album art embedded in MP3 or AAC)
-  auto stream = mAvFormatContext->streams[id];
-  if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO && (stream->disposition & AV_DISPOSITION_ATTACHED_PIC))
+  auto pStream = mAvFormatContext->streams[id];
+  if (pStream->codec->codec_type == AVMEDIA_TYPE_VIDEO && (pStream->disposition & AV_DISPOSITION_ATTACHED_PIC))
     return;
 
-  switch (stream->codec->codec_type) {
+  switch (pStream->codec->codec_type) {
     //{{{
     case AVMEDIA_TYPE_AUDIO:
-      m_streams[id].stream      = stream;
+      m_streams[id].stream      = pStream;
       m_streams[id].type        = OMXSTREAM_AUDIO;
       m_streams[id].index       = m_audio_count;
-      m_streams[id].codec_name  = GetStreamCodecName (stream);
+      m_streams[id].codec_name  = GetStreamCodecName(pStream);
       m_streams[id].id          = id;
       m_audio_count++;
-      GetHints (stream, &m_streams[id].hints);
+      GetHints(pStream, &m_streams[id].hints);
       break;
     //}}}
     //{{{
     case AVMEDIA_TYPE_VIDEO:
-      m_streams[id].stream      = stream;
+      m_streams[id].stream      = pStream;
       m_streams[id].type        = OMXSTREAM_VIDEO;
       m_streams[id].index       = m_video_count;
-      m_streams[id].codec_name  = GetStreamCodecName (stream);
+      m_streams[id].codec_name  = GetStreamCodecName(pStream);
       m_streams[id].id          = id;
       m_video_count++;
-      GetHints (stream, &m_streams[id].hints);
+      GetHints(pStream, &m_streams[id].hints);
       break;
     //}}}
     //{{{
@@ -1095,18 +1109,18 @@ void cOmxReader::addStream (int id) {
     //}}}
     }
 
-  auto langTag = mAvUtil.av_dict_get (stream->metadata, "language", NULL, 0);
+  auto langTag = mAvUtil.av_dict_get (pStream->metadata, "language", NULL, 0);
   if (langTag)
     strncpy (m_streams[id].language, langTag->value, 3);
 
-  auto titleTag = mAvUtil.av_dict_get (stream->metadata, "title", NULL, 0);
+  auto titleTag = mAvUtil.av_dict_get (pStream->metadata,"title", NULL, 0);
   if (titleTag)
     m_streams[id].name = titleTag->value;
 
-  if (stream->codec->extradata && stream->codec->extradata_size > 0) {
-    m_streams[id].extrasize = stream->codec->extradata_size;
-    m_streams[id].extradata = malloc (stream->codec->extradata_size);
-    memcpy (m_streams[id].extradata, stream->codec->extradata, stream->codec->extradata_size);
+  if (pStream->codec->extradata && pStream->codec->extradata_size > 0) {
+    m_streams[id].extrasize = pStream->codec->extradata_size;
+    m_streams[id].extradata = malloc (pStream->codec->extradata_size);
+    memcpy (m_streams[id].extradata, pStream->codec->extradata, pStream->codec->extradata_size);
     }
   }
 //}}}
