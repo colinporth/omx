@@ -162,7 +162,7 @@ void blankBackground (uint32_t rgba) {
 //{{{
 int main (int argc, char* argv[]) {
 
-  cLog::Init ("./", LOGDEBUG);
+  cLog::Init ("./", LOGINFO1);
   cLog::Log (LOGNOTICE, "omxPlayer %s %s", VERSION_DATE, argv[1]);
 
   mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
