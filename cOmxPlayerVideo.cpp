@@ -176,8 +176,8 @@ bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
 //{{{
 void cOmxPlayerVideo::Process() {
 
-  OMXPacket *omx_pkt = NULL;
-  while(true) {
+  OMXPacket* omx_pkt = NULL;
+  while (true) {
     Lock();
     if (!(m_bStop || m_bAbort) && m_packets.empty())
       pthread_cond_wait (&m_packet_cond, &m_lock);
@@ -200,17 +200,19 @@ void cOmxPlayerVideo::Process() {
     UnLock();
 
     LockDecoder();
-    if (m_flush && omx_pkt) {
-      cOmxReader::FreePacket (omx_pkt);
-      omx_pkt = NULL;
-      m_flush = false;
-      }
-    else if (omx_pkt && Decode (omx_pkt)) {
-      cOmxReader::FreePacket (omx_pkt);
-      omx_pkt = NULL;
+    if (omx_pkt) {
+      if (m_flush) {
+        cOmxReader::FreePacket (omx_pkt);
+        omx_pkt = NULL;
+        m_flush = false;
+        }
+      else if (Decode (omx_pkt)) {
+        cOmxReader::FreePacket (omx_pkt);
+        omx_pkt = NULL;
+        }
       }
     UnLockDecoder();
-     }
+    }
 
   if (omx_pkt)
     cOmxReader::FreePacket (omx_pkt);
@@ -315,10 +317,9 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
       return true;
     }
 
-  cLog::Log (LOGINFO, "cOmxPlayerVideo::vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d",
+  cLog::Log (LOGINFO, "cOmxVideo::vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d",
              pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
-  m_decoder->Decode (pkt->data, pkt->size, dts, pts);
 
-  return true;
+  return m_decoder->Decode (pkt->data, pkt->size, dts, pts);
   }
 //}}}

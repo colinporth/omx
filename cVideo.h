@@ -252,7 +252,7 @@ public:
   void SetVideoRect();
   void SetAlpha (int alpha);
 
-  int Decode (uint8_t *pData, int iSize, double dts, double pts);
+  bool Decode (uint8_t* data, int size, double dts, double pts);
   void Reset();
 
   bool IsEOS();
