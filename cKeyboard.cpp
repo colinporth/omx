@@ -64,7 +64,7 @@ void cKeyboard::Sleep (unsigned int dwMilliSeconds) {
   struct timespec req;
   req.tv_sec = dwMilliSeconds / 1000;
   req.tv_nsec = (dwMilliSeconds % 1000) * 1000000;
-  while ( nanosleep(&req, &req) == -1 && errno == EINTR && (req.tv_nsec > 0 || req.tv_sec > 0));
+  while (nanosleep(&req, &req) == -1 && errno == EINTR && (req.tv_nsec > 0 || req.tv_sec > 0));
   }
 //}}}
 //{{{
@@ -76,10 +76,12 @@ void cKeyboard::Process() {
 
     while ((ch[chnum] = getchar()) != EOF)
       chnum++;
+
     if (chnum > 1)
       ch[0] = ch[chnum - 1] | (ch[chnum - 2] << 8);
     if (chnum > 0)
       cLog::Log (LOGINFO, "cKeyboard char 0x%x %c ", ch[0], ch[0]);
+
     if (m_keymap[ch[0]] != 0)
       m_action = m_keymap[ch[0]];
     else

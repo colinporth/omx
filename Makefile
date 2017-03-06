@@ -61,8 +61,6 @@ LDFLAGS=   -L /opt/vc/lib \
 	   -l avutil \
 	   -l avcodec \
 	   -l avformat \
-	   -l swscale \
-	   -l swresample \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
