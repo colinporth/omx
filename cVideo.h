@@ -287,7 +287,6 @@ protected:
   bool               m_failed_eos;
   OMX_DISPLAYTRANSFORMTYPE m_transform;
   bool               m_settings_changed;
-<<<<<<< HEAD
   //}}}
 
 private:
