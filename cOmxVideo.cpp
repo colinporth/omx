@@ -49,6 +49,50 @@ cOmxVideo::~cOmxVideo() {
 //}}}
 
 //{{{
+bool cOmxVideo::SendDecoderConfig() {
+
+  cSingleLock lock (m_critSection);
+
+  if ((m_config.hints.extrasize > 0) && (m_config.hints.extradata != NULL)) {
+    auto omx_buffer = m_omx_decoder.GetInputBuffer();
+    if (omx_buffer == NULL) {
+      cLog::Log (LOGERROR, "cOmxVideo::SendDecoderConfig buffer error");
+      return false;
+      }
+
+    omx_buffer->nOffset = 0;
+    omx_buffer->nFilledLen = std::min ((OMX_U32)m_config.hints.extrasize, omx_buffer->nAllocLen);
+    memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
+    memcpy ((unsigned char*)omx_buffer->pBuffer, m_config.hints.extradata, omx_buffer->nFilledLen);
+    omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
+    if (m_omx_decoder.EmptyThisBuffer(omx_buffer) != OMX_ErrorNone) {
+      cLog::Log (LOGERROR, "cOmxVideo::SendDecoderConfig OMX_EmptyThisBuffer()");
+      m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
+      return false;
+      }
+    }
+
+  return true;
+  }
+//}}}
+//{{{
+bool cOmxVideo::NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize) {
+// valid avcC atom data always starts with the value 1 (version), otherwise annexb
+
+  switch (codec) {
+    case AV_CODEC_ID_H264:
+      if (in_extrasize < 7 || in_extradata == NULL)
+        return true;
+      else if (*in_extradata != 1)
+        return true;
+    default: break;
+    }
+
+  return false;
+  }
+//}}}
+
+//{{{
 bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   cSingleLock lock (m_critSection);
@@ -530,49 +574,6 @@ bool cOmxVideo::PortSettingsChanged() {
   return true;
   }
 //}}}
-//{{{
-bool cOmxVideo::SendDecoderConfig() {
-
-  cSingleLock lock (m_critSection);
-
-  if ((m_config.hints.extrasize > 0) && (m_config.hints.extradata != NULL)) {
-    auto omx_buffer = m_omx_decoder.GetInputBuffer();
-    if (omx_buffer == NULL) {
-      cLog::Log (LOGERROR, "cOmxVideo::SendDecoderConfig buffer error");
-      return false;
-      }
-
-    omx_buffer->nOffset = 0;
-    omx_buffer->nFilledLen = std::min ((OMX_U32)m_config.hints.extrasize, omx_buffer->nAllocLen);
-    memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
-    memcpy ((unsigned char*)omx_buffer->pBuffer, m_config.hints.extradata, omx_buffer->nFilledLen);
-    omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
-    if (m_omx_decoder.EmptyThisBuffer(omx_buffer) != OMX_ErrorNone) {
-      cLog::Log (LOGERROR, "cOmxVideo::SendDecoderConfig OMX_EmptyThisBuffer()");
-      m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
-      return false;
-      }
-    }
-
-  return true;
-  }
-//}}}
-//{{{
-bool cOmxVideo::NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize) {
-// valid avcC atom data always starts with the value 1 (version), otherwise annexb
-
-  switch (codec) {
-    case AV_CODEC_ID_H264:
-      if (in_extrasize < 7 || in_extradata == NULL)
-        return true;
-      else if (*in_extradata != 1)
-        return true;
-    default: break;
-    }
-
-  return false;
-  }
-//}}}
 
 //{{{
 unsigned int cOmxVideo::GetSize() {
@@ -593,6 +594,24 @@ unsigned int cOmxVideo::GetFreeSpace() {
   }
 //}}}
 
+//{{{
+void cOmxVideo::SetDropState (bool bDrop) {
+  m_drop_state = bDrop;
+  }
+//}}}
+//{{{
+void cOmxVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) {
+  m_config.src_rect = SrcRect;
+  m_config.dst_rect = DestRect;
+  SetVideoRect();
+  }
+//}}}
+//{{{
+void cOmxVideo::SetVideoRect (int aspectMode) {
+  m_config.aspectMode = aspectMode;
+  SetVideoRect();
+  }
+//}}}
 //{{{
 void cOmxVideo::SetVideoRect() {
 

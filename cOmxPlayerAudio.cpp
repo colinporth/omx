@@ -103,15 +103,15 @@ bool cOmxPlayerAudio::IsPassthrough (cOmxStreamInfo hints) {
 //}}}
 
 //{{{
-bool cOmxPlayerAudio::AddPacket (OMXPacket* omxPacket) {
+bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
 
   if (m_bStop || m_bAbort)
     return false;
 
-  if ((m_cached_size + omxPacket->size) < m_config.queue_size * 1024 * 1024) {
+  if ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024) {
     Lock();
-    m_cached_size += omxPacket->size;
-    m_packets.push_back (omxPacket);
+    m_cached_size += pkt->size;
+    m_packets.push_back (pkt);
     UnLock();
 
     pthread_cond_broadcast (&m_packet_cond);
@@ -124,7 +124,7 @@ bool cOmxPlayerAudio::AddPacket (OMXPacket* omxPacket) {
 //{{{
 void cOmxPlayerAudio::Process() {
 
-  OMXPacket* omxPacket = NULL;
+  OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();
     if (!(m_bStop || m_bAbort) && m_packets.empty())
@@ -135,33 +135,33 @@ void cOmxPlayerAudio::Process() {
       break;
       }
 
-    if (m_flush && omxPacket) {
-      cOmxReader::FreePacket (omxPacket);
-      omxPacket = NULL;
+    if (m_flush && omx_pkt) {
+      cOmxReader::FreePacket (omx_pkt);
+      omx_pkt = NULL;
       m_flush = false;
       }
-    else if (!omxPacket && !m_packets.empty()) {
-      omxPacket = m_packets.front();
-      m_cached_size -= omxPacket->size;
+    else if (!omx_pkt && !m_packets.empty()) {
+      omx_pkt = m_packets.front();
+      m_cached_size -= omx_pkt->size;
       m_packets.pop_front();
       }
     UnLock();
 
     LockDecoder();
-    if (m_flush && omxPacket) {
-      cOmxReader::FreePacket (omxPacket);
-      omxPacket = NULL;
+    if (m_flush && omx_pkt) {
+      cOmxReader::FreePacket (omx_pkt);
+      omx_pkt = NULL;
       m_flush = false;
       }
-    else if (omxPacket && Decode (omxPacket)) {
-      cOmxReader::FreePacket (omxPacket);
-      omxPacket = NULL;
+    else if (omx_pkt && Decode (omx_pkt)) {
+      cOmxReader::FreePacket (omx_pkt);
+      omx_pkt = NULL;
       }
     UnLockDecoder();
     }
 
-  if (omxPacket)
-    cOmxReader::FreePacket (omxPacket);
+  if (omx_pkt)
+    cOmxReader::FreePacket (omx_pkt);
   }
 //}}}
 //{{{
@@ -178,9 +178,9 @@ void cOmxPlayerAudio::Flush() {
   m_flush_requested = false;
   m_flush = true;
   while (!m_packets.empty()) {
-    auto omxPacket = m_packets.front();
+    auto pkt = m_packets.front();
     m_packets.pop_front();
-    cOmxReader::FreePacket (omxPacket);
+    cOmxReader::FreePacket (pkt);
     }
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
@@ -300,17 +300,17 @@ void cOmxPlayerAudio::CloseAudioCodec() {
 //}}}
 
 //{{{
-bool cOmxPlayerAudio::Decode (OMXPacket* omxPacket) {
+bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
 
   if (!m_decoder || !m_pAudioCodec)
     return true;
 
-  if (!m_omx_reader->IsActive (OMXSTREAM_AUDIO, omxPacket->stream_index))
+  if (!m_omx_reader->IsActive (OMXSTREAM_AUDIO, pkt->stream_index))
     return true;
 
-  int channels = omxPacket->hints.channels;
+  int channels = pkt->hints.channels;
   unsigned int old_bitrate = m_config.hints.bitrate;
-  unsigned int new_bitrate = omxPacket->hints.bitrate;
+  unsigned int new_bitrate = pkt->hints.bitrate;
 
   /* only check bitrate changes on AV_CODEC_ID_DTS, AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3 */
   if (m_config.hints.codec != AV_CODEC_ID_DTS &&
@@ -319,20 +319,19 @@ bool cOmxPlayerAudio::Decode (OMXPacket* omxPacket) {
 
   // for passthrough we only care about the codec and the samplerate
   bool minor_change = channels != m_config.hints.channels ||
-                      omxPacket->hints.bitspersample != m_config.hints.bitspersample ||
+                      pkt->hints.bitspersample != m_config.hints.bitspersample ||
                       old_bitrate != new_bitrate;
 
-  if (omxPacket->hints.codec != m_config.hints.codec ||
-      omxPacket->hints.samplerate!= m_config.hints.samplerate || (!m_passthrough && minor_change)) {
+  if (pkt->hints.codec != m_config.hints.codec ||
+      pkt->hints.samplerate!= m_config.hints.samplerate || (!m_passthrough && minor_change)) {
     printf ("C : %d %d %d %d %d\n",
             m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate, m_config.hints.bitrate, m_config.hints.bitspersample);
     printf ("N : %d %d %d %d %d\n",
-            omxPacket->hints.codec, channels, omxPacket->hints.samplerate,
-            omxPacket->hints.bitrate, omxPacket->hints.bitspersample);
+            pkt->hints.codec, channels, pkt->hints.samplerate, pkt->hints.bitrate, pkt->hints.bitspersample);
     CloseDecoder();
     CloseAudioCodec();
 
-    m_config.hints = omxPacket->hints;
+    m_config.hints = pkt->hints;
     m_player_error = OpenAudioCodec();
     if (!m_player_error)
       return false;
@@ -342,19 +341,18 @@ bool cOmxPlayerAudio::Decode (OMXPacket* omxPacket) {
       return false;
     }
 
-  cLog::Log (LOGINFO, "cOmxPlayerAudio::Decode dts:%.0f pts:%.0f size:%d",
-             omxPacket->dts, omxPacket->pts, omxPacket->size);
+  cLog::Log (LOGINFO, "cOmxPlayerAudio::audDecode dts:%.0f pts:%.0f size:%d", pkt->dts, pkt->pts, pkt->size);
 
-  if (omxPacket->pts != DVD_NOPTS_VALUE)
-    m_iCurrentPts = omxPacket->pts;
-  else if (omxPacket->dts != DVD_NOPTS_VALUE)
-    m_iCurrentPts = omxPacket->dts;
+  if (pkt->pts != DVD_NOPTS_VALUE)
+    m_iCurrentPts = pkt->pts;
+  else if (pkt->dts != DVD_NOPTS_VALUE)
+    m_iCurrentPts = pkt->dts;
 
-  const uint8_t* data_dec = omxPacket->data;
-  int data_len = omxPacket->size;
+  const uint8_t* data_dec = pkt->data;
+  int data_len = pkt->size;
 
   if (!m_passthrough && !m_hw_decode) {
-    double dts = omxPacket->dts, pts = omxPacket->pts;
+    double dts = pkt->dts, pts=pkt->pts;
     while (data_len > 0) {
       int len = m_pAudioCodec->Decode((BYTE *)data_dec, data_len, dts, pts);
       if ((len < 0) || (len >  data_len)) {
@@ -382,13 +380,13 @@ bool cOmxPlayerAudio::Decode (OMXPacket* omxPacket) {
       }
     }
   else {
-    while ((int) m_decoder->GetSpace() < omxPacket->size) {
+    while ((int) m_decoder->GetSpace() < pkt->size) {
       cOmxClock::sleep (10);
       if (m_flush_requested)
         return true;
       }
 
-    m_decoder->AddPackets (omxPacket->data, omxPacket->size, omxPacket->dts, omxPacket->pts, 0);
+    m_decoder->AddPackets (pkt->data, pkt->size, pkt->dts, pkt->pts, 0);
     }
 
   return true;
