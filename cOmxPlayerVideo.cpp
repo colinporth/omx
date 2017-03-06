@@ -117,6 +117,23 @@ int  cOmxPlayerVideo::GetDecoderFreeSpace() {
 //}}}
 
 //{{{
+int  cOmxPlayerVideo::GetDecoderBufferSize() {
+  if (m_decoder)
+    return m_decoder->GetInputBufferSize();
+  else
+    return 0;
+  }
+//}}}
+//{{{
+int  cOmxPlayerVideo::GetDecoderFreeSpace() {
+  if (m_decoder)
+    return m_decoder->GetFreeSpace();
+  else
+    return 0;
+  }
+//}}}
+
+//{{{
 void cOmxPlayerVideo::SetAlpha (int alpha) {
   m_decoder->SetAlpha (alpha);
   }
