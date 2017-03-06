@@ -83,3 +83,8 @@ clean:
 	@rm -f *.o
 	@rm -f omxPlayer
 	@rm -f omxPlayer.old.log omxPlayer.log
+
+.PHONY: clean rebuild
+
+rebuild:
+	make clean && make
