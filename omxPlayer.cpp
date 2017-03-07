@@ -206,7 +206,7 @@ void blankBackground (uint32_t rgba) {
 //{{{
 int main (int argc, char* argv[]) {
 
-  cLog::Init ("./", LOGINFO1);
+  cLog::Init ("./", LOGINFO3);
   cLog::Log (LOGNOTICE, "omxPlayer %s %s", VERSION_DATE, argv[1]);
 
   mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
@@ -390,7 +390,7 @@ int main (int argc, char* argv[]) {
 
         // keep latency under control by adjusting clock (and so resampling audio)
         if (mAudioConfig.is_live) {
-          //{{{  live latency 
+          //{{{  live latency
           float latency = DVD_NOPTS_VALUE;
 
           if (m_has_audio && audio_pts != DVD_NOPTS_VALUE)

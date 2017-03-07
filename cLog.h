@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string>
 
-enum eLogCode { LOGNONE, LOGNOTICE, LOGINFO, LOGINFO1, LOGDEBUG, LOGWARNING, LOGERROR } ;
+enum eLogCode { LOGNONE, LOGNOTICE, LOGINFO, LOGINFO1, LOGINFO2, LOGINFO3, LOGDEBUG, LOGWARNING, LOGERROR } ;
 
 class cLog {
 public:
