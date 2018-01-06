@@ -473,9 +473,11 @@ bool cOmxVideo::PortSettingsChanged() {
   configDisplay.layer = m_config.layer;
   configDisplay.transform = m_transform;
   if (m_omx_render.SetConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone) {
+    //{{{  error return
     cLog::log (LOGINFO1, "cOmxVideo::PortSettingsChanged OMX_IndexConfigDisplayRegion %d", m_transform);
     return false;
     }
+    //}}}
 
   SetVideoRect();
 
@@ -492,9 +494,11 @@ bool cOmxVideo::PortSettingsChanged() {
     latencyTarget.nAdjCap = 20;
 
     if (m_omx_render.SetConfig (OMX_IndexConfigLatencyTarget, &latencyTarget) != OMX_ErrorNone) {
+      //{{{  error return
       cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexConfigLatencyTarget");
       return false;
       }
+      //}}}
     }
 
   if (m_deinterlace) {
@@ -505,9 +509,11 @@ bool cOmxVideo::PortSettingsChanged() {
       OMX_INIT_STRUCTURE(extra_buffers);
       extra_buffers.nU32 = -2;
       if (m_omx_image_fx.SetParameter (OMX_IndexParamBrcmExtraBuffers, &extra_buffers) != OMX_ErrorNone) {
+        //{{{  error return
         cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexParamBrcmExtraBuffers");
         return false;
         }
+        //}}}
       }
 
     OMX_CONFIG_IMAGEFILTERPARAMSTYPE image_filter;
@@ -523,9 +529,11 @@ bool cOmxVideo::PortSettingsChanged() {
     else
       image_filter.eImageFilter = OMX_ImageFilterDeInterlaceFast;
     if (m_omx_image_fx.SetConfig (OMX_IndexConfigCommonImageFilterParameters, &image_filter) != OMX_ErrorNone) {
+      //{{{  error return
       cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexConfigCommonImageFilterParameters");
       return false;
       }
+      //}}}
     }
 
   if (m_deinterlace) {
@@ -534,41 +542,53 @@ bool cOmxVideo::PortSettingsChanged() {
     }
   else
     m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(), &m_omx_sched, m_omx_sched.GetInputPort());
+
   m_omx_tunnel_sched.Initialize (&m_omx_sched, m_omx_sched.GetOutputPort(), &m_omx_render, m_omx_render.GetInputPort());
   m_omx_tunnel_clock.Initialize (m_omx_clock, m_omx_clock->GetInputPort() + 1, &m_omx_sched, m_omx_sched.GetOutputPort() + 1);
   if (m_omx_tunnel_clock.Establish() != OMX_ErrorNone) {
+    //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged m_omx_tunnel_clock.Establish");
     return false;
     }
-
+    //}}}
   if (m_omx_tunnel_decoder.Establish() != OMX_ErrorNone) {
+    //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged m_omx_tunnel_decoder.Establish");
     return false;
     }
-
+    //}}}
   if (m_deinterlace) {
     if (m_omx_tunnel_image_fx.Establish() != OMX_ErrorNone) {
+      //{{{  error return
       cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged m_omx_tunnel_image_fx.Establish");
       return false;
       }
+      //}}}
     if (m_omx_image_fx.SetStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+      //{{{  error return
       cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged m_omx_image_fx.SetStateForComponent");
       return false;
       }
+      //}}}
     }
-
   if (m_omx_tunnel_sched.Establish() != OMX_ErrorNone) {
+    //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged m_omx_tunnel_sched.Establish");
     return false;
     }
+    //}}}
   if (m_omx_sched.SetStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged - m_omx_sched.SetStateForComponent");
     return false;
     }
+    //}}}
   if (m_omx_render.SetStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged - m_omx_render.SetStateForComponent");
     return false;
     }
+    //}}}
 
   m_settings_changed = true;
   return true;
@@ -693,6 +713,7 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
     cLog::log (LOGINFO1, "cOmxVideo::Decode setStartTime:%f", (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / DVD_TIME_BASE);
     m_setStartTime = false;
     }
+
   if ((pts == DVD_NOPTS_VALUE) && (dts == DVD_NOPTS_VALUE))
     nFlags |= OMX_BUFFERFLAG_TIME_UNKNOWN;
   else if (pts == DVD_NOPTS_VALUE)
@@ -702,9 +723,12 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
     // 500ms timeout
     auto omx_buffer = m_omx_decoder.GetInputBuffer (500);
     if (omx_buffer == NULL) {
+      //{{{  error return
       cLog::log (LOGERROR, "cOmxVideo::Decode timeout");
       return false;
       }
+      //}}}
+
     omx_buffer->nFlags = nFlags;
     omx_buffer->nOffset = 0;
     omx_buffer->nTimeStamp = toOmxTime ((uint64_t)(pts != DVD_NOPTS_VALUE ? pts : dts != DVD_NOPTS_VALUE ? dts : 0));
@@ -715,16 +739,20 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
     if (demuxer_bytes == 0)
       omx_buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
     if (m_omx_decoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
+      //{{{  error return
       cLog::log (LOGERROR, "cOmxVideo::Decode OMX_EmptyThisBuffer");
       m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
       return false;
       }
+      //}}}
 
     if (m_omx_decoder.WaitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
       if (!PortSettingsChanged()) {
+        //{{{  error return
         cLog::log (LOGERROR, "cOmxVideo::Decode PortSettingsChanged");
         return false;
         }
+        //}}}
       }
     if (m_omx_decoder.WaitForEvent (OMX_EventParamOrConfigChanged, 0) == OMX_ErrorNone)
       if (!PortSettingsChanged())
@@ -782,19 +810,24 @@ void cOmxVideo::SubmitEOS() {
 
   auto omx_buffer = m_omx_decoder.GetInputBuffer (1000);
   if (omx_buffer == NULL) {
+    //{{{  error return
     cLog::log(LOGERROR, "cOmxVideo::SubmitEOS GetInputBuffer");
     m_failed_eos = true;
     return;
     }
+    //}}}
+
   omx_buffer->nOffset = 0;
   omx_buffer->nFilledLen = 0;
   omx_buffer->nTimeStamp = toOmxTime (0LL);
   omx_buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
   if (m_omx_decoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
+    //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::SubmitEOS OMX_EmptyThisBuffer");
     m_omx_decoder.DecoderEmptyBufferDone(m_omx_decoder.GetComponent(), omx_buffer);
     return;
     }
+    //}}}
 
   cLog::log (LOGINFO, "cOmxVideo::SubmitEOS");
   }

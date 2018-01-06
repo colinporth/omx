@@ -125,6 +125,7 @@ bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
 void cOmxPlayerAudio::Process() {
 
   cLog::setThreadName ("audi");
+
   OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();
@@ -355,7 +356,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
   if (!m_passthrough && !m_hw_decode) {
     double dts = pkt->dts, pts=pkt->pts;
     while (data_len > 0) {
-      int len = m_pAudioCodec->Decode((BYTE *)data_dec, data_len, dts, pts);
+      int len = m_pAudioCodec->Decode((BYTE*)data_dec, data_len, dts, pts);
       if ((len < 0) || (len >  data_len)) {
         m_pAudioCodec->Reset();
         break;
@@ -369,7 +370,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
       if (decoded_size <=0)
         continue;
 
-      while ((int) m_decoder->GetSpace() < decoded_size) {
+      while ((int)m_decoder->GetSpace() < decoded_size) {
         cOmxClock::sleep (10);
         if (m_flush_requested)
           return true;

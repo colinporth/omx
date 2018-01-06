@@ -18,15 +18,7 @@ using namespace std;
 #define MAX_DATA_SIZE_VIDEO    8 * 1024 * 1024
 #define MAX_DATA_SIZE_AUDIO    2 * 1024 * 1024
 #define MAX_DATA_SIZE          10 * 1024 * 1024
-//}}}
-//{{{  static vars
-static bool g_abort = false;
-static int64_t timeout_start;
-static int64_t timeout_default_duration;
-static int64_t timeout_duration;
-//}}}
 
-//{{{  defs
 #define FFMPEG_FILE_BUFFER_SIZE   32768
 
 /* indicate that caller can handle truncated reads, where function returns before entire buffer has been filled */
@@ -43,6 +35,17 @@ static int64_t timeout_duration;
 
 /* calcuate bitrate for file while reading */
 #define READ_BITRATE   0x10
+
+#define RESET_TIMEOUT(x) do { \
+  timeout_start = CurrentHostCounter(); \
+  timeout_duration = (x) * timeout_default_duration; \
+} while (0)
+//}}}
+//{{{  static vars
+static bool g_abort = false;
+static int64_t timeout_start;
+static int64_t timeout_default_duration;
+static int64_t timeout_duration;
 //}}}
 //{{{
 typedef enum {
@@ -203,20 +206,14 @@ private:
 //}}}
 
 //{{{
-#define RESET_TIMEOUT(x) do { \
-  timeout_start = CurrentHostCounter(); \
-  timeout_duration = (x) * timeout_default_duration; \
-} while (0)
-//}}}
-//{{{
-static int64_t CurrentHostCounter() {
+int64_t CurrentHostCounter() {
   struct timespec now;
   clock_gettime (CLOCK_MONOTONIC, &now);
   return (((int64_t)now.tv_sec * 1000000000LL) + now.tv_nsec);
   }
 //}}}
 //{{{
-static int interrupt_cb (void *unused)
+int interrupt_cb (void *unused)
 {
   int ret = 0;
   if (g_abort)
@@ -232,9 +229,8 @@ static int interrupt_cb (void *unused)
   return ret;
 }
 //}}}
-
 //{{{
-static int file_read (void *h, uint8_t* buf, int size) {
+int file_read (void *h, uint8_t* buf, int size) {
 
   RESET_TIMEOUT(1);
   if (interrupt_cb(NULL))
@@ -245,7 +241,7 @@ static int file_read (void *h, uint8_t* buf, int size) {
   }
 //}}}
 //{{{
-static offset_t file_seek (void* h, offset_t pos, int whence) {
+offset_t file_seek (void* h, offset_t pos, int whence) {
 
   RESET_TIMEOUT(1);
   if (interrupt_cb (NULL))
@@ -259,6 +255,7 @@ static offset_t file_seek (void* h, offset_t pos, int whence) {
   }
 //}}}
 
+// cOmxReader
 //{{{
 cOmxReader::cOmxReader() {
 
@@ -321,10 +318,10 @@ double cOmxReader::NormalizeFrameDuration (double frameduration) {
 
 // public
 //{{{
-bool cOmxReader::Open (std::string filename, bool dump_format,
+bool cOmxReader::Open (string filename, bool dump_format,
                        bool live /* =false */, float timeout /* = 0.0f */,
-                       std::string cookie /* = "" */, std::string user_agent /* = "" */,
-                       std::string lavfdopts /* = "" */, std::string avdict /* = "" */) {
+                       string cookie /* = "" */, string user_agent /* = "" */,
+                       string lavfdopts /* = "" */, string avdict /* = "" */) {
 
   timeout_default_duration = (int64_t) (timeout * 1e9);
   m_iCurrentPts = DVD_NOPTS_VALUE;
@@ -588,9 +585,9 @@ int cOmxReader::GetStreamLength() {
   }
 //}}}
 //{{{
-std::string cOmxReader::GetCodecName (OMXStreamType type) {
+string cOmxReader::GetCodecName (OMXStreamType type) {
 
-  std::string strStreamName;
+  string strStreamName;
 
   cSingleLock lock (m_critSection);
 
@@ -613,9 +610,9 @@ std::string cOmxReader::GetCodecName (OMXStreamType type) {
   }
 //}}}
 //{{{
-std::string cOmxReader::GetCodecName (OMXStreamType type, unsigned int index) {
+string cOmxReader::GetCodecName (OMXStreamType type, unsigned int index) {
 
-  std::string strStreamName;
+  string strStreamName;
   for (int i = 0; i < MAX_STREAMS; i++) {
     if (m_streams[i].type == type &&  m_streams[i].index == index) {
       strStreamName = m_streams[i].codec_name;
@@ -627,9 +624,9 @@ std::string cOmxReader::GetCodecName (OMXStreamType type, unsigned int index) {
   }
 //}}}
 //{{{
-std::string cOmxReader::GetStreamCodecName (AVStream* stream) {
+string cOmxReader::GetStreamCodecName (AVStream* stream) {
 
-  std::string strStreamName;
+  string strStreamName;
   if (!stream)
     return strStreamName;
 
@@ -668,9 +665,9 @@ std::string cOmxReader::GetStreamCodecName (AVStream* stream) {
   }
 //}}}
 //{{{
-std::string cOmxReader::GetStreamLanguage (OMXStreamType type, unsigned int index) {
+string cOmxReader::GetStreamLanguage (OMXStreamType type, unsigned int index) {
 
-  std::string language;
+  string language;
   for (int i = 0; i < MAX_STREAMS; i++) {
     if (m_streams[i].type == type &&  m_streams[i].index == index) {
       language = m_streams[i].language;
@@ -682,9 +679,9 @@ std::string cOmxReader::GetStreamLanguage (OMXStreamType type, unsigned int inde
   }
 //}}}
 //{{{
-std::string cOmxReader::GetStreamName (OMXStreamType type, unsigned int index) {
+string cOmxReader::GetStreamName (OMXStreamType type, unsigned int index) {
 
-  std::string name;
+  string name;
   for (int i = 0; i < MAX_STREAMS; i++) {
     if (m_streams[i].type == type &&  m_streams[i].index == index) {
       name = m_streams[i].name;
@@ -696,9 +693,9 @@ std::string cOmxReader::GetStreamName (OMXStreamType type, unsigned int index) {
   }
 //}}}
 //{{{
-std::string cOmxReader::GetStreamType (OMXStreamType type, unsigned int index) {
+string cOmxReader::GetStreamType (OMXStreamType type, unsigned int index) {
 
-  std::string strInfo;
+  string strInfo;
 
   char sInfo[64];
   for (int i = 0; i < MAX_STREAMS; i++) {
