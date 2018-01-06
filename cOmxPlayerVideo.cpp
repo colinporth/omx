@@ -101,18 +101,12 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
 
 //{{{
 int  cOmxPlayerVideo::GetDecoderBufferSize() {
-  if (m_decoder)
-    return m_decoder->GetInputBufferSize();
-  else
-    return 0;
+  return m_decoder ? m_decoder->GetInputBufferSize() : 0;
   }
 //}}}
 //{{{
 int  cOmxPlayerVideo::GetDecoderFreeSpace() {
-  if (m_decoder)
-    return m_decoder->GetFreeSpace();
-  else
-    return 0;
+  return m_decoder ? m_decoder->GetFreeSpace() : 0;
   }
 //}}}
 
@@ -231,9 +225,9 @@ void cOmxPlayerVideo::SubmitEOS() {
 //}}}
 //{{{
 bool cOmxPlayerVideo::IsEOS() {
+
   if (!m_decoder)
     return false;
-
   return m_packets.empty() && (!m_decoder || m_decoder->IsEOS());
   }
 //}}}
@@ -304,6 +298,8 @@ void cOmxPlayerVideo::CloseDecoder() {
 //{{{
 bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
+  cLog::log (LOGINFO, "Decode pts:%.0f curPts:%.0f, size:%d", pkt->pts, m_iCurrentPts, pkt->size);
+
   double dts = pkt->dts;
   if (dts != DVD_NOPTS_VALUE)
     dts += m_iVideoDelay;
@@ -319,9 +315,6 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
     if (m_flush_requested)
       return true;
     }
-
-  cLog::log (LOGINFO, "cOmxVideo::vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d",
-             pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
 
   return m_decoder->Decode (pkt->data, pkt->size, dts, pts);
   }

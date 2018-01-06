@@ -207,7 +207,7 @@ int cSwAudio::Decode (BYTE* pData, int iSize, double dts, double pts) {
   m_bGotFrame = true;
 
   if (m_bFirstFrame)
-    cLog::log (LOGINFO1, "cSwAudio::Decode %p:%d f:%d:%d ch:%d sm:%d sz:%d %p:%p:%p:%p:%p:%p:%p:%p",
+    cLog::log (LOGINFO, "sw::Decode %p:%d f:%d:%d ch:%d sm:%d sz:%d %p:%p:%p:%p:%p:%p:%p:%p",
                pData, iSize,
                m_pCodecContext->sample_fmt, m_desiredSampleFormat,
                m_pCodecContext->channels, m_pFrame1->nb_samples, m_pFrame1->linesize[0],
@@ -218,6 +218,7 @@ int cSwAudio::Decode (BYTE* pData, int iSize, double dts, double pts) {
   return iBytesUsed;
   }
 //}}}
+
 //{{{
 int cSwAudio::GetData (BYTE** dst, double& dts, double& pts) {
 
