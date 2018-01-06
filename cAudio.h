@@ -17,8 +17,9 @@
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
-//}}}
+
 using namespace std;
+//}}}
 #define AUDIO_BUFFER_SECONDS 3
 
 //{{{
