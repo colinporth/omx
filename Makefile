@@ -1,5 +1,4 @@
 SRC=       cPcmRemap.cpp \
-	   ../shared/utils/cLog.cpp \
 	   cKeyboard.cpp \
 	   cOmxThread.cpp \
 	   cOmxCoreComponent.cpp \
@@ -12,6 +11,7 @@ SRC=       cPcmRemap.cpp \
 	   cOmxAudio.cpp \
 	   cSwAudio.cpp \
 	   omxAlsa.cpp \
+	   ../shared/utils/cLog.cpp \
 	   omx.cpp
 
 CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
@@ -69,16 +69,13 @@ all:    omx
 	@rm -f $@
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@ -Wno-deprecated-declarations
 
-version:
-	bash gen_version.sh > version.h
-
-omx:    version $(OBJS)
+omx:    $(OBJS)
 	$(CXX) $(LDFLAGS) -o omx $(OBJS)
 
 clean:
 	@rm -f *.o
+	@rm -f *.log
 	@rm -f omx
-	@rm -f omx.old.log omx.log
 
 .PHONY: clean rebuild
 

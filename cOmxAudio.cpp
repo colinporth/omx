@@ -1128,11 +1128,11 @@ bool cOmxAudio::ApplyVolume() {
 
   mix.nPortIndex = m_omx_mixer.GetInputPort();
   if (m_omx_mixer.SetConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix) != OMX_ErrorNone) {
-    cLog::log (LOGERROR, "cOmxAudio::ApplyVolume OMX_IndexConfigBrcmAudioDownmixCoefficients");
+    cLog::log (LOGERROR, "ApplyVolume OMX_IndexConfigBrcmAudioDownmixCoefficients");
     return false;
     }
 
-  cLog::log (LOGINFO, "cOmxAudio::ApplyVolume vol:%.2f * amp:%.2f * att:%.2f", fVolume, m_amplification, m_attenuation);
+  cLog::log (LOGINFO, "ApplyVolume vol:%.2f amp:%.2f att:%.2f", fVolume, m_amplification, m_attenuation);
   return true;
   }
 //}}}
