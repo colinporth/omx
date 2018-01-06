@@ -44,12 +44,12 @@ template <class X> static void omx_init(X &omx)
 }
 //}}}
 
-#include "cLog.h"
+#include "../shared/utils/cLog.h"
 //{{{
 #define cLog(notice, comp, port, msg, ...) do { \
   struct _GOMX_PORT *_port = (struct _GOMX_PORT *) port; \
-  if (_port) cLog::Log(notice ? LOGNOTICE : LOGDEBUG, "[%p port %d]: %s: " msg "\n", comp, _port->def.nPortIndex, __func__ , ##__VA_ARGS__); \
-  else cLog::Log(notice ? LOGNOTICE : LOGDEBUG, "[%p] %s: " msg "\n", comp, __func__ , ##__VA_ARGS__); \
+  if (_port) cLog::log(notice ? LOGNOTICE : LOGINFO1, "[%p port %d]: %s: " msg "\n", comp, _port->def.nPortIndex, __func__ , ##__VA_ARGS__); \
+  else cLog::log(notice ? LOGNOTICE : LOGINFO1, "[%p] %s: " msg "\n", comp, __func__ , ##__VA_ARGS__); \
 } while (0)
 //}}}
 

@@ -1,5 +1,5 @@
 SRC=       cPcmRemap.cpp \
-	   cLog.cpp \
+	   ../shared/utils/cLog.cpp \
 	   cKeyboard.cpp \
 	   cOmxThread.cpp \
 	   cOmxCoreComponent.cpp \

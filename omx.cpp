@@ -14,7 +14,7 @@
 #include "cKeyboard.h"
 #include "cBcmHost.h"
 
-#include "cLog.h"
+#include "../shared/utils/cLog.h"
 #include "cPcmRemap.h"
 
 #define AV_NOWARN_DEPRECATED
@@ -191,8 +191,8 @@ int main (int argc, char* argv[]) {
   signal (SIGFPE, sigHandler);
   signal (SIGINT, sigHandler);
   //}}}
-  cLog::Init ("./", LOGINFO3);
-  cLog::Log (LOGNOTICE, "omx %s %s", VERSION_DATE, argv[1]);
+  cLog::init (LOGINFO3, false, "");
+  cLog::log (LOGNOTICE, "omx %s %s", VERSION_DATE, argv[1]);
 
   mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
 
@@ -340,7 +340,7 @@ int main (int argc, char* argv[]) {
         if (mReader.IsEof() || (mHasVideo && !mPlayerVideo.Reset()))
           break;
 
-        cLog::Log (LOGDEBUG, "omxPlayer seeked to %.0f %.0f %.0f",
+        cLog::log (LOGINFO1, "omxPlayer seeked to %.0f %.0f %.0f",
                    DVD_MSEC_TO_TIME(seek_pos), startpts, mClock.getMediaTime());
 
         mClock.pause();
@@ -374,7 +374,7 @@ int main (int argc, char* argv[]) {
           video_fifo_high = !mHasVideo || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
           }
 
-        cLog::Log (LOGINFO1, "%.0f%c av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
+        cLog::log (LOGINFO1, "%.0f%c av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
                    stamp, mClock.isPaused()?'p':'r',
                    audio_pts, video_pts,
                    (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
@@ -397,7 +397,7 @@ int main (int argc, char* argv[]) {
           if (!m_Pause && latency != DVD_NOPTS_VALUE) {
             if (mClock.isPaused()) {
               if (latency > m_threshold) {
-                cLog::Log (LOGDEBUG, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+                cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                            audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                            audio_fifo_high, video_fifo_high, mReader.IsEof(), mOmxPacket);
                 mClock.resume();
@@ -419,7 +419,7 @@ int main (int argc, char* argv[]) {
 
               mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
               mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
-              cLog::Log (LOGDEBUG, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
+              cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
                          m_latency, latency, speed, m_threshold);
               }
             }
@@ -429,7 +429,7 @@ int main (int argc, char* argv[]) {
                   mOmxPacket || (audio_fifo_high && video_fifo_high))) {
           //{{{  pause
           if (mClock.isPaused()) {
-            cLog::Log (LOGDEBUG, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+            cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, mReader.IsEof(), mOmxPacket);
             mClock.resume();
@@ -441,7 +441,7 @@ int main (int argc, char* argv[]) {
           if (!mClock.isPaused()) {
             if (!m_Pause)
               m_threshold = min(2.0f*m_threshold, 16.0f);
-            cLog::Log (LOGDEBUG, "omxPlayer pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
+            cLog::log (LOGINFO1, "omxPlayer pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, m_threshold);
             mClock.pause();
@@ -452,7 +452,7 @@ int main (int argc, char* argv[]) {
         //}}}
       if (!sentStarted) {
         //{{{  reset
-        cLog::Log (LOGDEBUG, "omxPlayer reset");
+        cLog::log (LOGINFO1, "omxPlayer reset");
         mClock.reset (mHasVideo, mHasAudio);
         sentStarted = true;
         }

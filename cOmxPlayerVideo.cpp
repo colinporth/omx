@@ -5,8 +5,7 @@
 #include <sys/time.h>
 
 #include "cVideo.h"
-
-#include "cLog.h"
+#include "../shared/utils/cLog.h"
 //}}}
 
 //{{{
@@ -280,7 +279,7 @@ bool cOmxPlayerVideo::OpenDecoder() {
 
   m_decoder = new cOmxVideo();
   if (m_decoder->Open (m_av_clock, m_config)) {
-    cLog::Log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s w:%d h:%d profile:%d fps %f\n",
+    cLog::log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s w:%d h:%d profile:%d fps %f\n",
                m_decoder->GetDecoderName().c_str(),
                m_config.hints.width, m_config.hints.height, m_config.hints.profile, m_fps);
     return true;
@@ -319,7 +318,7 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
       return true;
     }
 
-  cLog::Log (LOGINFO, "cOmxVideo::vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d",
+  cLog::log (LOGINFO, "cOmxVideo::vidDecode dts:%.0f pts:%.0f curPts:%.0f, size:%d",
              pkt->dts, pkt->pts, m_iCurrentPts, pkt->size);
 
   return m_decoder->Decode (pkt->data, pkt->size, dts, pts);

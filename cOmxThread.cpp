@@ -5,8 +5,7 @@
 #include <unistd.h>
 
 #include "cOmxThread.h"
-
-#include "cLog.h"
+#include "../shared/utils/cLog.h"
 //}}}
 
 //{{{
@@ -38,7 +37,7 @@ pthread_t cOmxThread::ThreadHandle() {
 bool cOmxThread::Create() {
 
   if (m_running) {
-    cLog::Log (LOGERROR, "cOmxThread::Create already running");
+    cLog::log (LOGERROR, "cOmxThread::Create already running");
     return false;
     }
 
@@ -46,7 +45,7 @@ bool cOmxThread::Create() {
   m_running = true;
   pthread_create (&m_thread, &m_tattr, &cOmxThread::Run, this);
 
-  cLog::Log (LOGDEBUG, "cOmxThread::Create id:%d started", (int)m_thread);
+  cLog::log (LOGINFO1, "cOmxThread::Create id:%d started", (int)m_thread);
   return true;
   }
 //}}}
@@ -54,7 +53,7 @@ bool cOmxThread::Create() {
 bool cOmxThread::StopThread() {
 
   if (!m_running) {
-    cLog::Log (LOGDEBUG, "cOmxThread::StopThread not running");
+    cLog::log (LOGINFO1, "cOmxThread::StopThread not running");
     return false;
     }
 
@@ -63,7 +62,7 @@ bool cOmxThread::StopThread() {
   m_running = false;
   m_thread = 0;
 
-  cLog::Log (LOGDEBUG, "cOmxThread::StopThread id:%d stopped", (int)m_thread);
+  cLog::log (LOGINFO1, "cOmxThread::StopThread id:%d stopped", (int)m_thread);
   return true;
   }
 //}}}
@@ -73,7 +72,7 @@ bool cOmxThread::StopThread() {
 void cOmxThread::Lock() {
 
   if (!m_running) {
-    cLog::Log (LOGDEBUG, "cOmxThread::Lock not running");
+    cLog::log (LOGINFO1, "cOmxThread::Lock not running");
     return;
     }
 
@@ -84,7 +83,7 @@ void cOmxThread::Lock() {
 void cOmxThread::UnLock() {
 
   if (!m_running) {
-    cLog::Log (LOGDEBUG, "cOmxThread::UnLock not running");
+    cLog::log (LOGINFO1, "cOmxThread::UnLock not running");
     return;
     }
 
@@ -99,7 +98,7 @@ void* cOmxThread::Run (void* arg) {
   auto thread = static_cast<cOmxThread*>(arg);
   thread->Process();
 
-  cLog::Log (LOGDEBUG, "cOmxThread::Run exit id:%d", (int)thread->ThreadHandle());
+  cLog::log (LOGINFO1, "cOmxThread::Run exit id:%d", (int)thread->ThreadHandle());
   pthread_exit (NULL);
   }
 //}}}

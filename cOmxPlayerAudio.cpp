@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #include "cAudio.h"
-#include "cLog.h"
+#include "../shared/utils/cLog.h"
 //}}}
 
 //{{{
@@ -254,11 +254,11 @@ bool cOmxPlayerAudio::OpenDecoder() {
     return false;
     }
   else if (m_passthrough)
-    cLog::Log (LOGINFO, "cOmxPlayerAudio::OpenDecoder %s passthrough ch:%d rate:%d bps:%d",
+    cLog::log (LOGINFO, "cOmxPlayerAudio::OpenDecoder %s passthrough ch:%d rate:%d bps:%d",
                m_codec_name.c_str(), m_config.hints.channels,
                m_config.hints.samplerate, m_config.hints.bitspersample);
   else
-    cLog::Log (LOGINFO, "cOmxPlayerAudio::OpenDecoder %s ch:%d rate:%d bps:%d",
+    cLog::log (LOGINFO, "cOmxPlayerAudio::OpenDecoder %s ch:%d rate:%d bps:%d",
                m_codec_name.c_str(), m_config.hints.channels,
                m_config.hints.samplerate, m_config.hints.bitspersample);
 
@@ -341,7 +341,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
       return false;
     }
 
-  cLog::Log (LOGINFO, "cOmxPlayerAudio::audDecode dts:%.0f pts:%.0f size:%d", pkt->dts, pkt->pts, pkt->size);
+  cLog::log (LOGINFO, "cOmxPlayerAudio::audDecode dts:%.0f pts:%.0f size:%d", pkt->dts, pkt->pts, pkt->size);
 
   if (pkt->pts != DVD_NOPTS_VALUE)
     m_iCurrentPts = pkt->pts;
