@@ -42,7 +42,6 @@ cOmxPlayerVideo mPlayerVideo;
 cOmxVideoConfig mVideoConfig;
 cOmxPlayerAudio mPlayerAudio;
 cOmxAudioConfig mAudioConfig;
-OMXPacket* mOmxPacket = NULL;
 
 bool mStop = false;
 bool mHasVideo = false;
@@ -54,7 +53,8 @@ enum PCMChannels* m_pChannelMap = NULL;
 //{{{
 class cKeyConfig {
 public:
-  enum { ACTION_EXIT, ACTION_PLAYPAUSE,
+  enum { ACTION_EXIT,
+         ACTION_PLAYPAUSE,
          ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
          ACTION_SEEK_BACK_SMALL, ACTION_SEEK_FORWARD_SMALL,
          ACTION_SEEK_BACK_LARGE, ACTION_SEEK_FORWARD_LARGE,
@@ -127,7 +127,7 @@ bool isPipe (const string& str) {
 //}}}
 
 //{{{
-void sig_handler (int s) {
+void sigHandler (int s) {
 
   if (s == SIGINT && !g_abort) {
     signal (SIGINT, SIG_DFL);
@@ -142,27 +142,7 @@ void sig_handler (int s) {
   }
 //}}}
 //{{{
-void flushStreams (double pts) {
-
-  mClock.stop();
-  mClock.pause();
-
-  if (mHasVideo)
-    mPlayerVideo.Flush();
-  if (mHasAudio)
-    mPlayerAudio.Flush();
-
-  if (pts != DVD_NOPTS_VALUE)
-    mClock.setMediaTime (pts);
-
-  if (mOmxPacket) {
-    mReader.FreePacket (mOmxPacket);
-    mOmxPacket = NULL;
-    }
-  }
-//}}}
-//{{{
-float get_display_aspect_ratio (HDMI_ASPECT_T aspect) {
+float getDisplayAspectRatio (HDMI_ASPECT_T aspect) {
 
   switch (aspect) {
     case HDMI_ASPECT_4_3:   return  4.0 / 3.0;  break;
@@ -206,12 +186,11 @@ void blankBackground (uint32_t rgba) {
 int main (int argc, char* argv[]) {
 
   //{{{  signals
-  signal (SIGSEGV, sig_handler);
-  signal (SIGABRT, sig_handler);
-  signal (SIGFPE, sig_handler);
-  signal (SIGINT, sig_handler);
+  signal (SIGSEGV, sigHandler);
+  signal (SIGABRT, sigHandler);
+  signal (SIGFPE, sigHandler);
+  signal (SIGINT, sigHandler);
   //}}}
-
   cLog::Init ("./", LOGINFO3);
   cLog::Log (LOGNOTICE, "omx %s %s", VERSION_DATE, argv[1]);
 
@@ -242,7 +221,7 @@ int main (int argc, char* argv[]) {
     TV_DISPLAY_STATE_T current_tv_state;
     memset (&current_tv_state, 0, sizeof(TV_DISPLAY_STATE_T));
     mBcmHost.vc_tv_get_display_state (&current_tv_state);
-    mVideoConfig.display_aspect = get_display_aspect_ratio ((HDMI_ASPECT_T)current_tv_state.display.hdmi.aspect_ratio);
+    mVideoConfig.display_aspect = getDisplayAspectRatio ((HDMI_ASPECT_T)current_tv_state.display.hdmi.aspect_ratio);
     mVideoConfig.display_aspect *= (float)current_tv_state.display.hdmi.height / (float)current_tv_state.display.hdmi.width;
     //}}}
     mStop = mHasVideo && !mPlayerVideo.Open (&mClock, mVideoConfig);
@@ -260,6 +239,7 @@ int main (int argc, char* argv[]) {
     mClock.reset (mHasVideo, mHasAudio);
     mClock.stateExecute();
 
+    OMXPacket* mOmxPacket = NULL;
     bool sentStarted = true;
     double m_last_check_time = 0.0;
     while (!mStop && !g_abort && !mPlayerAudio.Error()) {
@@ -271,7 +251,6 @@ int main (int argc, char* argv[]) {
 
         // decode keyboard
         switch (mKeyboard.getEvent()) {
-
           case cKeyConfig::ACTION_EXIT: g_abort = true; mStop = true; break;
           case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
           case cKeyConfig::ACTION_STEP: mClock.step(); break;
@@ -324,7 +303,6 @@ int main (int argc, char* argv[]) {
               mReader.SetActiveStream (OMXSTREAM_VIDEO, mReader.GetVideoIndex() + 1);
             break;
           //}}}
-
           default: break;
           }
         }
@@ -333,11 +311,30 @@ int main (int argc, char* argv[]) {
         //{{{  seek
         double pts = mClock.getMediaTime();
         double seek_pos = (pts ? pts / DVD_TIME_BASE : last_seek_pos) + m_incr;
+
         last_seek_pos = seek_pos;
         seek_pos *= 1000.0;
+
         double startpts = 0;
-        if (mReader.SeekTime ((int)seek_pos, m_incr < 0.0f, &startpts))
-          flushStreams (startpts);
+        if (mReader.SeekTime ((int)seek_pos, m_incr < 0.0f, &startpts)) {
+          //{{{  flush streams
+          mClock.stop();
+          mClock.pause();
+
+          if (mHasVideo)
+            mPlayerVideo.Flush();
+          if (mHasAudio)
+            mPlayerAudio.Flush();
+
+          if (pts != DVD_NOPTS_VALUE)
+            mClock.setMediaTime (startpts);
+
+          if (mOmxPacket) {
+            mReader.FreePacket (mOmxPacket);
+            mOmxPacket = NULL;
+            }
+          }
+          //}}}
 
         sentStarted = false;
         if (mReader.IsEof() || (mHasVideo && !mPlayerVideo.Reset()))
@@ -387,9 +384,8 @@ int main (int argc, char* argv[]) {
                    mPlayerAudio.GetLevel(), mPlayerVideo.GetLevel(),
                    mPlayerAudio.GetDelay(), (float)mPlayerAudio.GetCacheTotal());
 
-        // keep latency under control by adjusting clock (and so resampling audio)
         if (mAudioConfig.is_live) {
-          //{{{  live latency
+          //{{{  live - latency under control by adjusting clock
           float latency = DVD_NOPTS_VALUE;
 
           if (mHasAudio && audio_pts != DVD_NOPTS_VALUE)
@@ -429,7 +425,8 @@ int main (int argc, char* argv[]) {
             }
           }
           //}}}
-        else if (!m_Pause && (mReader.IsEof() || mOmxPacket || (audio_fifo_high && video_fifo_high))) {
+        else if (!m_Pause && (mReader.IsEof() ||
+                  mOmxPacket || (audio_fifo_high && video_fifo_high))) {
           //{{{  pause
           if (mClock.isPaused()) {
             cLog::Log (LOGDEBUG, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
@@ -492,31 +489,36 @@ int main (int argc, char* argv[]) {
           else
             cOmxClock::sleep (10);
           }
+
         else if (mHasAudio && (mOmxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
           if (mPlayerAudio.AddPacket (mOmxPacket))
             mOmxPacket = NULL;
           else
             cOmxClock::sleep (10);
           }
+
         else {
           mReader.FreePacket (mOmxPacket);
           mOmxPacket = NULL;
           }
         }
+
       else
         cOmxClock::sleep (10);
       //}}}
       }
+
+    if (mOmxPacket) {
+      //{{{  free omxPacket
+      mReader.FreePacket (mOmxPacket);
+      mOmxPacket = NULL;
+      }
+      //}}}
     }
 
   // exit
   mClock.stop();
   mClock.stateIdle();
-
-  if (mOmxPacket) {
-    mReader.FreePacket (mOmxPacket);
-    mOmxPacket = NULL;
-    }
 
   return EXIT_SUCCESS;
   }
