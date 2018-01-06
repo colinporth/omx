@@ -216,6 +216,8 @@ int main (int argc, char* argv[]) {
   long m_Volume = 0;
   bool m_Pause = false;
 
+  mAudioConfig.is_live = true;  //nnnn
+
   if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
       mReader.Open (fileName.c_str(), true, mAudioConfig.is_live, 10.f)) {
     mClock.stateIdle();
@@ -384,9 +386,9 @@ int main (int argc, char* argv[]) {
           video_fifo_high = !mHasVideo || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
           }
 
-        if (!mClock.isPaused()) 
+        if (!mClock.isPaused())
           cLog::log (LOGINFO, "%.0f av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
-                     stamp, 
+                     stamp,
                      audio_pts, video_pts,
                      (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
                      (video_pts == DVD_NOPTS_VALUE) ? 0.0 : video_fifo,
@@ -436,7 +438,7 @@ int main (int argc, char* argv[]) {
             }
           }
           //}}}
-        else if (!m_Pause && 
+        else if (!m_Pause &&
                  (mReader.IsEof() || mOmxPacket || (audio_fifo_high && video_fifo_high))) {
           //{{{  pause
           if (mClock.isPaused()) {
