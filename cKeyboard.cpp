@@ -70,6 +70,7 @@ void cKeyboard::Sleep (unsigned int dwMilliSeconds) {
 //{{{
 void cKeyboard::Process() {
 
+  cLog::setThreadName ("keyb");
   while (!m_bStop) {
     int ch[8];
     int chnum = 0;

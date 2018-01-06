@@ -124,6 +124,7 @@ bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
 //{{{
 void cOmxPlayerAudio::Process() {
 
+  cLog::setThreadName ("audi");
   OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();

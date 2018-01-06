@@ -152,6 +152,8 @@ bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
 //{{{
 void cOmxPlayerVideo::Process() {
 
+  cLog::setThreadName ("vide");
+
   OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();
