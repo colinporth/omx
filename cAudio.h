@@ -5,7 +5,7 @@
 #include <atomic>
 #include <sys/types.h>
 
-#include "PlatformDefs.h"
+#include "platformDefs.h"
 #include "cSingleLock.h"
 #include "cPcmRemap.h"
 
