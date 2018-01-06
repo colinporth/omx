@@ -1,8 +1,3 @@
-# native Makefile
-CXX     := /usr/bin/g++
-LD      := /usr/bin/ld
-STRIP   := /usr/bin/strip
-
 SRC=       cPcmRemap.cpp \
 	   cLog.cpp \
 	   cKeyboard.cpp \
@@ -40,29 +35,31 @@ CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
 	   -D HAVE_LIBAVUTIL_MEM_H \
 	   -U _FORTIFY_SOURCE \
 
-INCLUDES = -I/opt/vc/include \
-	   -I/opt/vc/include/interface/vmcs_host \
-	   -I/opt/vc/include/interface/vcos/pthreads \
-	   -I/opt/vc/include/interface/vmcs_host/linux \
+INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
+	   -I$(SDKSTAGE)/opt/vc/include \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vcos/pthreads \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
 
-LDFLAGS=   -L /opt/vc/lib \
-	   -l pthread \
-	   -l asound \
-	   -l brcmGLESv2 \
-	   -l brcmEGL \
-	   -l bcm_host \
-	   -l WFC \
-	   -l EGL \
-	   -l GLESv2 \
-	   -l vcos \
-	   -l vchostif \
-	   -l vchiq_arm \
-	   -l openmaxil \
-	   -l avutil \
-	   -l avcodec \
-	   -l avformat \
-	   -l swscale \
-	   -l swresample \
+LDFLAGS+= -L ./ \
+	  -L $(SDKSTAGE)/opt/vc/lib/ \
+	  -l pthread \
+	  -l asound \
+	  -l brcmGLESv2 \
+	  -l brcmEGL \
+	  -l bcm_host \
+	  -l WFC \
+	  -l EGL \
+	  -l GLESv2 \
+	  -l vcos \
+	  -l vchostif \
+	  -l vchiq_arm \
+	  -l openmaxil \
+	  -l avutil \
+	  -l avcodec \
+	  -l avformat \
+	  -l swscale \
+	  -l swresample \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
@@ -77,7 +74,6 @@ version:
 
 omxPlayer: version $(OBJS)
 	$(CXX) $(LDFLAGS) -o omxPlayer $(OBJS)
-	$(STRIP) omxPlayer
 
 clean:
 	@rm -f *.o
@@ -88,3 +84,9 @@ clean:
 
 rebuild:
 	make clean && make
+
+ifndef LOGNAME
+SDKSTAGE  = /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot
+endif
+CC      := arm-linux-gnueabihf-gcc
+CXX     := arm-linux-gnueabihf-g++

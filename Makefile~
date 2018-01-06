@@ -1,8 +1,3 @@
-# cross compile Makefile
-CXX     := arm-linux-gnueabihf-g++
-LD      := arm-linux-gnueabihf-ld
-STRIP   := arm-linux-gnueabihf-strip
-
 SRC=       cPcmRemap.cpp \
 	   cLog.cpp \
 	   cKeyboard.cpp \
@@ -40,45 +35,57 @@ CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
 	   -D HAVE_LIBAVUTIL_MEM_H \
 	   -U _FORTIFY_SOURCE \
 
-INCLUDES=  -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include \
-	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host \
-	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vcos/pthreads \
-	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/include/interface/vmcs_host/linux \
-	   -I /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/include \
+INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
+	   -I$(SDKSTAGE)/opt/vc/include \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vcos/pthreads \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
 
-LDFLAGS=   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/opt/vc/lib \
-	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/lib \
-	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/usr/local/lib \
-	   -L /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot/lib/arm-linux-gnueabihf \
-	   -l pthread \
-	   -l asound \
-	   -l brcmGLESv2 \
-	   -l brcmEGL \
-	   -l bcm_host \
-	   -l WFC \
-	   -l EGL \
-	   -l GLESv2 \
-	   -l vcos \
-	   -l vchostif \
-	   -l vchiq_arm \
-	   -l openmaxil \
-	   -l avutil \
-	   -l avcodec \
-	   -l avformat \
-	   -l swscale \
-	   -l swresample \
+LDFLAGS+= -L ./ \
+	  -l pthread \
+	  -l asound \
+	  -l brcmGLESv2 \
+	  -l brcmEGL \
+	  -l bcm_host \
+	  -l WFC \
+	  -l EGL \
+	  -l GLESv2 \
+	  -l vcos \
+	  -l vchostif \
+	  -l vchiq_arm \
+	  -l openmaxil \
+	  -l avutil \
+	  -l avcodec \
+	  -l avformat \
+	  -l swscale \
+	  -l swresample \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
-%.o: %.cpp
-	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
-
-omxPlayer: $(OBJS)
-	$(CXX) $(LDFLAGS) -o omxPlayerX $(OBJS)
-	$(STRIP) omxPlayerX
-
 all:    omxPlayer
+
+%.o: %.cpp
+	@rm -f $@
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@ -Wno-deprecated-declarations
+
+version:
+	bash gen_version.sh > version.h
+
+omxPlayer: version $(OBJS)
+	$(CXX) $(LDFLAGS) -o omxPlayer $(OBJS)
 
 clean:
 	@rm -f *.o
-	@rm -f omxPlayerX
+	@rm -f omxPlayer
+	@rm -f omxPlayer.old.log omxPlayer.log
+
+.PHONY: clean rebuild
+
+rebuild:
+	make clean && make
+
+ifndef LOGNAME
+SDKSTAGE  = /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot
+endif
+CC      := arm-linux-gnueabihf-gcc
+CXX     := arm-linux-gnueabihf-g++
