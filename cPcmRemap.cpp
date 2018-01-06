@@ -14,6 +14,7 @@
 
 using namespace std;
 //}}}
+#define PCM_MAX_MIX 3
 
 //{{{
 inline int round_int (double x) {
@@ -26,7 +27,6 @@ inline int round_int (double x) {
   return (i);
   }
 //}}}
-#define PCM_MAX_MIX 3
 //{{{
 static enum PCMChannels PCMLayoutMap[PCM_MAX_LAYOUT][PCM_MAX_CH + 1] = {
   /* 2.0 */ {PCM_FRONT_LEFT, PCM_FRONT_RIGHT, PCM_INVALID},

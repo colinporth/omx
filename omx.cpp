@@ -260,7 +260,6 @@ int main (int argc, char* argv[]) {
         //{{{  keyboard update
         m_last_check_time = now;
 
-        // decode keyboard
         switch (mKeyboard.getEvent()) {
           case cKeyConfig::ACTION_EXIT: g_abort = true; mStop = true; break;
           case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
@@ -385,7 +384,7 @@ int main (int argc, char* argv[]) {
           video_fifo_high = !mHasVideo || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
           }
 
-        cLog::log (LOGINFO1, "%.0f%c av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
+        cLog::log (LOGINFO, "%.0f%c av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
                    stamp, mClock.isPaused()?'p':'r',
                    audio_pts, video_pts,
                    (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,

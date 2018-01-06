@@ -220,7 +220,6 @@ private:
   };
 //}}}
 
-//{{{
 class cOmxPlayerAudio : public cOmxThread {
 public:
   cOmxPlayerAudio();
@@ -277,17 +276,15 @@ public:
   bool IsEOS();
 
 private:
+  bool Close();
+
   void Lock() { pthread_mutex_lock (&m_lock); }
   void UnLock() { pthread_mutex_unlock(&m_lock); }
-
   void LockDecoder() { pthread_mutex_lock (&m_lock_decoder); }
   void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
 
-  bool Close();
-
   bool OpenDecoder();
   void CloseDecoder();
-
   bool OpenAudioCodec();
   void CloseAudioCodec();
 
@@ -335,4 +332,3 @@ private:
   bool                   m_player_error;
   //}}}
   };
-//}}}

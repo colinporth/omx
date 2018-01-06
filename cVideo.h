@@ -17,7 +17,8 @@
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
 //}}}
-using namespace std;
+#define VIDEO_BUFFERS 60
+enum EDEINTERLACEMODE { VS_DEINTERLACEMODE_OFF=0, VS_DEINTERLACEMODE_AUTO=1, VS_DEINTERLACEMODE_FORCE=2 };
 
 //{{{
 class CPoint {
@@ -182,10 +183,6 @@ private:
   //}}}
 };
 //}}}
-
-#define VIDEO_BUFFERS 60
-enum EDEINTERLACEMODE { VS_DEINTERLACEMODE_OFF=0, VS_DEINTERLACEMODE_AUTO=1, VS_DEINTERLACEMODE_FORCE=2 };
-
 //{{{
 class cOmxVideoConfig {
 public:
@@ -287,19 +284,18 @@ protected:
   bool               m_failed_eos;
   OMX_DISPLAYTRANSFORMTYPE m_transform;
   bool               m_settings_changed;
-  //}}}
 
 private:
   void Close();
   };
 //}}}
-//{{{
+
 class cOmxPlayerVideo : public cOmxThread {
 public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
-  bool Reset();
 
+  bool Reset();
   bool Open (cOmxClock* av_clock, const cOmxVideoConfig& config);
 
   int GetDecoderBufferSize();
@@ -317,10 +313,9 @@ public:
     return m_config.queue_size ? 100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f) : 0;
     };
   //}}}
-
-  void SetDelay (double delay) { m_iVideoDelay = delay; }
   double GetDelay() { return m_iVideoDelay; }
 
+  void SetDelay (double delay) { m_iVideoDelay = delay; }
   void SetAlpha (int alpha);
   void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
   void SetVideoRect (int aspectMode);
@@ -333,6 +328,7 @@ public:
   bool IsEOS();
 
 protected:
+  //{{{  vars
   pthread_cond_t         m_packet_cond;
   pthread_cond_t         m_picture_cond;
 
@@ -360,19 +356,18 @@ protected:
   std::atomic<bool>      m_flush_requested;
   unsigned int           m_cached_size;
   double                 m_iVideoDelay;
+  //}}}
 
 private:
+  bool Close();
+
   void Lock() { pthread_mutex_lock (&m_lock); }
   void UnLock() { pthread_mutex_unlock (&m_lock); }
-
   void LockDecoder() { pthread_mutex_lock  (&m_lock_decoder); }
   void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
-
-  bool Close();
 
   bool OpenDecoder();
   void CloseDecoder();
 
   bool Decode (OMXPacket* pkt);
   };
-//}}}
