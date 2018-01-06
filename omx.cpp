@@ -384,15 +384,16 @@ int main (int argc, char* argv[]) {
           video_fifo_high = !mHasVideo || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
           }
 
-        cLog::log (LOGINFO, "%.0f%c av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
-                   stamp, mClock.isPaused()?'p':'r',
-                   audio_pts, video_pts,
-                   (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
-                   (video_pts == DVD_NOPTS_VALUE) ? 0.0 : video_fifo,
-                   m_threshold,
-                   audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                   mPlayerAudio.GetLevel(), mPlayerVideo.GetLevel(),
-                   mPlayerAudio.GetDelay(), (float)mPlayerAudio.GetCacheTotal());
+        if (!mClock.isPaused()) 
+          cLog::log (LOGINFO, "%.0f av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
+                     stamp, 
+                     audio_pts, video_pts,
+                     (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
+                     (video_pts == DVD_NOPTS_VALUE) ? 0.0 : video_fifo,
+                     m_threshold,
+                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
+                     mPlayerAudio.GetLevel(), mPlayerVideo.GetLevel(),
+                     mPlayerAudio.GetDelay(), (float)mPlayerAudio.GetCacheTotal());
 
         if (mAudioConfig.is_live) {
           //{{{  live - latency under control by adjusting clock
@@ -435,13 +436,14 @@ int main (int argc, char* argv[]) {
             }
           }
           //}}}
-        else if (!m_Pause && (mReader.IsEof() ||
-                  mOmxPacket || (audio_fifo_high && video_fifo_high))) {
+        else if (!m_Pause && 
+                 (mReader.IsEof() || mOmxPacket || (audio_fifo_high && video_fifo_high))) {
           //{{{  pause
           if (mClock.isPaused()) {
             cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, mReader.IsEof(), mOmxPacket);
+
             mClock.resume();
             }
           }
@@ -451,9 +453,11 @@ int main (int argc, char* argv[]) {
           if (!mClock.isPaused()) {
             if (!m_Pause)
               m_threshold = min(2.0f*m_threshold, 16.0f);
+
             cLog::log (LOGINFO1, "omxPlayer pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, m_threshold);
+
             mClock.pause();
             }
           }
