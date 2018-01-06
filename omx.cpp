@@ -27,6 +27,8 @@
 #include "cVideo.h"
 
 #include "version.h"
+
+using namespace std;
 //}}}
 //{{{  vars
 volatile sig_atomic_t g_abort = false;
@@ -94,7 +96,7 @@ public:
 //}}}
 
 //{{{
-bool exists (const std::string& path) {
+bool exists (const string& path) {
 
   struct stat buf;
   auto error = stat (path.c_str(), &buf);
@@ -102,10 +104,10 @@ bool exists (const std::string& path) {
   }
 //}}}
 //{{{
-bool isURL (const std::string& str) {
+bool isURL (const string& str) {
 
   auto result = str.find ("://");
-  if (result == std::string::npos || result == 0)
+  if (result == string::npos || result == 0)
     return false;
 
   for (size_t i = 0; i < result; ++i)
@@ -116,7 +118,7 @@ bool isURL (const std::string& str) {
   }
 //}}}
 //{{{
-bool isPipe (const std::string& str) {
+bool isPipe (const string& str) {
 
   if (str.compare (0, 5, "pipe:") == 0)
     return true;
@@ -203,10 +205,6 @@ void blankBackground (uint32_t rgba) {
 //{{{
 int main (int argc, char* argv[]) {
 
-  cLog::Init ("./", LOGINFO3);
-  cLog::Log (LOGNOTICE, "omx %s %s", VERSION_DATE, argv[1]);
-
-  mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
   //{{{  signals
   signal (SIGSEGV, sig_handler);
   signal (SIGABRT, sig_handler);
@@ -214,18 +212,22 @@ int main (int argc, char* argv[]) {
   signal (SIGINT, sig_handler);
   //}}}
 
+  cLog::Init ("./", LOGINFO3);
+  cLog::Log (LOGNOTICE, "omx %s %s", VERSION_DATE, argv[1]);
+
+  mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
+
   // vars
   bool m_send_eos = false;
   double m_incr = 0;
   double last_seek_pos = 0;
-  float m_latency = 0.0f;
+  float m_latency = 0.f;
   long m_Volume = 0;
   bool m_Pause = false;
 
-  std::string fileName = argv[1];
+  string fileName = argv[1];
   if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-      mReader.Open (fileName.c_str(), true, mAudioConfig.is_live, 10.0f)) {
-    // ok fileName
+      mReader.Open (fileName.c_str(), true, mAudioConfig.is_live, 10.f)) {
     mClock.stateIdle();
     mClock.stop();
     mClock.pause();
@@ -252,7 +254,7 @@ int main (int argc, char* argv[]) {
       mStop |= !mPlayerAudio.Open (&mClock, mAudioConfig, &mReader);
       mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
       }
-    float m_threshold = mAudioConfig.is_live ? 0.7f : 0.2f;
+    auto m_threshold = mAudioConfig.is_live ? 0.7f : 0.2f;
 
     //mPlayerVideo.SetAlpha (128);
     mClock.reset (mHasVideo, mHasAudio);
@@ -261,7 +263,7 @@ int main (int argc, char* argv[]) {
     bool sentStarted = true;
     double m_last_check_time = 0.0;
     while (!mStop && !g_abort && !mPlayerAudio.Error()) {
-      double now = mClock.getAbsoluteClock();
+      auto now = mClock.getAbsoluteClock();
       bool update = (m_last_check_time == 0.0) || (m_last_check_time + DVD_MSEC_TO_TIME(20) <= now);
       if (update) {
         //{{{  keyboard update
@@ -359,7 +361,7 @@ int main (int argc, char* argv[]) {
         double video_pts = mPlayerVideo.GetCurrentPTS();
         float video_fifo = video_pts == DVD_NOPTS_VALUE ? 0.0f : video_pts / DVD_TIME_BASE - stamp * 1e-6;
 
-        float threshold = std::min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
+        float threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
 
         bool audio_fifo_low = false;
         bool audio_fifo_high = false;
@@ -441,7 +443,7 @@ int main (int argc, char* argv[]) {
           //{{{  resume
           if (!mClock.isPaused()) {
             if (!m_Pause)
-              m_threshold = std::min(2.0f*m_threshold, 16.0f);
+              m_threshold = min(2.0f*m_threshold, 16.0f);
             cLog::Log (LOGDEBUG, "omxPlayer pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, m_threshold);
