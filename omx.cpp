@@ -191,8 +191,20 @@ int main (int argc, char* argv[]) {
   signal (SIGFPE, sigHandler);
   signal (SIGINT, sigHandler);
   //}}}
-  cLog::init (LOGINFO3, false, "");
-  cLog::log (LOGNOTICE, "omx %s %s", VERSION_DATE, argv[1]);
+  bool logInfo = false;
+  //bool windowed = true;
+  //uint32_t alpha = 255;
+  //float scale = 0.8f;
+  string fileName;
+  for (auto arg = 1; arg < argc; arg++)
+    if (!strcmp(argv[arg], "l")) logInfo = true;
+    //else if (!strcmp(argv[arg], "w")) windowed = false;
+    //else if (!strcmp(argv[arg], "a")) alpha = atoi (argv[++arg]);
+    //else if (!strcmp(argv[arg], "s")) scale = atoi (argv[++arg]) / 100.f;
+    else fileName = argv[arg];
+
+  cLog::init (logInfo ? LOGINFO : LOGINFO3, false, "");
+  cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
   mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
 
@@ -204,7 +216,6 @@ int main (int argc, char* argv[]) {
   long m_Volume = 0;
   bool m_Pause = false;
 
-  string fileName = argv[1];
   if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
       mReader.Open (fileName.c_str(), true, mAudioConfig.is_live, 10.f)) {
     mClock.stateIdle();
