@@ -216,8 +216,7 @@ int main (int argc, char* argv[]) {
   long m_Volume = 0;
   bool m_Pause = false;
 
-  mAudioConfig.is_live = true;  //nnnn
-
+  //mAudioConfig.is_live = true;
   if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
       mReader.Open (fileName.c_str(), true, mAudioConfig.is_live, 10.f)) {
     mClock.stateIdle();
@@ -442,7 +441,7 @@ int main (int argc, char* argv[]) {
                  (mReader.IsEof() || mOmxPacket || (audio_fifo_high && video_fifo_high))) {
           //{{{  pause
           if (mClock.isPaused()) {
-            cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+            cLog::log (LOGNOTICE, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, mReader.IsEof(), mOmxPacket);
 
@@ -456,7 +455,7 @@ int main (int argc, char* argv[]) {
             if (!m_Pause)
               m_threshold = min(2.0f*m_threshold, 16.0f);
 
-            cLog::log (LOGINFO1, "omxPlayer pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
+            cLog::log (LOGNOTICE, "pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, m_threshold);
 
