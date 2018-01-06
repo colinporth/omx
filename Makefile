@@ -12,7 +12,7 @@ SRC=       cPcmRemap.cpp \
 	   cOmxAudio.cpp \
 	   cSwAudio.cpp \
 	   omxAlsa.cpp \
-	   omxPlayer.cpp
+	   omx.cpp
 
 CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
 	   -Wall -Wno-psabi -Wno-deprecated-declarations \
@@ -63,7 +63,7 @@ LDFLAGS+= -L ./ \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
-all:    omxPlayer
+all:    omx
 
 %.o: %.cpp
 	@rm -f $@
@@ -72,13 +72,13 @@ all:    omxPlayer
 version:
 	bash gen_version.sh > version.h
 
-omxPlayer: version $(OBJS)
-	$(CXX) $(LDFLAGS) -o omxPlayer $(OBJS)
+omx:    version $(OBJS)
+	$(CXX) $(LDFLAGS) -o omx $(OBJS)
 
 clean:
 	@rm -f *.o
-	@rm -f omxPlayer
-	@rm -f omxPlayer.old.log omxPlayer.log
+	@rm -f omx
+	@rm -f omx.old.log omx.log
 
 .PHONY: clean rebuild
 

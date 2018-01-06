@@ -1,4 +1,4 @@
-// omxPlayer.cpp
+// omx.cpp - simplified omxPlayer
 //{{{  includes
 #include <stdio.h>
 #include <signal.h>
@@ -207,7 +207,7 @@ void blankBackground (uint32_t rgba) {
 int main (int argc, char* argv[]) {
 
   cLog::Init ("./", LOGINFO3);
-  cLog::Log (LOGNOTICE, "omxPlayer %s %s", VERSION_DATE, argv[1]);
+  cLog::Log (LOGNOTICE, "omx %s %s", VERSION_DATE, argv[1]);
 
   mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
   //{{{  signals
