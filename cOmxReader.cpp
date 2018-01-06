@@ -78,10 +78,10 @@ public:
     m_flags = flags;
 
     if (strFileName.compare(0, 5, "pipe:") == 0) {
-    //  m_bPipe = true;
-    //  mFile = stdin;
-    //  m_iLength = 0;
-    //  return true;
+      m_bPipe = true;
+      mFile = stdin;
+      m_iLength = 0;
+      return true;
       }
 
     mFile = fopen64 (strFileName.c_str(), "r");
