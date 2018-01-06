@@ -1,4 +1,4 @@
-// cLog.cpp - nice little logging class
+// cLog.cpp 
 //{{{  includes
 #include "cLog.h"
 

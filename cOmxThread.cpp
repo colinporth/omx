@@ -1,10 +1,10 @@
 // cOmxThread.cpp
 //{{{  includes
-#include "cOmxThread.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "cOmxThread.h"
 
 #include "cLog.h"
 //}}}

@@ -2,8 +2,8 @@
 //{{{  includes
 #include "cOmxCoreTunnel.h"
 
-#include "cOmxClock.h"
 #include "cLog.h"
+#include "cOmxClock.h"
 //}}}
 
 //{{{

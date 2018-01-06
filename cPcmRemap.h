@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <vector>
-#include "StdString.h"
+#include "stdString.h"
 
 #define PCM_MAX_CH 18
 //{{{
@@ -61,8 +61,8 @@ public:
   ~cPcmRemap();
 
   void Reset();
-  enum PCMChannels* SetInputFormat (unsigned int channels, enum PCMChannels* 
-                                    channelMap, unsigned int sampleSize, unsigned int sampleRate, 
+  enum PCMChannels* SetInputFormat (unsigned int channels, enum PCMChannels*
+                                    channelMap, unsigned int sampleSize, unsigned int sampleRate,
                                     enum PCMLayout channelLayout, bool dontnormalize);
   void SetOutputFormat (unsigned int channels, enum PCMChannels* channelMap, bool ignoreLayout = false);
   float GetCurrentAttenuation() { return m_attenuationMin; }

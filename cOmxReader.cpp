@@ -1,16 +1,16 @@
 // cOmxReader.cpp
 //{{{  includes
-#include "cOmxReader.h"
-
-#include "cOmxClock.h"
-
 #include <stdio.h>
 #include <unistd.h>
 #include <iostream>
 
-#include "PlatformDefs.h"
-#include "StdString.h"
+#include "cOmxReader.h"
+
+#include "platformDefs.h"
+#include "stdString.h"
 #include "cLog.h"
+
+#include "cOmxClock.h"
 
 using namespace std;
 //}}}
@@ -949,7 +949,7 @@ OMXPacket* cOmxReader::Read() {
   omxPkt->duration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
 
   // used to guess streamlength
-  if ((omxPkt->dts != DVD_NOPTS_VALUE) && 
+  if ((omxPkt->dts != DVD_NOPTS_VALUE) &&
       (omxPkt->dts > m_iCurrentPts || m_iCurrentPts == DVD_NOPTS_VALUE))
     m_iCurrentPts = omxPkt->dts;
 

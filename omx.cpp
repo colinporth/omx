@@ -13,19 +13,18 @@
 
 #define AV_NOWARN_DEPRECATED
 
+#include "cKeyboard.h"
+#include "cBcmHost.h"
+
 #include "cLog.h"
 #include "cPcmRemap.h"
 
-#include "cBcmHost.h"
 #include "cOmx.h"
 #include "avLibs.h"
-
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cAudio.h"
 #include "cVideo.h"
-
-#include "cKeyboard.h"
 
 #include "version.h"
 //}}}

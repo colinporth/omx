@@ -1,11 +1,11 @@
 // OMXVideo.cpp
 //{{{  includes
-#include "cVideo.h"
-#include "cOmxStreamInfo.h"
-
 #include <sys/time.h>
 #include <inttypes.h>
 
+#include "cVideo.h"
+
+#include "cOmxStreamInfo.h"
 #include "cLog.h"
 //}}}
 //{{{  decoder defines

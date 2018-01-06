@@ -1,17 +1,15 @@
 #pragma once
-//{{{  includes
+
 extern "C" {
   #include <libavutil/opt.h>
   #include <libavutil/mem.h>
   #include <libavutil/crc.h>
   #include <libavutil/fifo.h>
   #include <libavutil/avutil.h>
-
   #include <libavcodec/avcodec.h>
   #include <libavformat/avformat.h>
   #include <libswresample/swresample.h>
   }
-//}}}
 
 #define AVSEEK_FORCE 0x20000
 #define AVFRAME_IN_LAVU
@@ -95,13 +93,16 @@ public:
   }
   //}}}
   void av_register_all_dont_call() { *(volatile int* )0x0 = 0; }
+
   AVInputFormat *av_find_input_format(const char *short_name) { return ::av_find_input_format(short_name); }
   int url_feof(AVIOContext *s) { return ::url_feof(s); }
   void avformat_close_input(AVFormatContext **s) { ::avformat_close_input(s); }
+
   int av_read_frame(AVFormatContext *s, AVPacket *pkt) { return ::av_read_frame(s, pkt); }
   int av_read_play(AVFormatContext *s) { return ::av_read_play(s); }
   int av_read_pause(AVFormatContext *s) { return ::av_read_pause(s); }
   int av_seek_frame(AVFormatContext *s, int stream_index, int64_t timestamp, int flags) { return ::av_seek_frame(s, stream_index, timestamp, flags); }
+
   //{{{
   int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
   {
@@ -118,28 +119,37 @@ public:
                             int (*write_packet)(void *opaque, uint8_t *buf, int buf_size),
                             offset_t (*seek)(void *opaque, offset_t offset, int whence)) { return ::avio_alloc_context(buffer, buffer_size, write_flag, opaque, read_packet, write_packet, seek); }
   //}}}
+
   AVInputFormat *av_probe_input_format(AVProbeData *pd, int is_opened) {return ::av_probe_input_format(pd, is_opened); }
   AVInputFormat *av_probe_input_format2(AVProbeData *pd, int is_opened, int *score_max) {*score_max = 100; return ::av_probe_input_format(pd, is_opened); } // Use av_probe_input_format, this is not exported by ffmpeg's headers
+
   int av_probe_input_buffer(AVIOContext *pb, AVInputFormat **fmt, const char *filename, void *logctx, unsigned int offset, unsigned int max_probe_size) { return ::av_probe_input_buffer(pb, fmt, filename, logctx, offset, max_probe_size); }
   void av_dump_format(AVFormatContext *ic, int index, const char *url, int is_output) { ::av_dump_format(ic, index, url, is_output); }
+
   int avio_open(AVIOContext **s, const char *filename, int flags) { return ::avio_open(s, filename, flags); }
   int avio_close(AVIOContext *s) { return ::avio_close(s); }
+
   int avio_open_dyn_buf(AVIOContext **s) { return ::avio_open_dyn_buf(s); }
   int avio_close_dyn_buf(AVIOContext *s, uint8_t **pbuffer) { return ::avio_close_dyn_buf(s, pbuffer); }
+
   offset_t avio_seek(AVIOContext *s, offset_t offset, int whence) { return ::avio_seek(s, offset, whence); }
   int avio_read(AVIOContext *s, unsigned char *buf, int size) { return ::avio_read(s, buf, size); }
+
   void avio_w8(AVIOContext *s, int b) { ::avio_w8(s, b); }
   void avio_write(AVIOContext *s, const unsigned char *buf, int size) { ::avio_write(s, buf, size); }
   void avio_wb24(AVIOContext *s, unsigned int val) { ::avio_wb24(s, val); }
   void avio_wb32(AVIOContext *s, unsigned int val) { ::avio_wb32(s, val); }
   void avio_wb16(AVIOContext *s, unsigned int val) { ::avio_wb16(s, val); }
+
   AVFormatContext *avformat_alloc_context() { return ::avformat_alloc_context(); }
   //{{{
   int av_set_options_string(AVFormatContext *ctx, const char *opts,
             const char *key_val_sep, const char *pairs_sep) { return ::av_set_options_string(ctx, opts, key_val_sep, pairs_sep); }
   //}}}
+
   AVStream *avformat_new_stream(AVFormatContext *s, AVCodec *c) { return ::avformat_new_stream(s, c); }
   AVOutputFormat *av_guess_format(const char *short_name, const char *filename, const char *mime_type) { return ::av_guess_format(short_name, filename, mime_type); }
+
   int avformat_write_header (AVFormatContext *s, AVDictionary **options) { return ::avformat_write_header (s, options); }
   int av_write_trailer(AVFormatContext *s) { return ::av_write_trailer(s); }
   int av_write_frame  (AVFormatContext *s, AVPacket *pkt) { return ::av_write_frame(s, pkt); }
@@ -158,6 +168,7 @@ public:
   }
   //}}}
   void avcodec_flush_buffers(AVCodecContext *avctx) { ::avcodec_flush_buffers(avctx); }
+
   //{{{
   int avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVDictionary **options) {
     return ::avcodec_open2(avctx, codec, options);
@@ -166,18 +177,23 @@ public:
   int avcodec_open2_dont_call(AVCodecContext *avctx, AVCodec *codec, AVDictionary **options) { *(int *)0x0 = 0; return 0; }
   int avcodec_close_dont_call(AVCodecContext *avctx) { *(int *)0x0 = 0; return 0; }
   AVCodec *avcodec_find_decoder(enum AVCodecID id) { return ::avcodec_find_decoder(id); }
+
   AVCodec *avcodec_find_encoder(enum AVCodecID id) { return ::avcodec_find_encoder(id); }
   //{{{
   int avcodec_close(AVCodecContext *avctx) {
     return ::avcodec_close(avctx);
   }
   //}}}
+
   AVFrame *av_frame_alloc() { return ::av_frame_alloc(); }
+
   int avpicture_fill(AVPicture *picture, uint8_t *ptr, AVPixelFormat pix_fmt, int width, int height) { return ::avpicture_fill(picture, ptr, pix_fmt, width, height); }
+
   int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture, int *got_picture_ptr, AVPacket *avpkt) { return ::avcodec_decode_video2(avctx, picture, got_picture_ptr, avpkt); }
   int avcodec_decode_audio4(AVCodecContext *avctx, AVFrame *frame, int *got_frame_ptr, AVPacket *avpkt) { return ::avcodec_decode_audio4(avctx, frame, got_frame_ptr, avpkt); }
   int avcodec_decode_subtitle2(AVCodecContext *avctx, AVSubtitle *sub, int *got_sub_ptr, AVPacket *avpkt) { return ::avcodec_decode_subtitle2(avctx, sub, got_sub_ptr, avpkt); }
   int avcodec_encode_audio2(AVCodecContext *avctx, AVPacket *avpkt, const AVFrame *frame, int *got_packet_ptr) { return ::avcodec_encode_audio2(avctx, avpkt, frame, got_packet_ptr); }
+
   int avpicture_get_size(AVPixelFormat pix_fmt, int width, int height) { return ::avpicture_get_size(pix_fmt, width, height); }
   AVCodecContext *avcodec_alloc_context3(AVCodec *codec) { return ::avcodec_alloc_context3(codec); }
   void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode) { ::avcodec_string(buf, buf_size, enc, encode); }
@@ -206,6 +222,7 @@ public:
   void avpicture_free(AVPicture *picture) { ::avpicture_free(picture); }
   void av_free_packet(AVPacket *pkt) { ::av_free_packet(pkt); }
   int avpicture_alloc(AVPicture *picture, AVPixelFormat pix_fmt, int width, int height) { return ::avpicture_alloc(picture, pix_fmt, width, height); }
+
   int avcodec_default_get_buffer2(AVCodecContext *s, AVFrame *pic, int flags) { return ::avcodec_default_get_buffer2(s, pic, flags); }
   enum AVPixelFormat avcodec_default_get_format(struct AVCodecContext *s, const enum AVPixelFormat *fmt) { return ::avcodec_default_get_format(s, fmt); }
   AVCodec *av_codec_next(AVCodec *c) { return ::av_codec_next(c); }

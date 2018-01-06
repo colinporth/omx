@@ -1,3 +1,4 @@
+// cOmxAudio.cpp
 //{{{  includes
 #include "cAudio.h"
 
@@ -450,9 +451,9 @@ bool cOmxAudio::PortSettingsChanged() {
     }
 
   if (m_omx_render_analog.IsInitialized() ) {
-    // By default audio_render is the clock master, and if output samples don't fit the timestamps, 
+    // By default audio_render is the clock master, and if output samples don't fit the timestamps,
     // it will speed up/slow down the clock.
-    // This tends to be better for maintaining audio sync and avoiding audio glitches, 
+    // This tends to be better for maintaining audio sync and avoiding audio glitches,
     // but can affect video/display sync when in dual audio mode, make analogue the slave
     OMX_CONFIG_BOOLEANTYPE configBool;
     OMX_INIT_STRUCTURE(configBool);
@@ -462,7 +463,7 @@ bool cOmxAudio::PortSettingsChanged() {
 
     OMX_CONFIG_BRCMAUDIODESTINATIONTYPE audioDest;
     OMX_INIT_STRUCTURE(audioDest);
-    strncpy ((char*)audioDest.sName, 
+    strncpy ((char*)audioDest.sName,
       m_config.device == "omx:alsa" ? m_config.subdevice.c_str() : "local", sizeof(audioDest.sName));
     if (m_omx_render_analog.SetConfig(OMX_IndexConfigBrcmAudioDestination, &audioDest) != OMX_ErrorNone) {
       cLog::Log (LOGERROR, "cOmxAudio::PortSettingsChanged m_omx_render_analog.SetConfig");
@@ -471,9 +472,9 @@ bool cOmxAudio::PortSettingsChanged() {
     }
 
   if (m_omx_render_hdmi.IsInitialized() ) {
-    // By default audio_render is the clock master, and if output samples don't fit the timestamps, 
+    // By default audio_render is the clock master, and if output samples don't fit the timestamps,
     // it will speed up/slow down the clock.
-    // This tends to be better for maintaining audio sync and avoiding audio glitches, 
+    // This tends to be better for maintaining audio sync and avoiding audio glitches,
     // but can affect video/display sync
     OMX_CONFIG_BOOLEANTYPE configBool;
     OMX_INIT_STRUCTURE(configBool);
@@ -491,14 +492,14 @@ bool cOmxAudio::PortSettingsChanged() {
     }
 
   if (m_omx_splitter.IsInitialized() ) {
-    m_omx_tunnel_splitter_analog.Initialize (&m_omx_splitter, m_omx_splitter.GetOutputPort(), 
+    m_omx_tunnel_splitter_analog.Initialize (&m_omx_splitter, m_omx_splitter.GetOutputPort(),
                                              &m_omx_render_analog, m_omx_render_analog.GetInputPort());
     if (m_omx_tunnel_splitter_analog.Establish() != OMX_ErrorNone) {
       cLog::Log (LOGERROR, "cOmxAudio::PortSettingsChanged  m_omx_tunnel_splitter_analog.Establish");
       return false;
       }
 
-    m_omx_tunnel_splitter_hdmi.Initialize (&m_omx_splitter, m_omx_splitter.GetOutputPort() + 1, 
+    m_omx_tunnel_splitter_hdmi.Initialize (&m_omx_splitter, m_omx_splitter.GetOutputPort() + 1,
                                            &m_omx_render_hdmi, m_omx_render_hdmi.GetInputPort());
     if (m_omx_tunnel_splitter_hdmi.Establish() != OMX_ErrorNone) {
       cLog::Log (LOGERROR, "cOmxAudio::PortSettingsChanged m_omx_tunnel_splitter_hdmi.Establish");
@@ -507,17 +508,17 @@ bool cOmxAudio::PortSettingsChanged() {
     }
 
   if (m_omx_mixer.IsInitialized()) {
-    m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(), 
+    m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(),
                                      &m_omx_mixer, m_omx_mixer.GetInputPort());
     if (m_omx_splitter.IsInitialized())
-      m_omx_tunnel_mixer.Initialize (&m_omx_mixer, m_omx_mixer.GetOutputPort(), 
+      m_omx_tunnel_mixer.Initialize (&m_omx_mixer, m_omx_mixer.GetOutputPort(),
                                      &m_omx_splitter, m_omx_splitter.GetInputPort());
     else {
       if (m_omx_render_analog.IsInitialized())
-        m_omx_tunnel_mixer.Initialize (&m_omx_mixer, m_omx_mixer.GetOutputPort(), 
+        m_omx_tunnel_mixer.Initialize (&m_omx_mixer, m_omx_mixer.GetOutputPort(),
                                        &m_omx_render_analog, m_omx_render_analog.GetInputPort());
       if (m_omx_render_hdmi.IsInitialized())
-        m_omx_tunnel_mixer.Initialize (&m_omx_mixer, m_omx_mixer.GetOutputPort(), 
+        m_omx_tunnel_mixer.Initialize (&m_omx_mixer, m_omx_mixer.GetOutputPort(),
                                        &m_omx_render_hdmi, m_omx_render_hdmi.GetInputPort());
       }
     cLog::Log (LOGDEBUG, "cOmxAudio::PortSettingsChanged bits:%d mode:%d ch:%d srate:%d nopassthrough",
@@ -529,7 +530,7 @@ bool cOmxAudio::PortSettingsChanged() {
       m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(),
                                        &m_omx_render_analog, m_omx_render_analog.GetInputPort());
     else if (m_omx_render_hdmi.IsInitialized())
-      m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(), 
+      m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(),
                                        &m_omx_render_hdmi, m_omx_render_hdmi.GetInputPort());
      cLog::Log (LOGDEBUG, "cOmxAudio::PortSettingsChanged bits:%d mode:%d ch:%d srate:%d passthrough", 0, 0, 0, 0);
      }
