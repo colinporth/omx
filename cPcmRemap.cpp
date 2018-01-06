@@ -11,6 +11,8 @@
 
 #include "cPcmRemap.h"
 #include "cLog.h"
+
+using namespace std;
 //}}}
 
 //{{{
@@ -69,7 +71,7 @@ static struct PCMMapInfo PCMDownmixTable[PCM_MAX_CH][PCM_MAX_MIX] = {
   { {PCM_FRONT_RIGHT          , 1.0}, {PCM_INVALID} },
   /* PCM_TOP_FRONT_CENTER */
   { {PCM_TOP_FRONT_LEFT       , 1.0}, {PCM_TOP_FRONT_RIGHT      , 1.0}, {PCM_INVALID} },
-  /* PCM_TOP_CENTER */ 
+  /* PCM_TOP_CENTER */
   { {PCM_TOP_FRONT_LEFT       , 1.0}, {PCM_TOP_FRONT_RIGHT      , 1.0}, {PCM_INVALID} },
   /* PCM_TOP_BACK_LEFT */
   { {PCM_BACK_LEFT            , 1.0}, {PCM_INVALID} },
@@ -103,7 +105,7 @@ void cPcmRemap::Dispose() {
 //}}}
 //{{{
 /* resolves the channels recursively and returns the new index of tablePtr */
-struct PCMMapInfo* cPcmRemap::ResolveChannel (enum PCMChannels channel, float level, bool ifExists, 
+struct PCMMapInfo* cPcmRemap::ResolveChannel (enum PCMChannels channel, float level, bool ifExists,
                                               std::vector<enum PCMChannels> path, struct PCMMapInfo *tablePtr) {
 
   if (channel == PCM_INVALID) return tablePtr;
@@ -116,7 +118,7 @@ struct PCMMapInfo* cPcmRemap::ResolveChannel (enum PCMChannels channel, float le
     ++tablePtr;
     tablePtr->channel = PCM_INVALID;
     return tablePtr;
-    } 
+    }
   else if (ifExists)
     level /= 2;
 
@@ -252,7 +254,7 @@ void cPcmRemap::BuildMap() {
 
   struct PCMMapInfo *dst;
   unsigned int out_ch;
-  if (!m_inSet || !m_outSet) 
+  if (!m_inSet || !m_outSet)
     return;
 
   m_inStride  = m_inSampleSize * m_inChannels ;
@@ -297,14 +299,14 @@ void cPcmRemap::BuildMap() {
 
   /* adjust the channels that are too loud */
   for(out_ch = 0; out_ch < m_outChannels; ++out_ch) {
-    CStdString s = "", f;
+    string s = "", f;
     for(dst = m_lookupMap[m_outMap[out_ch]]; dst->channel != PCM_INVALID; ++dst) {
       if (hasLoudest && dst->copy) {
         dst->level = loudest;
         dst->copy  = false;
       }
 
-      f.Format("%s(%f%s) ",  PCMChannelStr(dst->channel).c_str(), dst->level, dst->copy ? "*" : "");
+      f = PCMChannelStr(dst->channel); // + dst->level, dst->copy ? "*" : "");
       s += f;
     }
     cLog::Log(LOGDEBUG, "cPcmRemap: %s = %s\n", PCMChannelStr(m_outMap[out_ch]).c_str(), s.c_str());
@@ -312,14 +314,14 @@ void cPcmRemap::BuildMap() {
 }
 //}}}
 //{{{
-void cPcmRemap::DumpMap (CStdString info, unsigned int channels, enum PCMChannels *channelMap) {
+void cPcmRemap::DumpMap (string info, unsigned int channels, enum PCMChannels *channelMap) {
 
   if (channelMap == NULL) {
     cLog::Log(LOGINFO, "cPcmRemap: %s channel map: NULL", info.c_str());
     return;
     }
 
-  CStdString mapping;
+  string mapping;
   for(unsigned int i = 0; i < channels; ++i)
     mapping += ((i == 0) ? "" : ",") + PCMChannelStr(channelMap[i]);
 
@@ -336,8 +338,8 @@ void cPcmRemap::Reset() {
 //}}}
 
 //{{{
-enum PCMChannels* cPcmRemap::SetInputFormat (unsigned int channels, enum PCMChannels *channelMap, 
-                                             unsigned int sampleSize, unsigned int sampleRate, 
+enum PCMChannels* cPcmRemap::SetInputFormat (unsigned int channels, enum PCMChannels *channelMap,
+                                             unsigned int sampleSize, unsigned int sampleRate,
                                              enum PCMLayout channelLayout, bool dontnormalize) {
 /* sets the input format, and returns the requested channel layout */
 
@@ -400,15 +402,14 @@ void cPcmRemap::SetOutputFormat (unsigned int channels, enum PCMChannels *channe
 //}}}
 
 //{{{
-CStdString cPcmRemap::PCMChannelStr (enum PCMChannels ename) {
+string cPcmRemap::PCMChannelStr (enum PCMChannels ename) {
 
-  const char* PCMChannelName[] = { "FL", "FR", "CE", "LFE", "BL", "BR", "FLOC", "FROC", "BC", "SL" "SR", 
+  const char* PCMChannelName[] = { "FL", "FR", "CE", "LFE", "BL", "BR", "FLOC", "FROC", "BC", "SL" "SR",
                                    "TFL", "TFR", "TFC", "TC", "TBL", "TBR", "TBC" };
   int namepos = (int)ename;
-  CStdString namestr;
-
+  string namestr;
   if (namepos < 0 || namepos >= (int)(sizeof(PCMChannelName) / sizeof(const char*)))
-    namestr.Format("UNKNOWN CHANNEL:%i", namepos);
+    namestr = "UNKNOWN CHANNEL"; // namepos);
   else
     namestr = PCMChannelName[namepos];
 

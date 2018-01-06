@@ -3,11 +3,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <iostream>
+#include <string>
 
 #include "cOmxReader.h"
 
 #include "platformDefs.h"
-#include "stdString.h"
+//#include "stdString.h"
 #include "cLog.h"
 
 #include "cOmxClock.h"
@@ -72,15 +73,15 @@ public:
   //}}}
 
   //{{{
-  bool Open (const CStdString& strFileName, unsigned int flags) {
+  bool Open (const string& strFileName, unsigned int flags) {
 
     m_flags = flags;
 
     if (strFileName.compare(0, 5, "pipe:") == 0) {
-      m_bPipe = true;
-      mFile = stdin;
-      m_iLength = 0;
-      return true;
+    //  m_bPipe = true;
+    //  mFile = stdin;
+    //  m_iLength = 0;
+    //  return true;
       }
 
     mFile = fopen64 (strFileName.c_str(), "r");
@@ -144,7 +145,7 @@ public:
   //}}}
 
   //{{{
-  bool Exists (const CStdString& strFileName, bool bUseCache = true)
+  bool Exists (const string& strFileName, bool bUseCache = true)
   {
     FILE *fp;
 

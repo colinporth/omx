@@ -35,8 +35,8 @@ public:
     }
 
   cOmxStreamInfo hints;
-  CStdString device;
-  CStdString subdevice;
+  string device;
+  string subdevice;
 
   enum PCMLayout layout;
   bool boostOnDownmix;
