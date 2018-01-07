@@ -17,6 +17,7 @@
 
 #include "../shared/utils/cLog.h"
 #include "../shared/utils/cKeyboard.h"
+#include "../shared/nanoVg/cRaspWindow.h"
 
 #include "cPcmRemap.h"
 
@@ -33,8 +34,8 @@
 
 using namespace std;
 //}}}
-volatile sig_atomic_t g_abort = false;
 
+volatile sig_atomic_t g_abort = false;
 //{{{
 void sigHandler (int s) {
 
@@ -50,45 +51,17 @@ void sigHandler (int s) {
   abort();
   }
 //}}}
-//{{{
-bool exists (const string& path) {
 
-  struct stat buf;
-  auto error = stat (path.c_str(), &buf);
-  return !error || errno != ENOENT;
-  }
-//}}}
-//{{{
-bool isURL (const string& str) {
-
-  auto result = str.find ("://");
-  if (result == string::npos || result == 0)
-    return false;
-
-  for (size_t i = 0; i < result; ++i)
-    if (!isalpha (str[i]))
-      return false;
-
-  return true;
-  }
-//}}}
-//{{{
-bool isPipe (const string& str) {
-
-  if (str.compare (0, 5, "pipe:") == 0)
-    return true;
-  return false;
-  }
-//}}}
-
-class cAppWindow { // : public cRaspWindow {
+class cAppWindow : public cRaspWindow {
 public:
-  cAppWindow() {}
   //{{{
-  void run (bool windowed, float scale, int alpha, const string& fileName) {
-
+  cAppWindow() {
     mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
     thread ([=]() { mKeyboard.run(); } ).detach();
+    }
+  //}}}
+  //{{{
+  void run (bool windowed, float scale, int alpha, const string& fileName) {
 
     // vars
     bool m_send_eos = false;
@@ -465,6 +438,37 @@ private:
       }
     };
   //}}}
+  void pollKeyboard() {}
+  //{{{
+  bool exists (const string& path) {
+
+    struct stat buf;
+    auto error = stat (path.c_str(), &buf);
+    return !error || errno != ENOENT;
+    }
+  //}}}
+  //{{{
+  bool isURL (const string& str) {
+
+    auto result = str.find ("://");
+    if (result == string::npos || result == 0)
+      return false;
+
+    for (size_t i = 0; i < result; ++i)
+      if (!isalpha (str[i]))
+        return false;
+
+    return true;
+    }
+  //}}}
+  //{{{
+  bool isPipe (const string& str) {
+
+    if (str.compare (0, 5, "pipe:") == 0)
+      return true;
+    return false;
+    }
+  //}}}
   //{{{
   float getDisplayAspectRatio (HDMI_ASPECT_T aspect) {
 
@@ -527,7 +531,7 @@ private:
 
 int main (int argc, char* argv[]) {
 
-  //{{{  signals
+  //{{{  set signals
   signal (SIGSEGV, sigHandler);
   signal (SIGABRT, sigHandler);
   signal (SIGFPE, sigHandler);

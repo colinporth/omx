@@ -12,6 +12,8 @@ SRC=       cPcmRemap.cpp \
 	   omxAlsa.cpp \
 	   ../shared/utils/cLog.cpp \
 	   ../shared/utils/cKeyboard.cpp \
+	   ../shared/nanoVg/cRaspWindow.cpp \
+	   ../shared/nanoVg/cVg.cpp \
 	   omx.cpp
 
 CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
