@@ -196,7 +196,7 @@ protected:
       //{{{  seek
       double pts = mClock.getMediaTime();
 
-      double seek_pos = (pts ? (pts / DVD_TIME_BASE) : last_seek_pos) + m_incr;
+      double seek_pos = (pts ? (pts / 1000000.0) : last_seek_pos) + m_incr;
       last_seek_pos = seek_pos;
       seek_pos *= 1000.0;
 
@@ -243,7 +243,7 @@ protected:
     bool audio_fifo_high = false;
     double audio_pts = mPlayerAudio.GetCurrentPTS();
     if (audio_pts != DVD_NOPTS_VALUE) {
-      audio_fifo = (audio_pts / DVD_TIME_BASE) - pts * 1e-6;
+      audio_fifo = (audio_pts - pts) / 1000000.0;
       audio_fifo_low = mHasAudio && (audio_fifo < threshold);
       audio_fifo_high = !mHasAudio ||
                         ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > m_threshold));
@@ -255,7 +255,7 @@ protected:
     bool video_fifo_high = false;
     double video_pts = mPlayerVideo.GetCurrentPTS();
     if (video_pts != DVD_NOPTS_VALUE) {
-      video_fifo = (video_pts / DVD_TIME_BASE) - pts * 1e-6;
+      video_fifo = (video_pts -pts) / 1000000.0;
       video_fifo_low = mHasVideo && (video_fifo < threshold);
       video_fifo_high = !mHasVideo ||
                         ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > m_threshold));

@@ -16,15 +16,36 @@ SRC=       cPcmRemap.cpp \
 	   ../shared/nanoVg/cVg.cpp \
 	   omx.cpp
 
-CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
-	   -Wall -Wno-psabi -Wno-deprecated-declarations \
-	   -mfloat-abi=hard -mfpu=vfp -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -march=armv6zk \
-	   -mstructure-size-boundary=32 -mabi=aapcs-linux -mno-apcs-stack-check -mno-sched-prolog \
-	   -D PIC  -D _REENTRANT \
-	   -D __STDC_CONSTANT_MACROS  -D __STDC_LIMIT_MACROS \
-	   -D_LARGEFILE64_SOURCE  -D_FILE_OFFSET_BITS=64 \
-	   -D TARGET_POSIX -D TARGET_LINUX  -D TARGET_RASPBERRY_PI  -D __VIDEOCORE4__ \
-	   -D OMX  -D HAVE_OMXLIB  -D OMX_SKIP64BIT \
+CFLAGS=    -std=c++0x \
+	   -O3 \
+	   -fPIC \
+	   -ftree-vectorize \
+	   -fomit-frame-pointer \
+	   -Wall \
+	   -Wno-psabi \
+	   -Wno-deprecated-declarations \
+	   -mfloat-abi=hard \
+	   -mfpu=vfp \
+	   -mcpu=arm1176jzf-s \
+	   -mtune=arm1176jzf-s \
+	   -march=armv6zk \
+	   -mstructure-size-boundary=32 \
+	   -mabi=aapcs-linux \
+	   -mno-apcs-stack-check \
+	   -mno-sched-prolog \
+	   -D PIC \
+	   -D _REENTRANT \
+	   -D __STDC_CONSTANT_MACROS \
+	   -D __STDC_LIMIT_MACROS \
+	   -D_LARGEFILE64_SOURCE \
+	   -D_FILE_OFFSET_BITS=64 \
+	   -D TARGET_POSIX \
+	   -D TARGET_LINUX \
+	   -D TARGET_RASPBERRY_PI \
+	   -D __VIDEOCORE4__ \
+	   -D OMX \
+	   -D HAVE_OMXLIB \
+	   -D OMX_SKIP64BIT \
 	   -D USE_EXTERNAL_OMX \
 	   -D USE_EXTERNAL_LIBBCM_HOST \
 	   -D USE_EXTERNAL_FFMPEG \
@@ -69,7 +90,7 @@ all:    omx
 
 %.o: %.cpp
 	@rm -f $@
-	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@ -Wno-deprecated-declarations
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 omx:    $(OBJS)
 	$(CXX) $(LDFLAGS) -o omx $(OBJS)

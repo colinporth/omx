@@ -15,11 +15,11 @@
 
 #define DVD_PLAYSPEED_PAUSE       0       // frame stepping
 #define DVD_PLAYSPEED_NORMAL      1000
-
 //}}}
 
 //{{{
-static inline OMX_TICKS toOmxTime (int64_t pts) {
+inline OMX_TICKS toOmxTime (int64_t pts) {
+
   OMX_TICKS ticks;
   ticks.nLowPart = pts;
   ticks.nHighPart = pts >> 32;
@@ -27,7 +27,8 @@ static inline OMX_TICKS toOmxTime (int64_t pts) {
   }
 //}}}
 //{{{
-static inline int64_t fromOmxTime (OMX_TICKS ticks) {
+inline int64_t fromOmxTime (OMX_TICKS ticks) {
+
   int64_t pts = ticks.nLowPart | ((uint64_t)(ticks.nHighPart) << 32);
   return pts;
   }

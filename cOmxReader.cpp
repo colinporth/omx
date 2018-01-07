@@ -734,6 +734,7 @@ string cOmxReader::GetStreamType (OMXStreamType type, unsigned int index) {
   return strInfo;
   }
 //}}}
+
 //{{{
 bool cOmxReader::GetHints (AVStream* stream, cOmxStreamInfo* hints) {
 

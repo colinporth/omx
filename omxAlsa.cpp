@@ -65,7 +65,7 @@ typedef struct _GOMX_QUEUE {
 } GOMX_QUEUE;
 //}}}
 //{{{
-static void gomxq_init (GOMX_QUEUE *q, ptrdiff_t offset)
+static void gomxq_init (GOMX_QUEUE* q, ptrdiff_t offset)
 {
   q->head = q->tail = 0;
   q->offset = offset;
@@ -73,13 +73,13 @@ static void gomxq_init (GOMX_QUEUE *q, ptrdiff_t offset)
 }
 //}}}
 //{{{
-static void **gomxq_nextptr (GOMX_QUEUE *q, void *item)
+static void **gomxq_nextptr (GOMX_QUEUE* q, void *item)
 {
   return (void**) ((uint8_t*)item + q->offset);
 }
 //}}}
 //{{{
-static void gomxq_enqueue (GOMX_QUEUE *q, void *item)
+static void gomxq_enqueue (GOMX_QUEUE* q, void *item)
 {
   *gomxq_nextptr(q, item) = 0;
   if (q->tail) {
@@ -92,7 +92,7 @@ static void gomxq_enqueue (GOMX_QUEUE *q, void *item)
 }
 //}}}
 //{{{
-static void *gomxq_dequeue (GOMX_QUEUE *q)
+static void *gomxq_dequeue (GOMX_QUEUE* q)
 {
   void *item = q->head;
   if (item) {
@@ -152,7 +152,7 @@ typedef struct _GOMX_COMPONENT {
 //}}}
 
 //{{{
-static GOMX_PORT *gomx_get_port (GOMX_COMPONENT *comp, size_t idx)
+static GOMX_PORT* gomx_get_port (GOMX_COMPONENT* comp, size_t idx)
 {
   if (idx < 0 || idx >= comp->nports) return 0;
   return &comp->ports[idx];
@@ -222,7 +222,7 @@ static OMX_ERRORTYPE gomx_get_parameter (OMX_HANDLETYPE hComponent, OMX_INDEXTYP
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE gomx_get_state (OMX_HANDLETYPE hComponent, OMX_STATETYPE *pState)
+static OMX_ERRORTYPE gomx_get_state (OMX_HANDLETYPE hComponent, OMX_STATETYPE* pState)
 {
   GOMX_COMPONENT *comp = (GOMX_COMPONENT *) hComponent;
   *pState = comp->state;
@@ -297,9 +297,9 @@ not_compatible:
 //}}}
 
 //{{{
-static void __gomx_event (GOMX_COMPONENT *comp, OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData)
+static void __gomx_event (GOMX_COMPONENT* comp, OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData)
 {
-  if (!comp->cb.EventHandler) 
+  if (!comp->cb.EventHandler)
     return;
   pthread_mutex_unlock(&comp->mutex);
   comp->cb.EventHandler((OMX_HANDLETYPE) comp, comp->omx.pApplicationPrivate, eEvent, nData1, nData2, pEventData);
@@ -308,7 +308,7 @@ static void __gomx_event (GOMX_COMPONENT *comp, OMX_EVENTTYPE eEvent, OMX_U32 nD
 //}}}
 
 //{{{
-static void __gomx_port_update_buffer_state (GOMX_COMPONENT *comp, GOMX_PORT *port)
+static void __gomx_port_update_buffer_state (GOMX_COMPONENT* comp, GOMX_PORT* port)
 {
   if (port->num_buffers_old == port->num_buffers)
     return;
@@ -408,7 +408,7 @@ static OMX_ERRORTYPE gomx_free_buffer (OMX_HANDLETYPE hComponent, OMX_U32 nPortI
 }
 //}}}
 //{{{
-static void __gomx_port_queue_supplier_buffer (GOMX_PORT *port, OMX_BUFFERHEADERTYPE *hdr)
+static void __gomx_port_queue_supplier_buffer (GOMX_PORT* port, OMX_BUFFERHEADERTYPE* hdr)
 {
   gomxq_enqueue(&port->tunnel_supplierq, (void *) hdr);
   if (port->tunnel_supplierq.num == port->num_buffers)
@@ -416,7 +416,7 @@ static void __gomx_port_queue_supplier_buffer (GOMX_PORT *port, OMX_BUFFERHEADER
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE __gomx_empty_buffer_done (GOMX_COMPONENT *comp, OMX_BUFFERHEADERTYPE *hdr)
+static OMX_ERRORTYPE __gomx_empty_buffer_done (GOMX_COMPONENT* comp, OMX_BUFFERHEADERTYPE* hdr)
 {
   GOMX_PORT *port = gomx_get_port(comp, hdr->nInputPortIndex);
   OMX_ERRORTYPE r;
@@ -487,7 +487,7 @@ static OMX_ERRORTYPE gomx_fill_this_buffer (OMX_HANDLETYPE hComponent, OMX_BUFFE
 }
 //}}}
 //{{{
-static void __gomx_process_mark (GOMX_COMPONENT *comp, OMX_BUFFERHEADERTYPE *hdr)
+static void __gomx_process_mark (GOMX_COMPONENT* comp, OMX_BUFFERHEADERTYPE* hdr)
 {
   if (hdr->hMarkTargetComponent == (OMX_HANDLETYPE) comp) {
     __gomx_event(comp, OMX_EventMark, 0, 0, hdr->pMarkData);
@@ -615,7 +615,7 @@ static OMX_ERRORTYPE gomx_send_command (OMX_HANDLETYPE hComponent, OMX_COMMANDTY
 
 #define GOMX_TRANS(a,b) ((((uint32_t)a) << 16) | (uint32_t)b)
 //{{{
-static OMX_ERRORTYPE gomx_do_set_state (GOMX_COMPONENT *comp, GOMX_COMMAND *cmd)
+static OMX_ERRORTYPE gomx_do_set_state (GOMX_COMPONENT* comp, GOMX_COMMAND* cmd)
 {
   OMX_STATETYPE new_state = (OMX_STATETYPE) cmd->param;
   OMX_ERRORTYPE r;
@@ -692,7 +692,7 @@ err:
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE gomx_do_port_command (GOMX_COMPONENT *comp, GOMX_PORT *port, GOMX_COMMAND *cmd)
+static OMX_ERRORTYPE gomx_do_port_command (GOMX_COMPONENT* comp, GOMX_PORT* port, GOMX_COMMAND* cmd)
 {
   OMX_ERRORTYPE r = OMX_ErrorNone;
 
@@ -719,7 +719,7 @@ static OMX_ERRORTYPE gomx_do_port_command (GOMX_COMPONENT *comp, GOMX_PORT *port
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE gomx_do_command (GOMX_COMPONENT *comp, GOMX_COMMAND *cmd)
+static OMX_ERRORTYPE gomx_do_command (GOMX_COMPONENT* comp, GOMX_COMMAND* cmd)
 {
   GOMX_PORT *port;
 
@@ -744,7 +744,7 @@ static OMX_ERRORTYPE gomx_do_command (GOMX_COMPONENT *comp, GOMX_COMMAND *cmd)
 }
 //}}}
 //{{{
-static void *gomx_worker (void *ptr)
+static void* gomx_worker (void* ptr)
 {
   GOMX_COMPONENT *comp = (GOMX_COMPONENT *) ptr;
   GOMX_PORT *port;
@@ -813,13 +813,13 @@ static OMX_ERRORTYPE gomx_use_egl_image (OMX_HANDLETYPE hComponent,
 //}}}
 //{{{
 
-static OMX_ERRORTYPE gomx_component_role_enum (OMX_HANDLETYPE hComponent, OMX_U8 *cRole, OMX_U32 nIndex)
+static OMX_ERRORTYPE gomx_component_role_enum (OMX_HANDLETYPE hComponent, OMX_U8* cRole, OMX_U32 nIndex)
 {
   return OMX_ErrorNotImplemented;
 }
 //}}}
 //{{{
-static void gomx_init (GOMX_COMPONENT *comp, const char *name, OMX_PTR pAppData, OMX_CALLBACKTYPE* pCallbacks, GOMX_PORT *ports, size_t nports)
+static void gomx_init (GOMX_COMPONENT* comp, const char* name, OMX_PTR pAppData, OMX_CALLBACKTYPE* pCallbacks, GOMX_PORT *ports, size_t nports)
 {
   comp->omx.nSize = sizeof comp->omx;
   comp->omx.nVersion.nVersion = OMX_VERSION;
@@ -862,7 +862,7 @@ static void gomx_init (GOMX_COMPONENT *comp, const char *name, OMX_PTR pAppData,
 }
 //}}}
 //{{{
-static void gomx_fini (GOMX_COMPONENT *comp)
+static void gomx_fini (GOMX_COMPONENT* comp)
 {
   CINFO(comp, 0, "destroying");
   pthread_mutex_lock(&comp->mutex);
@@ -1252,7 +1252,7 @@ err:
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE omxalsasink_audio_do_buffer (GOMX_COMPONENT *comp, GOMX_PORT *port, OMX_BUFFERHEADERTYPE *buf)
+static OMX_ERRORTYPE omxalsasink_audio_do_buffer (GOMX_COMPONENT* comp, GOMX_PORT* port, OMX_BUFFERHEADERTYPE *buf)
 {
   OMX_ALSASINK *sink = (OMX_ALSASINK *) comp;
   sink->play_queue_size += buf->nFilledLen;
@@ -1262,7 +1262,7 @@ static OMX_ERRORTYPE omxalsasink_audio_do_buffer (GOMX_COMPONENT *comp, GOMX_POR
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE omxalsasink_audio_flush (GOMX_COMPONENT *comp, GOMX_PORT *port)
+static OMX_ERRORTYPE omxalsasink_audio_flush (GOMX_COMPONENT* comp, GOMX_PORT* port)
 {
   OMX_ALSASINK *sink = (OMX_ALSASINK *) comp;
   OMX_BUFFERHEADERTYPE *buf;
@@ -1274,7 +1274,7 @@ static OMX_ERRORTYPE omxalsasink_audio_flush (GOMX_COMPONENT *comp, GOMX_PORT *p
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE omxalsasink_clock_do_buffer (GOMX_COMPONENT *comp, GOMX_PORT *port, OMX_BUFFERHEADERTYPE *buf)
+static OMX_ERRORTYPE omxalsasink_clock_do_buffer (GOMX_COMPONENT *comp, GOMX_PORT* port, OMX_BUFFERHEADERTYPE *buf)
 {
   OMX_ALSASINK *sink = (OMX_ALSASINK *) comp;
   OMX_TIME_MEDIATIMETYPE *pMediaTime;
@@ -1298,7 +1298,7 @@ static OMX_ERRORTYPE omxalsasink_clock_do_buffer (GOMX_COMPONENT *comp, GOMX_POR
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE omxalsasink_statechange (GOMX_COMPONENT *comp)
+static OMX_ERRORTYPE omxalsasink_statechange (GOMX_COMPONENT* comp)
 {
   OMX_ALSASINK *sink = (OMX_ALSASINK *) comp;
   pthread_cond_signal(&sink->cond_play);
@@ -1306,7 +1306,7 @@ static OMX_ERRORTYPE omxalsasink_statechange (GOMX_COMPONENT *comp)
 }
 //}}}
 //{{{
-static OMX_ERRORTYPE omxalsasink_create (OMX_HANDLETYPE *pHandle, OMX_PTR pAppData, OMX_CALLBACKTYPE *pCallbacks)
+static OMX_ERRORTYPE omxalsasink_create (OMX_HANDLETYPE* pHandle, OMX_PTR pAppData, OMX_CALLBACKTYPE* pCallbacks)
 {
   OMX_ALSASINK *sink;
   GOMX_PORT *port;
