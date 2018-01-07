@@ -72,7 +72,7 @@ public:
     mDebugStr = fileName;
 
     initialise (scale, alpha);
-    add (new cTextBox (mDebugStr, 15.f));
+    add (new cTextBox (mDebugStr, 0.f));
 
     //mAudioConfig.is_live = true;
     if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
@@ -225,66 +225,56 @@ protected:
       }
       //}}}
 
-    // when the video/audio fifos are low, we pause clock, when high we resume
+    //{{{  av fifo
     double stamp = mClock.getMediaTime();
-
     float threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
 
-    double audio_pts = mPlayerAudio.GetCurrentPTS();
-    float audio_fifo = audio_pts == DVD_NOPTS_VALUE ? 0.0f : audio_pts / DVD_TIME_BASE - stamp * 1e-6;
-    //{{{  audioFifo low high
+    float audio_fifo = 0.f;
     bool audio_fifo_low = false;
     bool audio_fifo_high = false;
+
+    double audio_pts = mPlayerAudio.GetCurrentPTS();
     if (audio_pts != DVD_NOPTS_VALUE) {
+      audio_fifo = audio_pts / DVD_TIME_BASE - stamp * 1e-6;
       audio_fifo_low = mHasAudio && audio_fifo < threshold;
       audio_fifo_high = !mHasAudio || (audio_pts != DVD_NOPTS_VALUE && audio_fifo > m_threshold);
       }
-    //}}}
 
-    double video_pts = mPlayerVideo.GetCurrentPTS();
-    float video_fifo = video_pts == DVD_NOPTS_VALUE ? 0.0f : video_pts / DVD_TIME_BASE - stamp * 1e-6;
-    //{{{  videoFifo low high
+    float video_fifo = 0.f;
     bool video_fifo_low = false;
     bool video_fifo_high = false;
+
+    double video_pts = mPlayerVideo.GetCurrentPTS();
     if (video_pts != DVD_NOPTS_VALUE) {
+      video_fifo = video_pts / DVD_TIME_BASE - stamp * 1e-6;
       video_fifo_low = mHasVideo && video_fifo < threshold;
       video_fifo_high = !mHasVideo || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
       }
-    //}}}
 
-    mDebugStr = dec(stamp) + " " + dec(audio_pts) + " " + dec(video_pts) +
-                " " + dec (audio_fifo) + " " + dec(video_fifo) +
+    mDebugStr = "p:" + decFrac(stamp,6,4,' ') +
+                " a:" + decFrac(audio_pts,6,4,' ') +
+                " v" + decFrac(video_pts,6,4,' ') +
+                " af:" + decFrac (audio_fifo,6,4,' ') +
+                " vf" + decFrac(video_fifo,6,4,' ') +
                 //audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                " " + dec(mPlayerAudio.GetLevel()) + " " + dec(mPlayerVideo.GetLevel()) +
-                " " + dec(mPlayerAudio.GetDelay()) + " " + dec(mPlayerAudio.GetCacheTotal());
-
-    if (!mClock.isPaused())
-      //{{{  log
-      cLog::log (LOGINFO, "%.0f av:%.0f:%.0f av:%.2f:%.2f th:%.2f %d%d%d%d av:%d:%d d%.2f c%.2f",
-                 stamp,
-                 audio_pts, video_pts,
-                 (audio_pts == DVD_NOPTS_VALUE) ? 0.0 : audio_fifo,
-                 (video_pts == DVD_NOPTS_VALUE) ? 0.0 : video_fifo,
-                 m_threshold,
-                 audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                 mPlayerAudio.GetLevel(), mPlayerVideo.GetLevel(),
-                 mPlayerAudio.GetDelay(), (float)mPlayerAudio.GetCacheTotal());
-      //}}}
+                " al" + dec(mPlayerAudio.GetLevel()) + 
+                " vl" + dec(mPlayerVideo.GetLevel()) +
+                " ad" + dec(mPlayerAudio.GetDelay()) + 
+                " ac" + dec(mPlayerAudio.GetCacheTotal());
+    //}}}
 
     if (mAudioConfig.is_live) {
       //{{{  live - latency under control by adjusting clock
       float latency = DVD_NOPTS_VALUE;
-
       if (mHasAudio && audio_pts != DVD_NOPTS_VALUE)
         latency = audio_fifo;
-
       else if (!mHasAudio && mHasVideo && video_pts != DVD_NOPTS_VALUE)
         latency = video_fifo;
 
       if (!m_Pause && latency != DVD_NOPTS_VALUE) {
         if (mClock.isPaused()) {
           if (latency > m_threshold) {
-            cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+            cLog::log (LOGINFO, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                        audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                        audio_fifo_high, video_fifo_high, mReader.IsEof(), mOmxPacket);
             mClock.resume();
@@ -306,7 +296,7 @@ protected:
 
           mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
           mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
-          cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
+          cLog::log (LOGINFO, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
                      m_latency, latency, speed, m_threshold);
           }
         }
@@ -555,7 +545,7 @@ int main (int argc, char* argv[]) {
   bool logInfo = false;
   bool windowed = true;
   uint32_t alpha = 100;
-  float scale = 0.8f;
+  float scale = 1.f;
   string fileName;
 
   for (auto arg = 1; arg < argc; arg++)
