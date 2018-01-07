@@ -536,6 +536,7 @@ private:
       else
         cOmxClock::sleep (10);
       //}}}
+      sleep (10);
       }
 
     if (omxPacket) 
