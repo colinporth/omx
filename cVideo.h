@@ -329,33 +329,38 @@ public:
 
 protected:
   //{{{  vars
-  pthread_cond_t         m_packet_cond;
-  pthread_cond_t         m_picture_cond;
+  pthread_cond_t m_packet_cond;
+  pthread_cond_t m_picture_cond;
 
-  pthread_mutex_t        m_lock;
-  pthread_mutex_t        m_lock_decoder;
+  pthread_mutex_t m_lock;
+  pthread_mutex_t m_lock_decoder;
 
-  cOmxClock*             m_av_clock;
-  cOmxVideo*             m_decoder;
-  cOmxVideoConfig        m_config;
+  cOmxClock* m_av_clock = nullptr;
+  cOmxVideo* m_decoder = nullptr;
+  cOmxVideoConfig m_config;
 
-  AVStream*              m_pStream;
-  int                    m_stream_id;
   std::deque<OMXPacket*> m_packets;
-  cAvUtil                mAvUtil;
-  cAvCodec               mAvCodec;
-  cAvFormat              mAvFormat;
-  bool                   m_open;
-  double                 m_iCurrentPts;
 
-  float                  m_fps;
-  double                 m_frametime;
-  float                  m_display_aspect;
-  bool                   m_bAbort;
-  bool                   m_flush;
-  std::atomic<bool>      m_flush_requested;
-  unsigned int           m_cached_size;
-  double                 m_iVideoDelay;
+  int m_stream_id = -1;
+  AVStream* m_pStream = nullptr;
+  cAvUtil mAvUtil;
+  cAvCodec mAvCodec;
+  cAvFormat mAvFormat;
+
+  bool m_open = false;
+  double m_iCurrentPts = 0;
+
+  float m_fps = 25.0f;
+  double m_frametime = 0.0;
+
+  float m_display_aspect = false;
+
+  bool m_bAbort = false;
+  bool m_flush = false;
+  std::atomic<bool>  m_flush_requested;
+
+  unsigned int m_cached_size = 0;
+  double m_iVideoDelay = 0;
   //}}}
 
 private:

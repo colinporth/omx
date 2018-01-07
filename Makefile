@@ -16,6 +16,12 @@ SRC=       cPcmRemap.cpp \
 	   ../shared/nanoVg/cVg.cpp \
 	   omx.cpp
 
+INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
+	   -I$(SDKSTAGE)/opt/vc/include \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vcos/pthreads \
+	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
+
 CFLAGS=    -std=c++0x \
 	   -O3 \
 	   -fPIC \
@@ -57,12 +63,6 @@ CFLAGS=    -std=c++0x \
 	   -D HAVE_LIBAVUTIL_OPT_H \
 	   -D HAVE_LIBAVUTIL_MEM_H \
 	   -U _FORTIFY_SOURCE \
-
-INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
-	   -I$(SDKSTAGE)/opt/vc/include \
-	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \
-	   -I$(SDKSTAGE)/opt/vc/include/interface/vcos/pthreads \
-	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
 
 LDFLAGS+= -L ./ \
 	  -L $(SDKSTAGE)/opt/vc/lib/ \
