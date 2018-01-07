@@ -2,6 +2,7 @@
 //{{{  includes
 #include <stdio.h>
 #include <signal.h>
+#include <stdint.h>
 
 #include <string>
 #include <chrono>
@@ -274,12 +275,12 @@ protected:
     if (mAudioConfig.is_live) {
       //{{{  live - latency under control by adjusting clock
       float latency = DVD_NOPTS_VALUE;
-      if (mHasAudio && audio_pts != DVD_NOPTS_VALUE)
+      if (mHasAudio && (audio_pts != DVD_NOPTS_VALUE))
         latency = audio_fifo;
       else if (!mHasAudio && mHasVideo && video_pts != DVD_NOPTS_VALUE)
         latency = video_fifo;
 
-      if (!m_Pause && latency != DVD_NOPTS_VALUE) {
+      if (!m_Pause && (latency != DVD_NOPTS_VALUE)) {
         if (mClock.isPaused()) {
           if (latency > m_threshold) {
             cLog::log (LOGINFO, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",

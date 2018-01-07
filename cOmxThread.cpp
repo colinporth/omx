@@ -27,11 +27,7 @@ cOmxThread::~cOmxThread() {
   }
 //}}}
 
-//{{{
-pthread_t cOmxThread::ThreadHandle() {
-  return m_thread;
-  }
-//}}}
+pthread_t cOmxThread::ThreadHandle() { return m_thread; }
 
 //{{{
 bool cOmxThread::Create() {
