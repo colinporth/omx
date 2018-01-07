@@ -133,12 +133,15 @@ protected:
     //{{{  keyboard action
     switch (mKeyboard.getEvent()) {
       case cKeyConfig::ACTION_EXIT: g_abort = true; mEscape = true; break;
+
       case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
+
       case cKeyConfig::ACTION_STEP: mClock.step(); break;
       case cKeyConfig::ACTION_SEEK_BACK_SMALL: if (mReader.CanSeek()) m_incr = -30.0; break;
       case cKeyConfig::ACTION_SEEK_FORWARD_SMALL: if (mReader.CanSeek()) m_incr = 30.0; break;
       case cKeyConfig::ACTION_SEEK_FORWARD_LARGE: if (mReader.CanSeek()) m_incr = 600.0; break;
       case cKeyConfig::ACTION_SEEK_BACK_LARGE: if (mReader.CanSeek()) m_incr = -600.0; break;
+
       //{{{
       case cKeyConfig::ACTION_DECREASE_VOLUME:
         m_Volume -= 300;
@@ -151,6 +154,7 @@ protected:
         mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
         break;
       //}}}
+
       //{{{
       case cKeyConfig::ACTION_PREVIOUS_AUDIO:
         if (mHasAudio) {
@@ -166,6 +170,7 @@ protected:
           mReader.SetActiveStream (OMXSTREAM_AUDIO, mReader.GetAudioIndex() + 1);
         break;
       //}}}
+
       //{{{
       case cKeyConfig::ACTION_PREVIOUS_VIDEO:
         if (mHasVideo) {
@@ -188,7 +193,7 @@ protected:
       //{{{  seek
       double pts = mClock.getMediaTime();
 
-      double seek_pos = (pts ? pts / DVD_TIME_BASE : last_seek_pos) + m_incr;
+      double seek_pos = (pts ? (pts / DVD_TIME_BASE) : last_seek_pos) + m_incr;
       last_seek_pos = seek_pos;
       seek_pos *= 1000.0;
 
@@ -226,19 +231,18 @@ protected:
       //}}}
 
     //{{{  pts, fifos
-    double stamp = mClock.getMediaTime();
+    double pts = mClock.getMediaTime();
     float threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
 
     // audio
     float audio_fifo = 0.f;
     bool audio_fifo_low = false;
     bool audio_fifo_high = false;
-
     double audio_pts = mPlayerAudio.GetCurrentPTS();
     if (audio_pts != DVD_NOPTS_VALUE) {
-      audio_fifo = audio_pts / DVD_TIME_BASE - stamp * 1e-6;
+      audio_fifo = (audio_pts / DVD_TIME_BASE) - pts * 1e-6;
       audio_fifo_low = mHasAudio && (audio_fifo < threshold);
-      audio_fifo_high = !mHasAudio || 
+      audio_fifo_high = !mHasAudio ||
                         ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > m_threshold));
       }
 
@@ -246,26 +250,24 @@ protected:
     float video_fifo = 0.f;
     bool video_fifo_low = false;
     bool video_fifo_high = false;
-
     double video_pts = mPlayerVideo.GetCurrentPTS();
     if (video_pts != DVD_NOPTS_VALUE) {
-      video_fifo = video_pts / DVD_TIME_BASE - stamp * 1e-6;
+      video_fifo = (video_pts / DVD_TIME_BASE) - pts * 1e-6;
       video_fifo_low = mHasVideo && (video_fifo < threshold);
-      video_fifo_high = !mHasVideo || 
+      video_fifo_high = !mHasVideo ||
                         ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > m_threshold));
       }
 
     // debug
-    mDebugStr = "p:" + decFrac(stamp,6,4,' ') +
-                " a:" + decFrac(audio_pts,6,4,' ') +
-                " v" + decFrac(video_pts,6,4,' ') +
-                " af:" + decFrac (audio_fifo,6,4,' ') +
-                " vf" + decFrac(video_fifo,6,4,' ') +
-                //audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                " al" + dec(mPlayerAudio.GetLevel()) +
-                " vl" + dec(mPlayerVideo.GetLevel()) +
-                " ad" + dec(mPlayerAudio.GetDelay()) +
-                " ac" + dec(mPlayerAudio.GetCacheTotal());
+    mDebugStr = "p:"   + decFrac(pts/1000000.0,6,4,' ') +
+                " a:"  + decFrac(audio_pts/1000000.0,6,4,' ') +
+                " v:"  + decFrac(video_pts/1000000.0,6,4,' ') +
+                " af:" + decFrac(audio_fifo,6,4,' ') +
+                " vf:" + decFrac(video_fifo,6,4,' ') +
+                " al:" + dec(mPlayerAudio.GetLevel()) +
+                " vl:" + dec(mPlayerVideo.GetLevel()) +
+                " ad:" + dec(mPlayerAudio.GetDelay()) +
+                " ac:" + dec(mPlayerAudio.GetCacheTotal());
     //}}}
     if (mAudioConfig.is_live) {
       //{{{  live - latency under control by adjusting clock
