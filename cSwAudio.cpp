@@ -39,6 +39,7 @@ cSwAudio::cSwAudio() {
 //}}}
 //{{{
 cSwAudio::~cSwAudio() {
+
   mAvUtil.av_free(m_pBufferOutput);
   m_pBufferOutput = NULL;
   m_iBufferOutputAlloced = 0;
@@ -141,24 +142,12 @@ void cSwAudio::Dispose() {
   }
 //}}}
 
-//{{{
-int cSwAudio::GetChannels() {
-  return m_pCodecContext ? m_pCodecContext->channels : 0;
-  }
-//}}}
-//{{{
-int cSwAudio::GetSampleRate() {
-  return m_pCodecContext ? m_pCodecContext->sample_rate : 0;
-  }
-//}}}
+int cSwAudio::GetChannels() { return m_pCodecContext ? m_pCodecContext->channels : 0; }
+int cSwAudio::GetSampleRate() { return m_pCodecContext ? m_pCodecContext->sample_rate : 0; }
+int cSwAudio::GetBitRate() { return m_pCodecContext ? m_pCodecContext->bit_rate : 0; }
 //{{{
 int cSwAudio::GetBitsPerSample() {
   return m_pCodecContext ? (m_pCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32) : 0;
-  }
-//}}}
-//{{{
-int cSwAudio::GetBitRate() {
-  return m_pCodecContext ? m_pCodecContext->bit_rate : 0;
   }
 //}}}
 //{{{

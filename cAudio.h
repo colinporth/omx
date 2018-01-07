@@ -25,27 +25,19 @@ using namespace std;
 //{{{
 class cOmxAudioConfig {
 public:
-  cOmxAudioConfig() {
-    layout = PCM_LAYOUT_2_0;
-    boostOnDownmix = true;
-    passthrough = false;
-    hwdecode = false;
-    is_live = false;
-    queue_size = 3.0f;
-    fifo_size = 2.0f;
-    }
+  cOmxAudioConfig() {}
 
   cOmxStreamInfo hints;
   string device;
   string subdevice;
 
-  enum PCMLayout layout;
-  bool boostOnDownmix;
-  bool passthrough;
-  bool hwdecode;
-  bool is_live;
-  float queue_size;
-  float fifo_size;
+  enum PCMLayout layout = PCM_LAYOUT_2_0;
+  bool boostOnDownmix = true;
+  bool passthrough = false;
+  bool hwdecode = false;
+  bool is_live = false;
+  float queue_size = 3.f;
+  float fifo_size = 2.f;
   };
 //}}}
 //{{{
@@ -156,13 +148,14 @@ protected:
   cOmxCoreComponent m_omx_mixer;
   cOmxCoreComponent m_omx_decoder;
 
-  cOmxCoreTunnel    m_omx_tunnel_clock_analog;
-  cOmxCoreTunnel    m_omx_tunnel_clock_hdmi;
-  cOmxCoreTunnel    m_omx_tunnel_mixer;
-  cOmxCoreTunnel    m_omx_tunnel_decoder;
-  cOmxCoreTunnel    m_omx_tunnel_splitter_analog;
-  cOmxCoreTunnel    m_omx_tunnel_splitter_hdmi;
-  cAvUtil           mAvUtil;
+  cOmxCoreTunnel m_omx_tunnel_clock_analog;
+  cOmxCoreTunnel m_omx_tunnel_clock_hdmi;
+  cOmxCoreTunnel m_omx_tunnel_mixer;
+  cOmxCoreTunnel m_omx_tunnel_decoder;
+  cOmxCoreTunnel m_omx_tunnel_splitter_analog;
+  cOmxCoreTunnel m_omx_tunnel_splitter_hdmi;
+
+  cAvUtil mAvUtil;
 
 private:
   bool CanHWDecode (AVCodecID codec);
@@ -206,8 +199,8 @@ private:
   OMX_AUDIO_CHANNELTYPE m_output_channels[OMX_AUDIO_MAXCHANNELS];
   OMX_AUDIO_PARAM_PCMMODETYPE m_pcm_output;
   OMX_AUDIO_PARAM_PCMMODETYPE m_pcm_input;
-  OMX_AUDIO_PARAM_DTSTYPE     m_dtsParam;
-  WAVEFORMATEXTENSIBLE        m_wave_header;
+  OMX_AUDIO_PARAM_DTSTYPE m_dtsParam;
+  WAVEFORMATEXTENSIBLE m_wave_header;
 
   //{{{
   typedef struct {
@@ -231,15 +224,15 @@ public:
   double GetCacheTime();
   double GetCacheTotal();
   double GetCurrentPTS() { return m_iCurrentPts; };
+  //{{{
+  unsigned int GetLevel() {
+    return m_config.queue_size ? (100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f)) : 0;
+    };
+  //}}}
   unsigned int GetCached() { return m_cached_size; };
   //{{{
   unsigned int GetMaxCached() {
     return m_config.queue_size * 1024 * 1024;
-    };
-  //}}}
-  //{{{
-  unsigned int GetLevel() {
-    return m_config.queue_size ? (100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f)) : 0;
     };
   //}}}
   float GetVolume() { return m_CurrentVolume; }
@@ -272,8 +265,8 @@ public:
   void Process();
   void Flush();
 
-  void SubmitEOS();
   bool IsEOS();
+  void SubmitEOS();
 
 private:
   bool Close();
@@ -291,44 +284,44 @@ private:
   bool Decode (OMXPacket *pkt);
 
   //{{{  vars
-  pthread_cond_t         m_packet_cond;
-  pthread_cond_t         m_audio_cond;
+  pthread_cond_t  m_packet_cond;
+  pthread_cond_t  m_audio_cond;
 
-  pthread_mutex_t        m_lock;
-  pthread_mutex_t        m_lock_decoder;
+  pthread_mutex_t m_lock;
+  pthread_mutex_t m_lock_decoder;
 
-  cAvUtil                mAvUtil;
-  cAvCodec               mAvCodec;
-  cAvFormat              mAvFormat;
+  cAvUtil         mAvUtil;
+  cAvCodec        mAvCodec;
+  cAvFormat       mAvFormat;
 
-  cOmxClock*             m_av_clock;
-  cOmxReader*            m_omx_reader;
-  cOmxStreamInfo         m_hints;
-  cOmxAudioConfig        m_config;
-  cOmxAudio*             m_decoder;
-  cSwAudio*              m_pAudioCodec;
+  cOmxClock*      m_av_clock;
+  cOmxReader*     m_omx_reader;
+  cOmxStreamInfo  m_hints;
+  cOmxAudioConfig m_config;
+  cOmxAudio*      m_decoder;
+  cSwAudio*       m_pAudioCodec;
 
-  AVStream*              m_pStream;
-  int                    m_stream_id;
+  AVStream*       m_pStream;
+  int             m_stream_id;
   std::deque<OMXPacket*> m_packets;
 
-  bool                   m_open;
-  double                 m_iCurrentPts;
+  bool            m_open;
+  double          m_iCurrentPts;
 
-  std::string            m_codec_name;
-  std::string            m_device;
-  bool                   m_passthrough;
-  bool                   m_hw_decode;
-  bool                   m_boost_on_downmix;
+  std::string     m_codec_name;
+  std::string     m_device;
+  bool            m_passthrough;
+  bool            m_hw_decode;
+  bool            m_boost_on_downmix;
 
-  bool                   m_bAbort;
-  bool                   m_flush;
-  std::atomic<bool>      m_flush_requested;
-  unsigned int           m_cached_size;
+  bool            m_bAbort;
+  bool            m_flush;
+  std::atomic<bool> m_flush_requested;
+  unsigned int    m_cached_size;
 
-  float                  m_CurrentVolume;
-  long                   m_amplification;
-  bool                   m_mute;
-  bool                   m_player_error;
+  float           m_CurrentVolume;
+  long            m_amplification;
+  bool            m_mute;
+  bool            m_player_error;
   //}}}
   };

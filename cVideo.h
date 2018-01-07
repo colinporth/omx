@@ -302,15 +302,15 @@ public:
   int GetDecoderFreeSpace();
   double GetCurrentPTS() { return m_iCurrentPts; };
   double GetFPS() { return m_fps; };
+  //{{{
+  unsigned int GetLevel() {
+    return m_config.queue_size ? 100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f) : 0;
+    };
+  //}}}
   unsigned int GetCached() { return m_cached_size; };
   //{{{
   unsigned int GetMaxCached() {
     return m_config.queue_size * 1024 * 1024;
-    };
-  //}}}
-  //{{{
-  unsigned int GetLevel() {
-    return m_config.queue_size ? 100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f) : 0;
     };
   //}}}
   double GetDelay() { return m_iVideoDelay; }
@@ -324,8 +324,8 @@ public:
   void Process();
   void Flush();
 
-  void SubmitEOS();
   bool IsEOS();
+  void SubmitEOS();
 
 protected:
   //{{{  vars

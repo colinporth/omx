@@ -16,6 +16,7 @@ using namespace std;
 static const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
 static unsigned count_bits (uint64_t value) {
+
   unsigned bits = 0;
   for (; value; ++bits)
     value &= value - 1;
@@ -25,37 +26,18 @@ static unsigned count_bits (uint64_t value) {
 
 //{{{
 cOmxAudio::cOmxAudio() :
-  m_Initialized     (false  ),
-  m_CurrentVolume   (0      ),
-  m_Mute            (false  ),
-  m_drc             (0      ),
-  m_BytesPerSec     (0      ),
-  m_InputBytesPerSec(0      ),
-  m_BufferLen       (0      ),
-  m_ChunkLen        (0      ),
-  m_InputChannels   (0      ),
-  m_OutputChannels  (0      ),
-  m_BitsPerSample   (0      ),
-  m_maxLevel        (0.0f   ),
-  m_amplification   (1.0f   ),
-  m_attenuation     (1.0f   ),
-  m_submitted       (0.0f   ),
-  m_omx_clock       (NULL   ),
-  m_av_clock        (NULL   ),
-  m_settings_changed(false  ),
-  m_setStartTime    (false  ),
-  m_eEncoding       (OMX_AUDIO_CodingPCM),
-  m_last_pts        (DVD_NOPTS_VALUE),
-  m_submitted_eos   (false  ),
-  m_failed_eos      (false  )
-{
-}
+  m_Initialized(false), m_CurrentVolume(0), m_Mute(false  ), m_drc(0),
+  m_BytesPerSec(0), m_InputBytesPerSec(0), m_BufferLen(0), m_ChunkLen(0),
+  m_InputChannels(0), m_OutputChannels(0), m_BitsPerSample(0),
+  m_maxLevel(0.0f), m_amplification(1.0f), m_attenuation(1.0f),
+  m_submitted(0.0f), m_omx_clock(NULL), m_av_clock(NULL),
+  m_settings_changed(false), m_setStartTime(false), m_eEncoding(OMX_AUDIO_CodingPCM),
+  m_last_pts(DVD_NOPTS_VALUE), m_submitted_eos(false), m_failed_eos(false) {}
 //}}}
 //{{{
-cOmxAudio::~cOmxAudio()
-{
+cOmxAudio::~cOmxAudio() {
   Deinitialize();
-}
+  }
 //}}}
 
 //{{{
@@ -63,7 +45,6 @@ bool cOmxAudio::Initialize (cOmxClock* clock, const cOmxAudioConfig &config,
                             uint64_t channelMap, unsigned int uiBitsPerSample) {
 
   cSingleLock lock (m_critSection);
-
   Deinitialize();
 
   m_config = config;
@@ -571,16 +552,10 @@ bool cOmxAudio::PortSettingsChanged() {
   }
 //}}}
 
-//{{{
-unsigned int cOmxAudio::GetSpace() {
-  return m_omx_decoder.GetInputBufferSpace();
-  }
-//}}}
-//{{{
-unsigned int cOmxAudio::GetChunkLen() {
-  return m_ChunkLen;
-  }
-//}}}
+unsigned int cOmxAudio::GetSpace() { return m_omx_decoder.GetInputBufferSpace(); }
+unsigned int cOmxAudio::GetChunkLen() { return m_ChunkLen; }
+float cOmxAudio::GetCacheTime() { return GetDelay(); }
+float cOmxAudio::GetVolume() { return m_Mute ? VOLUME_MINIMUM : m_CurrentVolume; }
 //{{{
 float cOmxAudio::GetDelay() {
 
@@ -597,11 +572,6 @@ float cOmxAudio::GetDelay() {
     unsigned int used = m_omx_decoder.GetInputBufferSize() - m_omx_decoder.GetInputBufferSpace();
     return m_InputBytesPerSec ? (float)used / (float)m_InputBytesPerSec : 0.0f;
     }
-  }
-//}}}
-//{{{
-float cOmxAudio::GetCacheTime() {
-  return GetDelay();
   }
 //}}}
 //{{{
@@ -684,14 +654,10 @@ uint64_t cOmxAudio::GetChannelLayout (enum PCMLayout layout) {
   return (int)layout < 10 ? layouts[(int)layout] : 0;
   }
 //}}}
-//{{{
-float cOmxAudio::GetVolume() {
-  return m_Mute ? VOLUME_MINIMUM : m_CurrentVolume;
-  }
-//}}}
 
 //{{{
 void cOmxAudio::SetMute (bool bMute) {
+
   cSingleLock lock (m_critSection);
   m_Mute = bMute;
   if (m_settings_changed)
@@ -700,6 +666,7 @@ void cOmxAudio::SetMute (bool bMute) {
 //}}}
 //{{{
 void cOmxAudio::SetVolume (float fVolume) {
+
   cSingleLock lock (m_critSection);
   m_CurrentVolume = fVolume;
   if (m_settings_changed)
@@ -730,6 +697,7 @@ void cOmxAudio::SetCodingType (AVCodecID codec) {
 //}}}
 //{{{
 void cOmxAudio::SetDynamicRangeCompression (long drc) {
+
   cSingleLock lock (m_critSection);
   m_amplification = powf (10.0f, (float)drc / 2000.0f);
   if (m_settings_changed)
@@ -994,14 +962,14 @@ void cOmxAudio::BuildChannelMap (enum PCMChannels *channelMap, uint64_t layout) 
 int cOmxAudio::BuildChannelMapCEA (enum PCMChannels *channelMap, uint64_t layout) {
 
   int index = 0;
-  if (layout & AV_CH_FRONT_LEFT           ) channelMap[index++] = PCM_FRONT_LEFT;
-  if (layout & AV_CH_FRONT_RIGHT          ) channelMap[index++] = PCM_FRONT_RIGHT;
-  if (layout & AV_CH_LOW_FREQUENCY        ) channelMap[index++] = PCM_LOW_FREQUENCY;
-  if (layout & AV_CH_FRONT_CENTER         ) channelMap[index++] = PCM_FRONT_CENTER;
-  if (layout & AV_CH_BACK_LEFT            ) channelMap[index++] = PCM_BACK_LEFT;
-  if (layout & AV_CH_BACK_RIGHT           ) channelMap[index++] = PCM_BACK_RIGHT;
-  if (layout & AV_CH_SIDE_LEFT            ) channelMap[index++] = PCM_SIDE_LEFT;
-  if (layout & AV_CH_SIDE_RIGHT           ) channelMap[index++] = PCM_SIDE_RIGHT;
+  if (layout & AV_CH_FRONT_LEFT   ) channelMap[index++] = PCM_FRONT_LEFT;
+  if (layout & AV_CH_FRONT_RIGHT  ) channelMap[index++] = PCM_FRONT_RIGHT;
+  if (layout & AV_CH_LOW_FREQUENCY) channelMap[index++] = PCM_LOW_FREQUENCY;
+  if (layout & AV_CH_FRONT_CENTER ) channelMap[index++] = PCM_FRONT_CENTER;
+  if (layout & AV_CH_BACK_LEFT    ) channelMap[index++] = PCM_BACK_LEFT;
+  if (layout & AV_CH_BACK_RIGHT   ) channelMap[index++] = PCM_BACK_RIGHT;
+  if (layout & AV_CH_SIDE_LEFT    ) channelMap[index++] = PCM_SIDE_LEFT;
+  if (layout & AV_CH_SIDE_RIGHT   ) channelMap[index++] = PCM_SIDE_RIGHT;
 
   while (index<OMX_AUDIO_MAXCHANNELS)
     channelMap[index++] = PCM_INVALID;

@@ -186,6 +186,16 @@ protected:
           mReader.SetActiveStream (OMXSTREAM_VIDEO, mReader.GetVideoIndex() + 1);
         break;
       //}}}
+
+      case cKeyConfig::KEY_TOGGLE_VSYNC: toggleVsync(); break; // v
+      case cKeyConfig::KEY_TOGGLE_PERF:  togglePerf();  break; // p
+      case cKeyConfig::KEY_TOGGLE_STATS: toggleStats(); break; // s
+      case cKeyConfig::KEY_TOGGLE_TESTS: toggleTests(); break; // y
+
+      case cKeyConfig::KEY_TOGGLE_SOLID: toggleSolid(); break; // i
+      case cKeyConfig::KEY_TOGGLE_EDGES: toggleEdges(); break; // a
+      case cKeyConfig::KEY_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
+      case cKeyConfig::KEY_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
       }
     //}}}
 
@@ -395,33 +405,36 @@ private:
   //{{{
   class cKeyConfig {
   public:
-    enum { ACTION_EXIT,
-           ACTION_PLAYPAUSE,
-           ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
-           ACTION_SEEK_BACK_SMALL, ACTION_SEEK_FORWARD_SMALL,
-           ACTION_SEEK_BACK_LARGE, ACTION_SEEK_FORWARD_LARGE,
-           ACTION_STEP,
-           ACTION_PREVIOUS_AUDIO, ACTION_NEXT_AUDIO,
-           ACTION_PREVIOUS_VIDEO, ACTION_NEXT_VIDEO,
-           };
-
-    #define KEY_LEFT 0x5b44
+    #define KEY_ESC   27
+    #define KEY_UP    0x5b41
+    #define KEY_DOWN  0x5b42
+    #define KEY_LEFT  0x5b44
     #define KEY_RIGHT 0x5b43
-    #define KEY_UP 0x5b41
-    #define KEY_DOWN 0x5b42
-    #define KEY_ESC 27
+
+    enum eKeyAction { ACTION_EXIT,
+                      ACTION_PLAYPAUSE,
+                      ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
+                      ACTION_SEEK_BACK_SMALL, ACTION_SEEK_FORWARD_SMALL,
+                      ACTION_SEEK_BACK_LARGE, ACTION_SEEK_FORWARD_LARGE,
+                      ACTION_STEP,
+                      ACTION_PREVIOUS_AUDIO, ACTION_NEXT_AUDIO,
+                      ACTION_PREVIOUS_VIDEO, ACTION_NEXT_VIDEO,
+                      KEY_TOGGLE_VSYNC, KEY_TOGGLE_PERF, KEY_TOGGLE_STATS, KEY_TOGGLE_TESTS,
+                      KEY_TOGGLE_SOLID, KEY_TOGGLE_EDGES, KEY_LESS_FRINGE, KEY_MORE_FRINGE,
+                      };
 
     static map<int, int> buildDefaultKeymap() {
       map<int,int> keymap;
-      keymap['j'] = ACTION_PREVIOUS_AUDIO;
-      keymap['k'] = ACTION_NEXT_AUDIO;
-      keymap['n'] = ACTION_PREVIOUS_VIDEO;
-      keymap['m'] = ACTION_NEXT_VIDEO;
 
       keymap['q'] = ACTION_EXIT;
       keymap[KEY_ESC] = ACTION_EXIT;
 
       keymap[' '] = ACTION_PLAYPAUSE;
+
+      keymap['j'] = ACTION_PREVIOUS_AUDIO;
+      keymap['k'] = ACTION_NEXT_AUDIO;
+      keymap['n'] = ACTION_PREVIOUS_VIDEO;
+      keymap['m'] = ACTION_NEXT_VIDEO;
 
       keymap['-'] = ACTION_DECREASE_VOLUME;
       keymap['+'] = ACTION_INCREASE_VOLUME;
@@ -431,6 +444,24 @@ private:
       keymap[KEY_RIGHT] = ACTION_SEEK_FORWARD_SMALL;
       keymap[KEY_DOWN] = ACTION_SEEK_BACK_LARGE;
       keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
+
+      keymap['v'] = KEY_TOGGLE_VSYNC;
+      keymap['V'] = KEY_TOGGLE_VSYNC;
+      keymap['p'] = KEY_TOGGLE_PERF;
+      keymap['P'] = KEY_TOGGLE_PERF;
+      keymap['s'] = KEY_TOGGLE_STATS;
+      keymap['S'] = KEY_TOGGLE_STATS;
+      keymap['t'] = KEY_TOGGLE_TESTS;
+      keymap['T'] = KEY_TOGGLE_TESTS;
+
+      keymap['i'] = KEY_TOGGLE_SOLID;
+      keymap['I'] = KEY_TOGGLE_SOLID;
+      keymap['a'] = KEY_TOGGLE_EDGES;
+      keymap['A'] = KEY_TOGGLE_EDGES;
+      keymap['q'] = KEY_LESS_FRINGE;
+      keymap['Q'] = KEY_LESS_FRINGE;
+      keymap['w'] = KEY_MORE_FRINGE;
+      keymap['W'] = KEY_MORE_FRINGE;
 
       return keymap;
       }
