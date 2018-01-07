@@ -225,10 +225,11 @@ protected:
       }
       //}}}
 
-    //{{{  av fifo
+    //{{{  pts, fifos
     double stamp = mClock.getMediaTime();
     float threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
 
+    // audio
     float audio_fifo = 0.f;
     bool audio_fifo_low = false;
     bool audio_fifo_high = false;
@@ -236,10 +237,12 @@ protected:
     double audio_pts = mPlayerAudio.GetCurrentPTS();
     if (audio_pts != DVD_NOPTS_VALUE) {
       audio_fifo = audio_pts / DVD_TIME_BASE - stamp * 1e-6;
-      audio_fifo_low = mHasAudio && audio_fifo < threshold;
-      audio_fifo_high = !mHasAudio || (audio_pts != DVD_NOPTS_VALUE && audio_fifo > m_threshold);
+      audio_fifo_low = mHasAudio && (audio_fifo < threshold);
+      audio_fifo_high = !mHasAudio || 
+                        ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > m_threshold));
       }
 
+    // video
     float video_fifo = 0.f;
     bool video_fifo_low = false;
     bool video_fifo_high = false;
@@ -247,22 +250,23 @@ protected:
     double video_pts = mPlayerVideo.GetCurrentPTS();
     if (video_pts != DVD_NOPTS_VALUE) {
       video_fifo = video_pts / DVD_TIME_BASE - stamp * 1e-6;
-      video_fifo_low = mHasVideo && video_fifo < threshold;
-      video_fifo_high = !mHasVideo || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
+      video_fifo_low = mHasVideo && (video_fifo < threshold);
+      video_fifo_high = !mHasVideo || 
+                        ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > m_threshold));
       }
 
+    // debug
     mDebugStr = "p:" + decFrac(stamp,6,4,' ') +
                 " a:" + decFrac(audio_pts,6,4,' ') +
                 " v" + decFrac(video_pts,6,4,' ') +
                 " af:" + decFrac (audio_fifo,6,4,' ') +
                 " vf" + decFrac(video_fifo,6,4,' ') +
                 //audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                " al" + dec(mPlayerAudio.GetLevel()) + 
+                " al" + dec(mPlayerAudio.GetLevel()) +
                 " vl" + dec(mPlayerVideo.GetLevel()) +
-                " ad" + dec(mPlayerAudio.GetDelay()) + 
+                " ad" + dec(mPlayerAudio.GetDelay()) +
                 " ac" + dec(mPlayerAudio.GetCacheTotal());
     //}}}
-
     if (mAudioConfig.is_live) {
       //{{{  live - latency under control by adjusting clock
       float latency = DVD_NOPTS_VALUE;
@@ -302,8 +306,7 @@ protected:
         }
       }
       //}}}
-    else if (!m_Pause &&
-             (mReader.IsEof() || mOmxPacket || (audio_fifo_high && video_fifo_high))) {
+    else if (!m_Pause && (mReader.IsEof() || mOmxPacket || (audio_fifo_high && video_fifo_high))) {
       //{{{  pause
       if (mClock.isPaused()) {
         cLog::log (LOGNOTICE, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
@@ -544,7 +547,7 @@ int main (int argc, char* argv[]) {
 
   bool logInfo = false;
   bool windowed = true;
-  uint32_t alpha = 100;
+  uint32_t alpha = 160;
   float scale = 1.f;
   string fileName;
 
