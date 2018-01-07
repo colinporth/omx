@@ -9,13 +9,17 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include <string>
 #include <utility>
+#include <string>
+#include <chrono>
 #include <thread>
 
 #include "cBcmHost.h"
 
+#include "../shared/utils/date.h"
+#include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
+#include "../shared/utils/cSemaphore.h"
 #include "../shared/utils/cKeyboard.h"
 
 #include "../shared/nanoVg/cRaspWindow.h"
@@ -183,8 +187,8 @@ protected:
     if (m_incr != 0) {
       //{{{  seek
       double pts = mClock.getMediaTime();
-      double seek_pos = (pts ? pts / DVD_TIME_BASE : last_seek_pos) + m_incr;
 
+      double seek_pos = (pts ? pts / DVD_TIME_BASE : last_seek_pos) + m_incr;
       last_seek_pos = seek_pos;
       seek_pos *= 1000.0;
 
@@ -247,6 +251,12 @@ protected:
       video_fifo_high = !mHasVideo || (video_pts != DVD_NOPTS_VALUE && video_fifo > m_threshold);
       }
     //}}}
+
+    mDebugStr = dec(stamp) + " " + dec(audio_pts) + " " + dec(video_pts) +
+                " " + dec (audio_fifo) + " " + dec(video_fifo) +
+                //audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
+                " " + dec(mPlayerAudio.GetLevel()) + " " + dec(mPlayerVideo.GetLevel()) +
+                " " + dec(mPlayerAudio.GetDelay()) + " " + dec(mPlayerAudio.GetCacheTotal());
 
     if (!mClock.isPaused())
       //{{{  log
@@ -544,8 +554,8 @@ int main (int argc, char* argv[]) {
 
   bool logInfo = false;
   bool windowed = true;
-  uint32_t alpha = 128;
-  float scale = 0.5f;
+  uint32_t alpha = 100;
+  float scale = 0.8f;
   string fileName;
 
   for (auto arg = 1; arg < argc; arg++)
