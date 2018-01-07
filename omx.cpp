@@ -6,15 +6,18 @@
 #include <stdint.h>
 #include <getopt.h>
 #include <string.h>
-#include <string>
-#include <utility>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "cKeyboard.h"
+#include <string>
+#include <utility>
+#include <thread>
+
 #include "cBcmHost.h"
 
 #include "../shared/utils/cLog.h"
+#include "../shared/utils/cKeyboard.h"
+
 #include "cPcmRemap.h"
 
 #define AV_NOWARN_DEPRECATED
@@ -207,6 +210,7 @@ int main (int argc, char* argv[]) {
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
   mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
+  thread ([=]() { mKeyboard.run(); } ).detach();
 
   // vars
   bool m_send_eos = false;

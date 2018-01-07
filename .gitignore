@@ -5,3 +5,4 @@ omx
 version.h
 *.~*
 *.*~
+Makefile~

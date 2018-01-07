@@ -1,5 +1,4 @@
 SRC=       cPcmRemap.cpp \
-	   cKeyboard.cpp \
 	   cOmxThread.cpp \
 	   cOmxCoreComponent.cpp \
 	   cOmxCoreTunnel.cpp \
@@ -12,6 +11,7 @@ SRC=       cPcmRemap.cpp \
 	   cSwAudio.cpp \
 	   omxAlsa.cpp \
 	   ../shared/utils/cLog.cpp \
+	   ../shared/utils/cKeyboard.cpp \
 	   omx.cpp
 
 CFLAGS=    -std=c++0x -O3 -fPIC -ftree-vectorize -fomit-frame-pointer \
