@@ -85,7 +85,7 @@ class cAppWindow { // : public cRaspWindow {
 public:
   cAppWindow() {}
   //{{{
-  void run (const string& fileName) {
+  void run (bool windowed, float scale, int alpha, const string& fileName) {
 
     mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
     thread ([=]() { mKeyboard.run(); } ).detach();
@@ -534,22 +534,22 @@ int main (int argc, char* argv[]) {
   signal (SIGINT, sigHandler);
   //}}}
   bool logInfo = false;
-  //bool windowed = true;
-  //uint32_t alpha = 255;
-  //float scale = 0.8f;
+  bool windowed = true;
+  uint32_t alpha = 255;
+  float scale = 0.8f;
   string fileName;
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logInfo = true;
-    //else if (!strcmp(argv[arg], "w")) windowed = false;
-    //else if (!strcmp(argv[arg], "a")) alpha = atoi (argv[++arg]);
-    //else if (!strcmp(argv[arg], "s")) scale = atoi (argv[++arg]) / 100.f;
+    else if (!strcmp(argv[arg], "w")) windowed = false;
+    else if (!strcmp(argv[arg], "a")) alpha = atoi (argv[++arg]);
+    else if (!strcmp(argv[arg], "s")) scale = atoi (argv[++arg]) / 100.f;
     else fileName = argv[arg];
 
   cLog::init (logInfo ? LOGINFO : LOGINFO3, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
   cAppWindow appWindow;
-  appWindow.run (fileName);
+  appWindow.run (windowed, scale, alpha, fileName);
 
   return EXIT_SUCCESS;
   }
