@@ -239,7 +239,7 @@ public:
   //}}}
   //{{{
   unsigned int GetLevel() {
-    return m_config.queue_size ? 100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f) : 0;
+    return m_config.queue_size ? (100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f)) : 0;
     };
   //}}}
   float GetVolume() { return m_CurrentVolume; }

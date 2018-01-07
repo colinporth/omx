@@ -63,15 +63,15 @@ public:
   // VIDEO
   int fpsscale; // scale of 1000 and a rate of 29970 will result in 29.97 fps
   int fpsrate;
-  int height; // height of the stream reported by the demuxer
-  int width; // width of the stream reported by the demuxer
+  int height;   // height of the stream reported by the demuxer
+  int width;    // width of the stream reported by the demuxer
   float aspect; // display aspect as reported by demuxer
   bool forced_aspect; // true if we trust container aspect more than codec
-  bool vfr; // variable framerate
-  bool stills; // there may be odd still frames in video
-  int level; // encoder level of the stream reported by the decoder. used to qualify hw decoders.
-  int profile; // encoder profile of the stream reported by the decoder. used to qualify hw decoders.
-  bool ptsinvalid;  // pts cannot be trusted (avi's).
+  bool vfr;     // variable framerate
+  bool stills;  // there may be odd still frames in video
+  int level;    // encoder level of the stream reported by the decoder. used to qualify hw decoders.
+  int profile;  // encoder profile of the stream reported by the decoder. used to qualify hw decoders.
+  bool ptsinvalid; // pts cannot be trusted (avi's).
   int orientation; // video orientation in clockwise degrees
 
   // AUDIO
@@ -89,7 +89,7 @@ public:
   unsigned int extrasize; // size of extra data
   unsigned int codec_tag; // extra identifier hints for decoding
 
-  /* ac3/dts indof */
+  // ac3/dts indof
   unsigned int framesize;
   uint32_t     syncword;
   };
