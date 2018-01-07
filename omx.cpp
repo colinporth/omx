@@ -98,10 +98,6 @@ public:
         }
       m_threshold = mAudioConfig.is_live ? 0.7f : 0.2f;
 
-      //mPlayerVideo.SetAlpha (128);
-      mClock.reset (mHasVideo, mHasAudio);
-      mClock.stateExecute();
-
       if (stop)
          cLog::log (LOGERROR, "unable to open streams");
       else {
@@ -110,9 +106,7 @@ public:
         }
       }
 
-    // exit
-    mClock.stop();
-    mClock.stateIdle();
+    cLog::log (LOGERROR, "run - exit");
     }
   //}}}
 
@@ -335,6 +329,9 @@ private:
 
     cLog::setThreadName ("play");
 
+    mClock.reset (mHasVideo, mHasAudio);
+    mClock.stateExecute();
+
     OMXPacket* omxPacket = nullptr;
     while (!g_abort && !mPlayerAudio.Error()) {
       if (m_incr != 0) {
@@ -536,10 +533,12 @@ private:
       else
         cOmxClock::sleep (10);
       //}}}
-      sleep (10);
       }
 
-    if (omxPacket) 
+    mClock.stop();
+    mClock.stateIdle();
+
+    if (omxPacket)
       mReader.FreePacket (omxPacket);
     }
   //}}}
