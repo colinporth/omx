@@ -2,19 +2,10 @@
 //{{{  includes
 #include <stdio.h>
 #include <signal.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <getopt.h>
-#include <string.h>
-#include <sys/mman.h>
-#include <sys/ioctl.h>
 
-#include <utility>
 #include <string>
 #include <chrono>
 #include <thread>
-
-#include "cBcmHost.h"
 
 #include "../shared/utils/date.h"
 #include "../shared/utils/utils.h"
@@ -22,9 +13,7 @@
 #include "../shared/utils/cSemaphore.h"
 #include "../shared/utils/cKeyboard.h"
 
-#include "../shared/nanoVg/cRaspWindow.h"
-#include "../shared/widgets/cTextBox.h"
-
+#include "cBcmHost.h"
 #include "cPcmRemap.h"
 
 #define AV_NOWARN_DEPRECATED
@@ -35,6 +24,9 @@
 #include "cOmxReader.h"
 #include "cAudio.h"
 #include "cVideo.h"
+
+#include "../shared/nanoVg/cRaspWindow.h"
+#include "../shared/widgets/cTextBox.h"
 
 #include "version.h"
 
@@ -232,7 +224,7 @@ protected:
       if (mReader.IsEof() || (mHasVideo && !mPlayerVideo.Reset()))
         return;
 
-      cLog::log (LOGINFO1, "omxPlayer seeked to %.0f %.0f %.0f",
+      cLog::log (LOGNOTICE, "seekedTo %.0f %.0f %.0f",
                  DVD_MSEC_TO_TIME(seek_pos), startpts, mClock.getMediaTime());
 
       mClock.pause();
