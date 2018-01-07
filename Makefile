@@ -1,5 +1,4 @@
-SRC=       cPcmRemap.cpp \
-	   cOmxThread.cpp \
+SRC=       cOmxThread.cpp \
 	   cOmxCoreComponent.cpp \
 	   cOmxCoreTunnel.cpp \
 	   cOmxClock.cpp \
@@ -10,6 +9,7 @@ SRC=       cPcmRemap.cpp \
 	   cOmxAudio.cpp \
 	   cSwAudio.cpp \
 	   omxAlsa.cpp \
+	   cPcmRemap.cpp \
 	   ../shared/utils/cLog.cpp \
 	   ../shared/utils/cKeyboard.cpp \
 	   ../shared/nanoVg/cRaspWindow.cpp \

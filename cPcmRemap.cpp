@@ -64,7 +64,7 @@ int round_int (double x) {
 //}}}
 
 //{{{
-cPcmRemap::cPcmRemap() : 
+cPcmRemap::cPcmRemap() :
     m_inSet(false), m_outSet(false),
     m_inChannels(0), m_outChannels(0), m_inSampleSize(0), m_ignoreLayout(false), m_buf(NULL),
     m_bufsize(0), m_attenuation (1.0), m_attenuationInc(0.0), m_attenuationMin(1.0),
@@ -101,7 +101,7 @@ void cPcmRemap::Dispose() {
 struct PCMMapInfo* cPcmRemap::ResolveChannel (enum PCMChannels channel, float level, bool ifExists,
                                               vector<enum PCMChannels> path, struct PCMMapInfo *tablePtr) {
 
-  if (channel == PCM_INVALID) 
+  if (channel == PCM_INVALID)
     return tablePtr;
 
   /* if its a 1 to 1 mapping, return */
@@ -298,7 +298,7 @@ void cPcmRemap::BuildMap() {
       f = PCMChannelStr(dst->channel); // + dst->level, dst->copy ? "*" : "");
       s += f;
       }
-    cLog::log(LOGINFO1, "cPcmRemap: %s = %s\n", PCMChannelStr(m_outMap[out_ch]).c_str(), s.c_str());
+    cLog::log(LOGINFO1, "cPcmRemap:%s = %s", PCMChannelStr(m_outMap[out_ch]).c_str(), s.c_str());
     }
   }
 //}}}
@@ -306,7 +306,7 @@ void cPcmRemap::BuildMap() {
 void cPcmRemap::DumpMap (string info, unsigned int channels, enum PCMChannels *channelMap) {
 
   if (channelMap == NULL) {
-    cLog::log(LOGINFO, "cPcmRemap: %s channel map: NULL", info.c_str());
+    cLog::log(LOGINFO, "cPcmRemap:%s map: NULL", info.c_str());
     return;
     }
 
@@ -314,7 +314,7 @@ void cPcmRemap::DumpMap (string info, unsigned int channels, enum PCMChannels *c
   for (unsigned int i = 0; i < channels; ++i)
     mapping += ((i == 0) ? "" : ",") + PCMChannelStr(channelMap[i]);
 
-  cLog::log(LOGINFO, "cPcmRemap: %s channel map: %s\n", info.c_str(), mapping.c_str());
+  cLog::log(LOGINFO, "cPcmRemap: %s map:%s", info.c_str(), mapping.c_str());
   }
 //}}}
 
@@ -352,7 +352,7 @@ enum PCMChannels* cPcmRemap::SetInputFormat (unsigned int channels, enum PCMChan
         m_layoutMap[i++] = *chan;
         }
     m_layoutMap[i] = PCM_INVALID;
-    } 
+    }
   else
     memcpy(m_layoutMap, PCMLayoutMap[m_channelLayout], sizeof(PCMLayoutMap[m_channelLayout]));
 
@@ -385,7 +385,7 @@ void cPcmRemap::SetOutputFormat (unsigned int channels, enum PCMChannels *channe
 //{{{
 string cPcmRemap::PCMChannelStr (enum PCMChannels ename) {
 
-  const char* PCMChannelName[] = { "FL",   "FR",   "CE",  "LFE", "BL",  "BR", 
+  const char* PCMChannelName[] = { "FL",   "FR",   "CE",  "LFE", "BL",  "BR",
                                    "FLOC", "FROC", "BC",  "SL"   "SR",
                                    "TFL",  "TFR",  "TFC", "TC",  "TBL", "TBR", "TBC" };
 

@@ -198,38 +198,41 @@ private:
     #define KEY_RIGHT 0x5b43
 
     enum eKeyAction { ACTION_EXIT,
-                      ACTION_PLAYPAUSE,
-                      ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
+                      ACTION_PLAYPAUSE, ACTION_STEP,
                       ACTION_SEEK_BACK_SMALL, ACTION_SEEK_FORWARD_SMALL,
                       ACTION_SEEK_BACK_LARGE, ACTION_SEEK_FORWARD_LARGE,
-                      ACTION_STEP,
-                      ACTION_PREVIOUS_AUDIO, ACTION_NEXT_AUDIO,
                       ACTION_PREVIOUS_VIDEO, ACTION_NEXT_VIDEO,
+                      ACTION_PREVIOUS_AUDIO, ACTION_NEXT_AUDIO,
+                      ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
                       KEY_TOGGLE_VSYNC, KEY_TOGGLE_PERF, KEY_TOGGLE_STATS, KEY_TOGGLE_TESTS,
                       KEY_TOGGLE_SOLID, KEY_TOGGLE_EDGES, KEY_LESS_FRINGE, KEY_MORE_FRINGE,
                       };
 
-    static map<int, int> buildDefaultKeymap() {
+    static map<int,int> buildDefaultKeymap() {
+
       map<int,int> keymap;
 
-      keymap['q'] = ACTION_EXIT;
       keymap[KEY_ESC] = ACTION_EXIT;
+      keymap['q'] = ACTION_EXIT;
 
       keymap[' '] = ACTION_PLAYPAUSE;
-
-      keymap['j'] = ACTION_PREVIOUS_AUDIO;
-      keymap['k'] = ACTION_NEXT_AUDIO;
-      keymap['n'] = ACTION_PREVIOUS_VIDEO;
-      keymap['m'] = ACTION_NEXT_VIDEO;
-
-      keymap['-'] = ACTION_DECREASE_VOLUME;
-      keymap['+'] = ACTION_INCREASE_VOLUME;
-      keymap['='] = ACTION_INCREASE_VOLUME;
+      keymap['>'] = ACTION_STEP;
+      keymap['.'] = ACTION_STEP;
 
       keymap[KEY_LEFT] = ACTION_SEEK_BACK_SMALL;
       keymap[KEY_RIGHT] = ACTION_SEEK_FORWARD_SMALL;
       keymap[KEY_DOWN] = ACTION_SEEK_BACK_LARGE;
       keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
+
+      keymap['n'] = ACTION_PREVIOUS_VIDEO;
+      keymap['m'] = ACTION_NEXT_VIDEO;
+
+      keymap['j'] = ACTION_PREVIOUS_AUDIO;
+      keymap['k'] = ACTION_NEXT_AUDIO;
+
+      keymap['-'] = ACTION_DECREASE_VOLUME;
+      keymap['+'] = ACTION_INCREASE_VOLUME;
+      keymap['='] = ACTION_INCREASE_VOLUME;
 
       keymap['v'] = KEY_TOGGLE_VSYNC;
       keymap['V'] = KEY_TOGGLE_VSYNC;
@@ -239,7 +242,6 @@ private:
       keymap['S'] = KEY_TOGGLE_STATS;
       keymap['t'] = KEY_TOGGLE_TESTS;
       keymap['T'] = KEY_TOGGLE_TESTS;
-
       keymap['i'] = KEY_TOGGLE_SOLID;
       keymap['I'] = KEY_TOGGLE_SOLID;
       keymap['a'] = KEY_TOGGLE_EDGES;
@@ -253,6 +255,7 @@ private:
       }
     };
   //}}}
+
   //{{{
   bool exists (const string& path) {
 
