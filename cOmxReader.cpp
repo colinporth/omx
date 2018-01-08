@@ -318,10 +318,8 @@ cOmxReader::~cOmxReader() {
 
 // public
 //{{{
-bool cOmxReader::Open (string filename, bool dump_format,
-                       bool live /* =false */, float timeout /* = 0.0f */,
-                       string cookie /* = "" */, string user_agent /* = "" */,
-                       string lavfdopts /* = "" */, string avdict /* = "" */) {
+bool cOmxReader::Open (string filename, bool dump_format, bool live, float timeout,
+                       string cookie, string user_agent, string lavfdopts, string avdict) {
 
   timeout_default_duration = (int64_t) (timeout * 1e9);
   m_iCurrentPts = DVD_NOPTS_VALUE;

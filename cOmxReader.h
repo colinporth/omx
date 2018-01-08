@@ -68,7 +68,8 @@ public:
   static void FreePacket (OMXPacket* pkt);
   static double NormalizeFrameDuration (double frameduration);
 
-  bool Open (std::string filename, bool dump_format, bool live = false, float timeout = 0.0f, std::string cookie = "", std::string user_agent = "", std::string lavfdopts = "", std::string avdict = "");
+  bool Open (std::string filename, bool dump_format, bool live, float timeout, 
+             std::string cookie, std::string user_agent, std::string lavfdopts, std::string avdict);
   bool Close();
   void ClearStreams();
 

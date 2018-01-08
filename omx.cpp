@@ -315,7 +315,8 @@ private:
     //mAudioConfig.is_live = true;
     bool dump = false;
     if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.Open (fileName.c_str(), dump, mAudioConfig.is_live, 10.f)) {
+        mReader.Open (fileName.c_str(), dump, mAudioConfig.is_live, 10.f,
+                      "", "", "probesize:500000", "")) {
       mClock.stateIdle();
       mClock.stop();
       mClock.pause();
