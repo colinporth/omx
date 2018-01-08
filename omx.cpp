@@ -67,43 +67,8 @@ public:
     initialise (1.f, 0);
     add (new cTextBox (mDebugStr, 0.f));
 
-    //mAudioConfig.is_live = true;
-    bool dump = false;
-    if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.Open (fileName.c_str(), dump, mAudioConfig.is_live, 10.f)) {
-      mClock.stateIdle();
-      mClock.stop();
-      mClock.pause();
-
-      bool hasAudio = mReader.AudioStreamCount();
-      bool hasVideo = mReader.VideoStreamCount();
-      mReader.GetHints (OMXSTREAM_AUDIO, mAudioConfig.hints);
-      mReader.GetHints (OMXSTREAM_VIDEO, mVideoConfig.hints);
-
-      blankBackground (0);
-      //{{{  get display aspect
-      TV_DISPLAY_STATE_T current_tv_state;
-      memset (&current_tv_state, 0, sizeof(TV_DISPLAY_STATE_T));
-      mBcmHost.vc_tv_get_display_state (&current_tv_state);
-
-      mVideoConfig.display_aspect = getDisplayAspectRatio ((HDMI_ASPECT_T)current_tv_state.display.hdmi.aspect_ratio);
-      mVideoConfig.display_aspect *= (float)current_tv_state.display.hdmi.height / (float)current_tv_state.display.hdmi.width;
-      //}}}
-
-      bool ok = hasVideo && mPlayerVideo.Open (&mClock, mVideoConfig);
-
-      mAudioConfig.device = "omx:local";
-      if (hasAudio) {
-        ok &= mPlayerAudio.Open (&mClock, mAudioConfig, &mReader);
-        mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
-        }
-      m_threshold = mAudioConfig.is_live ? 0.7f : 0.2f;
-
-      if (ok) {
-        thread ([=]() { player (hasVideo, hasAudio); } ).detach();
-        cRaspWindow::run();
-        }
-      }
+    thread ([=]() { player (fileName); } ).detach();
+    cRaspWindow::run();
 
     cLog::log (LOGNOTICE, "cAppWindow::run - exit");
     }
@@ -343,225 +308,258 @@ private:
   //}}}
 
   //{{{
-  void player (bool hasVideo, bool hasAudio) {
+  void player (const string& fileName) {
 
     cLog::setThreadName ("play");
 
-    mClock.reset (hasVideo, hasAudio);
-    mClock.stateExecute();
+    //mAudioConfig.is_live = true;
+    bool dump = false;
+    if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
+        mReader.Open (fileName.c_str(), dump, mAudioConfig.is_live, 10.f)) {
+      mClock.stateIdle();
+      mClock.stop();
+      mClock.pause();
 
-    OMXPacket* omxPacket = nullptr;
-    while (!mExit && !gAbort && !mPlayerAudio.Error()) {
-      if (m_incr != 0) {
-        //{{{  seek
-        double pts = mClock.getMediaTime();
+      bool hasAudio = mReader.AudioStreamCount();
+      bool hasVideo = mReader.VideoStreamCount();
+      mReader.GetHints (OMXSTREAM_AUDIO, mAudioConfig.hints);
+      mReader.GetHints (OMXSTREAM_VIDEO, mVideoConfig.hints);
 
-        double seek_pos = (pts ? (pts / 1000000.0) : last_seek_pos) + m_incr;
-        last_seek_pos = seek_pos;
-        seek_pos *= 1000.0;
+      blankBackground (0);
+      //{{{  get display aspect
+      TV_DISPLAY_STATE_T current_tv_state;
+      memset (&current_tv_state, 0, sizeof(TV_DISPLAY_STATE_T));
+      mBcmHost.vc_tv_get_display_state (&current_tv_state);
 
-        double startpts = 0;
-        if (mReader.SeekTime ((int)seek_pos, m_incr < 0.0f, &startpts)) {
-          //{{{  flush streams
-          mClock.stop();
+      mVideoConfig.display_aspect = getDisplayAspectRatio ((HDMI_ASPECT_T)current_tv_state.display.hdmi.aspect_ratio);
+      mVideoConfig.display_aspect *= (float)current_tv_state.display.hdmi.height / (float)current_tv_state.display.hdmi.width;
+      //}}}
+
+      bool ok = hasVideo && mPlayerVideo.Open (&mClock, mVideoConfig);
+
+      mAudioConfig.device = "omx:local";
+      if (hasAudio) {
+        ok &= mPlayerAudio.Open (&mClock, mAudioConfig, &mReader);
+        mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
+        }
+      m_threshold = mAudioConfig.is_live ? 0.7f : 0.2f;
+
+      mClock.reset (hasVideo, hasAudio);
+      mClock.stateExecute();
+
+      OMXPacket* omxPacket = nullptr;
+      while (!mExit && !gAbort && !mPlayerAudio.Error()) {
+        if (m_incr != 0) {
+          //{{{  seek
+          double pts = mClock.getMediaTime();
+
+          double seek_pos = (pts ? (pts / 1000000.0) : last_seek_pos) + m_incr;
+          last_seek_pos = seek_pos;
+          seek_pos *= 1000.0;
+
+          double startpts = 0;
+          if (mReader.SeekTime ((int)seek_pos, m_incr < 0.0f, &startpts)) {
+            //{{{  flush streams
+            mClock.stop();
+            mClock.pause();
+
+            if (hasVideo)
+              mPlayerVideo.Flush();
+            if (hasAudio)
+              mPlayerAudio.Flush();
+
+            if (pts != DVD_NOPTS_VALUE)
+              mClock.setMediaTime (startpts);
+
+            if (omxPacket) {
+              mReader.FreePacket (omxPacket);
+              omxPacket = NULL;
+              }
+            }
+            //}}}
+
+          sentStarted = false;
+          if (mReader.IsEof() || (hasVideo && !mPlayerVideo.Reset()))
+            return;
+
+          cLog::log (LOGINFO, "seek to %.0f %.0f %.0f",
+                     DVD_MSEC_TO_TIME(seek_pos), startpts, mClock.getMediaTime());
+
           mClock.pause();
+          m_incr = 0;
+          }
+          //}}}
 
-          if (hasVideo)
-            mPlayerVideo.Flush();
-          if (hasAudio)
-            mPlayerAudio.Flush();
+        //{{{  pts, fifos
+        double pts = mClock.getMediaTime();
+        float threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
 
-          if (pts != DVD_NOPTS_VALUE)
-            mClock.setMediaTime (startpts);
+        // audio
+        float audio_fifo = 0.f;
+        bool audio_fifo_low = false;
+        bool audio_fifo_high = false;
+        double audio_pts = mPlayerAudio.GetCurrentPTS();
+        if (audio_pts != DVD_NOPTS_VALUE) {
+          audio_fifo = (audio_pts - pts) / 1000000.0;
+          audio_fifo_low = hasAudio && (audio_fifo < threshold);
+          audio_fifo_high = !hasAudio ||
+                            ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > m_threshold));
+          }
 
-          if (omxPacket) {
-            mReader.FreePacket (omxPacket);
-            omxPacket = NULL;
+        // video
+        float video_fifo = 0.f;
+        bool video_fifo_low = false;
+        bool video_fifo_high = false;
+        double video_pts = mPlayerVideo.GetCurrentPTS();
+        if (video_pts != DVD_NOPTS_VALUE) {
+          video_fifo = (video_pts -pts) / 1000000.0;
+          video_fifo_low = hasVideo && (video_fifo < threshold);
+          video_fifo_high = !hasVideo ||
+                            ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > m_threshold));
+          }
+
+        // debug
+        auto str = "p:"   + decFrac(pts/1000000.0,6,5,' ') +
+                   " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
+                   " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
+                   " af:" + decFrac(audio_fifo,6,5,' ') +
+                   " vf:" + decFrac(video_fifo,6,5,' ') +
+                   " al:" + dec(mPlayerAudio.GetLevel()) +
+                   " vl:" + dec(mPlayerVideo.GetLevel()) +
+                   " ad:" + dec(mPlayerAudio.GetDelay()) +
+                   " ac:" + dec(mPlayerAudio.GetCacheTotal());
+        mDebugStr = str;
+        //}}}
+        if (mAudioConfig.is_live) {
+          //{{{  live - latency under control by adjusting clock
+          float latency = DVD_NOPTS_VALUE;
+          if (hasAudio && (audio_pts != DVD_NOPTS_VALUE))
+            latency = audio_fifo;
+          else if (!hasAudio && hasVideo && video_pts != DVD_NOPTS_VALUE)
+            latency = video_fifo;
+
+          if (!m_Pause && (latency != DVD_NOPTS_VALUE)) {
+            if (mClock.isPaused()) {
+              if (latency > m_threshold) {
+                cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+                           audio_fifo, video_fifo,
+                           audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
+                           mReader.IsEof(), omxPacket);
+                mClock.resume();
+                m_latency = latency;
+                }
+              }
+
+            else {
+              m_latency = m_latency*0.99f + latency*0.01f;
+              float speed = 1.0f;
+              if (m_latency < 0.5f*m_threshold)
+                speed = 0.990f;
+              else if (m_latency < 0.9f*m_threshold)
+                speed = 0.999f;
+              else if (m_latency > 2.0f*m_threshold)
+                speed = 1.010f;
+              else if (m_latency > 1.1f*m_threshold)
+                speed = 1.001f;
+
+              mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
+              mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
+              cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
+                         m_latency, latency, speed, m_threshold);
+              }
+            }
+          }
+          //}}}
+        else if (!m_Pause && (mReader.IsEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
+          //{{{  resume
+          if (mClock.isPaused()) {
+            cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
+                       audio_fifo, video_fifo,
+                       audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
+                       mReader.IsEof(), omxPacket);
+
+            mClock.resume();
+            }
+          }
+          //}}}
+        else if (m_Pause || audio_fifo_low || video_fifo_low) {
+          //{{{  pause
+          if (!mClock.isPaused()) {
+            if (!m_Pause)
+              m_threshold = min(2.0f*m_threshold, 16.0f);
+            cLog::log (LOGINFO, "pause afifo:%.2f vfifo:%.2f alo:%d vlo:%d ahi:%d vhi:%d thesh:%.2f",
+                       audio_fifo, video_fifo,
+                       audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
+                       m_threshold);
+            mClock.pause();
             }
           }
           //}}}
 
-        sentStarted = false;
-        if (mReader.IsEof() || (hasVideo && !mPlayerVideo.Reset()))
-          return;
+        if (!sentStarted) {
+          //{{{  reset
+          cLog::log (LOGINFO, "omxPlayer reset");
+          mClock.reset (hasVideo, hasAudio);
+          sentStarted = true;
+          }
+          //}}}
 
-        cLog::log (LOGINFO, "seek to %.0f %.0f %.0f",
-                   DVD_MSEC_TO_TIME(seek_pos), startpts, mClock.getMediaTime());
+        //{{{  packet reader
+        if (!omxPacket)
+          omxPacket = mReader.Read();
 
-        mClock.pause();
-        m_incr = 0;
-        }
-        //}}}
+        if (omxPacket) {
+          m_send_eos = false;
 
-      //{{{  pts, fifos
-      double pts = mClock.getMediaTime();
-      float threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
-
-      // audio
-      float audio_fifo = 0.f;
-      bool audio_fifo_low = false;
-      bool audio_fifo_high = false;
-      double audio_pts = mPlayerAudio.GetCurrentPTS();
-      if (audio_pts != DVD_NOPTS_VALUE) {
-        audio_fifo = (audio_pts - pts) / 1000000.0;
-        audio_fifo_low = hasAudio && (audio_fifo < threshold);
-        audio_fifo_high = !hasAudio ||
-                          ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > m_threshold));
-        }
-
-      // video
-      float video_fifo = 0.f;
-      bool video_fifo_low = false;
-      bool video_fifo_high = false;
-      double video_pts = mPlayerVideo.GetCurrentPTS();
-      if (video_pts != DVD_NOPTS_VALUE) {
-        video_fifo = (video_pts -pts) / 1000000.0;
-        video_fifo_low = hasVideo && (video_fifo < threshold);
-        video_fifo_high = !hasVideo ||
-                          ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > m_threshold));
-        }
-
-      // debug
-      auto str = "p:"   + decFrac(pts/1000000.0,6,5,' ') +
-                 " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
-                 " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
-                 " af:" + decFrac(audio_fifo,6,5,' ') +
-                 " vf:" + decFrac(video_fifo,6,5,' ') +
-                 " al:" + dec(mPlayerAudio.GetLevel()) +
-                 " vl:" + dec(mPlayerVideo.GetLevel()) +
-                 " ad:" + dec(mPlayerAudio.GetDelay()) +
-                 " ac:" + dec(mPlayerAudio.GetCacheTotal());
-      mDebugStr = str;
-      //}}}
-      if (mAudioConfig.is_live) {
-        //{{{  live - latency under control by adjusting clock
-        float latency = DVD_NOPTS_VALUE;
-        if (hasAudio && (audio_pts != DVD_NOPTS_VALUE))
-          latency = audio_fifo;
-        else if (!hasAudio && hasVideo && video_pts != DVD_NOPTS_VALUE)
-          latency = video_fifo;
-
-        if (!m_Pause && (latency != DVD_NOPTS_VALUE)) {
-          if (mClock.isPaused()) {
-            if (latency > m_threshold) {
-              cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
-                         audio_fifo, video_fifo,
-                         audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                         mReader.IsEof(), omxPacket);
-              mClock.resume();
-              m_latency = latency;
-              }
+          if (hasVideo && mReader.IsActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
+            if (mPlayerVideo.AddPacket (omxPacket))
+              omxPacket = NULL;
+            else
+              cOmxClock::sleep (10);
             }
-
+          else if (hasAudio && (omxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
+            if (mPlayerAudio.AddPacket (omxPacket))
+              omxPacket = NULL;
+            else
+              cOmxClock::sleep (10);
+            }
           else {
-            m_latency = m_latency*0.99f + latency*0.01f;
-            float speed = 1.0f;
-            if (m_latency < 0.5f*m_threshold)
-              speed = 0.990f;
-            else if (m_latency < 0.9f*m_threshold)
-              speed = 0.999f;
-            else if (m_latency > 2.0f*m_threshold)
-              speed = 1.010f;
-            else if (m_latency > 1.1f*m_threshold)
-              speed = 1.001f;
-
-            mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
-            mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
-            cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
-                       m_latency, latency, speed, m_threshold);
+            mReader.FreePacket (omxPacket);
+            omxPacket = NULL;
             }
           }
-        }
-        //}}}
-      else if (!m_Pause && (mReader.IsEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
-        //{{{  resume
-        if (mClock.isPaused()) {
-          cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
-                     audio_fifo, video_fifo,
-                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                     mReader.IsEof(), omxPacket);
 
-          mClock.resume();
-          }
-        }
-        //}}}
-      else if (m_Pause || audio_fifo_low || video_fifo_low) {
-        //{{{  pause
-        if (!mClock.isPaused()) {
-          if (!m_Pause)
-            m_threshold = min(2.0f*m_threshold, 16.0f);
-          cLog::log (LOGINFO, "pause afifo:%.2f vfifo:%.2f alo:%d vlo:%d ahi:%d vhi:%d thesh:%.2f",
-                     audio_fifo, video_fifo,
-                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                     m_threshold);
-          mClock.pause();
-          }
-        }
-        //}}}
-
-      if (!sentStarted) {
-        //{{{  reset
-        cLog::log (LOGINFO, "omxPlayer reset");
-        mClock.reset (hasVideo, hasAudio);
-        sentStarted = true;
-        }
-        //}}}
-
-      //{{{  packet reader
-      if (!omxPacket)
-        omxPacket = mReader.Read();
-
-      if (omxPacket) {
-        m_send_eos = false;
-
-        if (hasVideo && mReader.IsActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
-          if (mPlayerVideo.AddPacket (omxPacket))
-            omxPacket = NULL;
-          else
-            cOmxClock::sleep (10);
-          }
-        else if (hasAudio && (omxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
-          if (mPlayerAudio.AddPacket (omxPacket))
-            omxPacket = NULL;
-          else
-            cOmxClock::sleep (10);
-          }
         else {
-          mReader.FreePacket (omxPacket);
-          omxPacket = NULL;
-          }
-        }
+          if (mReader.IsEof()) {
+            // demuxer EOF, but may have not played out data yet
+            if ( (hasVideo && mPlayerVideo.GetCached()) || (hasAudio && mPlayerAudio.GetCached()) ) {
+              cOmxClock::sleep (10);
+              return;
+              }
+            if (!m_send_eos && hasVideo)
+              mPlayerVideo.SubmitEOS();
+            if (!m_send_eos && hasAudio)
+              mPlayerAudio.SubmitEOS();
 
-      else {
-        if (mReader.IsEof()) {
-          // demuxer EOF, but may have not played out data yet
-          if ( (hasVideo && mPlayerVideo.GetCached()) || (hasAudio && mPlayerAudio.GetCached()) ) {
-            cOmxClock::sleep (10);
+            m_send_eos = true;
+            if ((hasVideo && !mPlayerVideo.IsEOS()) || (hasAudio && !mPlayerAudio.IsEOS())) {
+              cOmxClock::sleep (10);
+              return;
+              }
             return;
             }
-          if (!m_send_eos && hasVideo)
-            mPlayerVideo.SubmitEOS();
-          if (!m_send_eos && hasAudio)
-            mPlayerAudio.SubmitEOS();
 
-          m_send_eos = true;
-          if ((hasVideo && !mPlayerVideo.IsEOS()) || (hasAudio && !mPlayerAudio.IsEOS())) {
-            cOmxClock::sleep (10);
-            return;
-            }
-          return;
+          cOmxClock::sleep (10);
           }
-
-        cOmxClock::sleep (10);
+        //}}}
         }
-      //}}}
+
+      mClock.stop();
+      mClock.stateIdle();
+
+      if (omxPacket)
+        mReader.FreePacket (omxPacket);
       }
-
-    mClock.stop();
-    mClock.stateIdle();
-
-    if (omxPacket)
-      mReader.FreePacket (omxPacket);
 
     cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.Error:%d",
                           mExit, gAbort, mPlayerAudio.Error());
