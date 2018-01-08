@@ -445,7 +445,7 @@ private:
         if (!m_Pause && (latency != DVD_NOPTS_VALUE)) {
           if (mClock.isPaused()) {
             if (latency > m_threshold) {
-              cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+              cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                          audio_fifo, video_fifo,
                          audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
                          mReader.IsEof(), omxPacket);
