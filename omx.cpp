@@ -68,8 +68,9 @@ public:
     add (new cTextBox (mDebugStr, 0.f));
 
     //mAudioConfig.is_live = true;
+    bool dump = false;
     if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.Open (fileName.c_str(), true, mAudioConfig.is_live, 10.f)) {
+        mReader.Open (fileName.c_str(), dump, mAudioConfig.is_live, 10.f)) {
       mClock.stateIdle();
       mClock.stop();
       mClock.pause();
@@ -84,23 +85,21 @@ public:
       TV_DISPLAY_STATE_T current_tv_state;
       memset (&current_tv_state, 0, sizeof(TV_DISPLAY_STATE_T));
       mBcmHost.vc_tv_get_display_state (&current_tv_state);
+
       mVideoConfig.display_aspect = getDisplayAspectRatio ((HDMI_ASPECT_T)current_tv_state.display.hdmi.aspect_ratio);
       mVideoConfig.display_aspect *= (float)current_tv_state.display.hdmi.height / (float)current_tv_state.display.hdmi.width;
       //}}}
-      bool stop = hasVideo && !mPlayerVideo.Open (&mClock, mVideoConfig);
+
+      bool ok = hasVideo && mPlayerVideo.Open (&mClock, mVideoConfig);
 
       mAudioConfig.device = "omx:local";
-      if (mAudioConfig.device == "omx:alsa" && mAudioConfig.subdevice.empty())
-        mAudioConfig.subdevice = "default";
       if (hasAudio) {
-        stop |= !mPlayerAudio.Open (&mClock, mAudioConfig, &mReader);
+        ok &= mPlayerAudio.Open (&mClock, mAudioConfig, &mReader);
         mPlayerAudio.SetVolume (pow (10, m_Volume / 2000.0));
         }
       m_threshold = mAudioConfig.is_live ? 0.7f : 0.2f;
 
-      if (stop)
-         cLog::log (LOGERROR, "unable to open streams");
-      else {
+      if (ok) {
         thread ([=]() { player (hasVideo, hasAudio); } ).detach();
         cRaspWindow::run();
         }

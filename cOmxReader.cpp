@@ -205,6 +205,7 @@ private:
   };
 //}}}
 
+// local
 //{{{
 int64_t CurrentHostCounter() {
   struct timespec now;
@@ -213,10 +214,10 @@ int64_t CurrentHostCounter() {
   }
 //}}}
 //{{{
-int interrupt_cb (void *unused)
-{
+int interrupt_cb (void *unused) {
+
   int ret = 0;
-  if (g_abort) { 
+  if (g_abort) {
     cLog::log (LOGERROR, "cOmxReader::interrupt_cb - abort");
     ret = 1;
     }
@@ -229,14 +230,14 @@ int interrupt_cb (void *unused)
   }
 //}}}
 //{{{
-int file_read (void *h, uint8_t* buf, int size) {
+int file_read (void* h, uint8_t* buf, int size) {
 
   RESET_TIMEOUT(1);
   if (interrupt_cb(NULL))
     return -1;
 
-  cFile* pFile = (cFile*)h;
-  return pFile->Read (buf, size);
+  auto file = (cFile*)h;
+  return file->Read (buf, size);
   }
 //}}}
 //{{{
@@ -246,37 +247,11 @@ offset_t file_seek (void* h, offset_t pos, int whence) {
   if (interrupt_cb (NULL))
     return -1;
 
-  cFile* pFile = (cFile*)h;
+  auto file = (cFile*)h;
   if (whence == AVSEEK_SIZE)
-    return pFile->GetLength();
+    return file->GetLength();
   else
-    return pFile->Seek (pos, whence & ~AVSEEK_FORCE);
-  }
-//}}}
-
-// cOmxReader
-//{{{
-cOmxReader::cOmxReader() {
-
-  m_open = false;
-  m_filename = "";
-  m_bAVI = false;
-  g_abort = false;
-  mFile = NULL;
-  m_ioContext = NULL;
-  mAvFormatContext = NULL;
-  m_eof = false;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-
-  for (int i = 0; i < MAX_STREAMS; i++)
-    m_streams[i].extradata = NULL;
-
-  ClearStreams();
-  }
-//}}}
-//{{{
-cOmxReader::~cOmxReader() {
-  Close();
+    return file->Seek (pos, whence & ~AVSEEK_FORCE);
   }
 //}}}
 
@@ -312,6 +287,32 @@ double cOmxReader::NormalizeFrameDuration (double frameduration) {
     return durations[selected];
   else
     return frameduration;
+  }
+//}}}
+
+// cOmxReader
+//{{{
+cOmxReader::cOmxReader() {
+
+  m_open = false;
+  m_filename = "";
+  m_bAVI = false;
+  g_abort = false;
+  mFile = NULL;
+  m_ioContext = NULL;
+  mAvFormatContext = NULL;
+  m_eof = false;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+
+  for (int i = 0; i < MAX_STREAMS; i++)
+    m_streams[i].extradata = NULL;
+
+  ClearStreams();
+  }
+//}}}
+//{{{
+cOmxReader::~cOmxReader() {
+  Close();
   }
 //}}}
 
@@ -475,7 +476,7 @@ bool cOmxReader::Close() {
 
   if (mAvFormatContext) {
     if (m_ioContext && mAvFormatContext->pb && mAvFormatContext->pb != m_ioContext) {
-      cLog::log(LOGINFO1, "cOmxReader::Close  demuxer changed byteContext, possible memleak");
+      cLog::log(LOGINFO1, "cOmxReader::Close - demuxer changed byteContext, possible memleak");
       m_ioContext = mAvFormatContext->pb;
       }
     mAvFormat.avformat_close_input (&mAvFormatContext);
