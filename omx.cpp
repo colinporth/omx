@@ -64,7 +64,7 @@ public:
 
     mDebugStr = fileName;
 
-    initialise (scale, alpha);
+    initialise (scale, alpha, true);
     add (new cTextBox (mDebugStr, 0.f));
 
     //mAudioConfig.is_live = true;
@@ -445,8 +445,8 @@ private:
           if (mClock.isPaused()) {
             if (latency > m_threshold) {
               cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
-                         audio_fifo, video_fifo, 
-                         audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high, 
+                         audio_fifo, video_fifo,
+                         audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
                          mReader.IsEof(), omxPacket);
               mClock.resume();
               m_latency = latency;
@@ -477,8 +477,8 @@ private:
         //{{{  resume
         if (mClock.isPaused()) {
           cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
-                     audio_fifo, video_fifo, 
-                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high, 
+                     audio_fifo, video_fifo,
+                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
                      mReader.IsEof(), omxPacket);
 
           mClock.resume();
@@ -491,8 +491,8 @@ private:
           if (!m_Pause)
             m_threshold = min(2.0f*m_threshold, 16.0f);
           cLog::log (LOGINFO, "pause afifo:%.2f vfifo:%.2f alo:%d vlo:%d ahi:%d vhi:%d thesh:%.2f",
-                     audio_fifo, video_fifo, 
-                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high, 
+                     audio_fifo, video_fifo,
+                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
                      m_threshold);
           mClock.pause();
           }
@@ -563,7 +563,7 @@ private:
     if (omxPacket)
       mReader.FreePacket (omxPacket);
 
-    cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.Error:%d", 
+    cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.Error:%d",
                           mExit, gAbort, mPlayerAudio.Error());
     }
   //}}}
