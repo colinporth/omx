@@ -21,25 +21,25 @@ using namespace std;
 
 #define FFMPEG_FILE_BUFFER_SIZE   32768
 
-/* indicate that caller can handle truncated reads, where function returns before entire buffer has been filled */
+// can handle truncated reads where function returns before entire buffer has been filled
 #define READ_TRUNCATED 0x01
 
-/* indicate that that caller support read in the minimum defined chunk size, this disables internal cache then */
+// support read in the minimum defined chunk size, this disables internal cache then
 #define READ_CHUNKED   0x02
 
-/* use cache to access this file */
+// use cache to access this file
 #define READ_CACHED     0x04
 
-/* open without caching. regardless to file type. */
+// open without caching. regardless to file type
 #define READ_NO_CACHE  0x08
 
-/* calcuate bitrate for file while reading */
+// calcuate bitrate for file while reading
 #define READ_BITRATE   0x10
 
 #define RESET_TIMEOUT(x) do { \
   timeout_start = CurrentHostCounter(); \
   timeout_duration = (x) * timeout_default_duration; \
-} while (0)
+  } while (0)
 //}}}
 //{{{  static vars
 static bool g_abort = false;
@@ -841,24 +841,6 @@ bool cOmxReader::SetActiveStream (OMXStreamType type, unsigned int index) {
   }
 //}}}
 //{{{
-double cOmxReader::SelectAspect (AVStream* st, bool& forced) {
-
-  forced = false;
-
-  /* if stream aspect is 1:1 or 0:0 use codec aspect */
-  if ((st->sample_aspect_ratio.den == 1 || st->sample_aspect_ratio.den == 0) &&
-      (st->sample_aspect_ratio.num == 1 || st->sample_aspect_ratio.num == 0) &&
-       st->codec->sample_aspect_ratio.num != 0)
-    return av_q2d(st->codec->sample_aspect_ratio);
-
-  forced = true;
-  if (st->sample_aspect_ratio.num != 0)
-    return av_q2d(st->sample_aspect_ratio);
-
-  return 0.0;
-  }
-//}}}
-//{{{
 void cOmxReader::SetSpeed (int iSpeed) {
 
   if (!mAvFormatContext)
@@ -882,6 +864,24 @@ void cOmxReader::SetSpeed (int iSpeed) {
     if (mAvFormatContext->streams[i])
       if (mAvFormatContext->streams[i]->discard != AVDISCARD_ALL)
         mAvFormatContext->streams[i]->discard = discard;
+  }
+//}}}
+//{{{
+double cOmxReader::SelectAspect (AVStream* st, bool& forced) {
+
+  forced = false;
+
+  /* if stream aspect is 1:1 or 0:0 use codec aspect */
+  if ((st->sample_aspect_ratio.den == 1 || st->sample_aspect_ratio.den == 0) &&
+      (st->sample_aspect_ratio.num == 1 || st->sample_aspect_ratio.num == 0) &&
+       st->codec->sample_aspect_ratio.num != 0)
+    return av_q2d(st->codec->sample_aspect_ratio);
+
+  forced = true;
+  if (st->sample_aspect_ratio.num != 0)
+    return av_q2d(st->sample_aspect_ratio);
+
+  return 0.0;
   }
 //}}}
 
@@ -930,10 +930,12 @@ OMXPacket* cOmxReader::Read() {
     return NULL;
     }
     //}}}
+
   omxPkt->codec_type = stream->codec->codec_type;
   omxPkt->size = avPacket.size;
   if (avPacket.data)
     memcpy (omxPkt->data, avPacket.data, omxPkt->size);
+
   omxPkt->stream_index = avPacket.stream_index;
   GetHints (stream, &omxPkt->hints);
   omxPkt->dts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
