@@ -335,6 +335,9 @@ protected:
   pthread_mutex_t m_lock;
   pthread_mutex_t m_lock_decoder;
 
+  double m_iVideoDelay = 0.0;
+  double m_iCurrentPts = 0.0;
+
   cOmxClock* m_av_clock = nullptr;
   cOmxVideo* m_decoder = nullptr;
   cOmxVideoConfig m_config;
@@ -348,19 +351,16 @@ protected:
   cAvFormat mAvFormat;
 
   bool m_open = false;
-  double m_iCurrentPts = 0.0;
-
-  float m_fps = 25.0f;
-  double m_frametime = 0.0;
-
-  float m_display_aspect = false;
-
   bool m_bAbort = false;
   bool m_flush = false;
   std::atomic<bool>  m_flush_requested;
 
+  float m_display_aspect = false;
+
+  float m_fps = 25.0f;
+  double m_frametime = 0.0;
+
   unsigned int m_cached_size = 0;
-  double m_iVideoDelay = 0.0;
   //}}}
 
 private:
