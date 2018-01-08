@@ -14,7 +14,7 @@ SRC=       cOmxThread.cpp \
 	   ../shared/utils/cKeyboard.cpp \
 	   ../shared/nanoVg/cRaspWindow.cpp \
 	   ../shared/nanoVg/cVg.cpp \
-	   omx.cpp
+	   omx.cpp \
 
 INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
 	   -I$(SDKSTAGE)/opt/vc/include \
@@ -50,25 +50,25 @@ CFLAGS=    -std=c++0x \
 	   -D OMX_SKIP64BIT \
 	   -U _FORTIFY_SOURCE \
 
-LDFLAGS+= -L ./ \
-	  -L $(SDKSTAGE)/opt/vc/lib/ \
-	  -l pthread \
-	  -l asound \
-	  -l brcmGLESv2 \
-	  -l brcmEGL \
-	  -l bcm_host \
-	  -l WFC \
-	  -l EGL \
-	  -l GLESv2 \
-	  -l vcos \
-	  -l vchostif \
-	  -l vchiq_arm \
-	  -l openmaxil \
-	  -l avutil \
-	  -l avcodec \
-	  -l avformat \
-	  -l swscale \
-	  -l swresample \
+LDFLAGS+=  -L ./ \
+	   -L $(SDKSTAGE)/opt/vc/lib/ \
+	   -l pthread \
+	   -l asound \
+	   -l brcmGLESv2 \
+	   -l brcmEGL \
+	   -l bcm_host \
+	   -l WFC \
+	   -l EGL \
+	   -l GLESv2 \
+	   -l vcos \
+	   -l vchostif \
+	   -l vchiq_arm \
+	   -l openmaxil \
+	   -l avutil \
+	   -l avcodec \
+	   -l avformat \
+	   -l swscale \
+	   -l swresample \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
@@ -92,7 +92,8 @@ rebuild:
 	make clean && make
 
 ifndef LOGNAME
-SDKSTAGE  = /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot
+SDKSTAGE = /SysGCC/Raspberry/arm-linux-gnueabihf/sysroot
 endif
+
 CC      := arm-linux-gnueabihf-gcc
 CXX     := arm-linux-gnueabihf-g++
