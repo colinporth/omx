@@ -41,8 +41,6 @@ CFLAGS=    -std=c++0x \
 	   -mno-sched-prolog \
 	   -D PIC \
 	   -D _REENTRANT \
-	   -D __STDC_CONSTANT_MACROS \
-	   -D __STDC_LIMIT_MACROS \
 	   -D _LARGEFILE64_SOURCE \
 	   -D _FILE_OFFSET_BITS=64 \
 	   -D TARGET_POSIX \
