@@ -392,35 +392,34 @@ private:
           //}}}
 
         //{{{  pts, fifos
-        double pts = mClock.getMediaTime();
-        float threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
+        auto clockPts = mClock.getMediaTime();
+        auto threshold = min (0.1f, (float)mPlayerAudio.GetCacheTotal() * 0.1f);
 
         // audio
-        float audio_fifo = 0.f;
-        bool audio_fifo_low = false;
-        bool audio_fifo_high = false;
-        double audio_pts = mPlayerAudio.GetCurrentPTS();
+        auto audio_fifo = 0.f;
+        auto audio_fifo_low = false;
+        auto audio_fifo_high = false;
+        auto audio_pts = mPlayerAudio.GetCurrentPTS();
         if (audio_pts != DVD_NOPTS_VALUE) {
-          audio_fifo = (audio_pts - pts) / 1000000.0;
+          audio_fifo = (audio_pts - clockPts) / 1000000.0;
           audio_fifo_low = hasAudio && (audio_fifo < threshold);
           audio_fifo_high = !hasAudio ||
                             ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > m_threshold));
           }
 
         // video
-        float video_fifo = 0.f;
-        bool video_fifo_low = false;
-        bool video_fifo_high = false;
-        double video_pts = mPlayerVideo.GetCurrentPTS();
+        auto video_fifo = 0.f;
+        auto video_fifo_low = false;
+        auto video_fifo_high = false;
+        auto video_pts = mPlayerVideo.GetCurrentPTS();
         if (video_pts != DVD_NOPTS_VALUE) {
-          video_fifo = (video_pts -pts) / 1000000.0;
+          video_fifo = (video_pts - clockPts) / 1000000.0;
           video_fifo_low = hasVideo && (video_fifo < threshold);
           video_fifo_high = !hasVideo ||
                             ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > m_threshold));
           }
-
-        // debug
-        auto str = "p:"   + decFrac(pts/1000000.0,6,5,' ') +
+        // debug 
+        auto str = decFrac(clockPts/1000000.0,6,5,' ') +
                    " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
                    " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
                    " af:" + decFrac(audio_fifo,6,5,' ') +
