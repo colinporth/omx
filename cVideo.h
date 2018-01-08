@@ -348,7 +348,7 @@ protected:
   cAvFormat mAvFormat;
 
   bool m_open = false;
-  double m_iCurrentPts = 0;
+  double m_iCurrentPts = 0.0;
 
   float m_fps = 25.0f;
   double m_frametime = 0.0;
@@ -360,7 +360,7 @@ protected:
   std::atomic<bool>  m_flush_requested;
 
   unsigned int m_cached_size = 0;
-  double m_iVideoDelay = 0;
+  double m_iVideoDelay = 0.0;
   //}}}
 
 private:

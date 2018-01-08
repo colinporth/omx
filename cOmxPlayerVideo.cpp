@@ -278,12 +278,15 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
     dts += m_iVideoDelay;
 
   double pts = pkt->pts;
-  if (pts != DVD_NOPTS_VALUE)
+  if (pts != DVD_NOPTS_VALUE) {
     pts += m_iVideoDelay;
+    cLog::log (LOGINFO, "decode - DVD_NOPTS_VALUE");
+    }
   if (pts != DVD_NOPTS_VALUE)
     m_iCurrentPts = pts;
 
   while ((int)m_decoder->GetFreeSpace() < pkt->size) {
+    cLog::log (LOGINFO, "decode - wait %d %d", m_decoder->GetFreeSpace(), pkt->size);
     cOmxClock::sleep (10);
     if (m_flush_requested)
       return true;
