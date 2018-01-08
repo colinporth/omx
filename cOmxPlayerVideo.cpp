@@ -114,7 +114,7 @@ bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
 //{{{
 void cOmxPlayerVideo::Process() {
 
-  cLog::setThreadName (" vid");
+  cLog::setThreadName ("vid ");
 
   OMXPacket* omx_pkt = NULL;
   while (true) {
@@ -157,7 +157,7 @@ void cOmxPlayerVideo::Process() {
   if (omx_pkt)
     cOmxReader::FreePacket (omx_pkt);
 
-  cLog::log (LOGNOTICE, "exit");
+  cLog::log (LOGNOTICE, "Process - exit");
   }
 //}}}
 //{{{
@@ -238,7 +238,7 @@ bool cOmxPlayerVideo::OpenDecoder() {
     m_fps = 25;
 
   if (m_fps > 100 || m_fps < 5 ) {
-    cLog::log (LOGINFO, "Invalid framerate %d, using forced 25fps, trust timestamps", (int)m_fps);
+    cLog::log (LOGERROR, "Invalid framerate %d, using forced 25fps, trust timestamps", (int)m_fps);
     m_fps = 25;
     }
   m_frametime = (double)DVD_TIME_BASE / m_fps;
@@ -269,7 +269,7 @@ void cOmxPlayerVideo::CloseDecoder() {
 //{{{
 bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
-  cLog::log (LOGINFO, "Decode pts:%.0f curPts:%.0f, size:%d", pkt->pts, m_iCurrentPts, pkt->size);
+  cLog::log (LOGINFO1, "Decode pts:%.0f curPts:%.0f, size:%d", pkt->pts, m_iCurrentPts, pkt->size);
 
   double dts = pkt->dts;
   if (dts != DVD_NOPTS_VALUE)

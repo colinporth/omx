@@ -106,7 +106,7 @@ public:
         }
       }
 
-    cLog::log (LOGERROR, "cAppWindow::run - exit");
+    cLog::log (LOGNOTICE, "cAppWindow::run - exit");
     }
   //}}}
 

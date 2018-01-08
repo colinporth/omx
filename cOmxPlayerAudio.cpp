@@ -125,7 +125,7 @@ bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
 //{{{
 void cOmxPlayerAudio::Process() {
 
-  cLog::setThreadName (" aud");
+  cLog::setThreadName ("aud ");
 
   OMXPacket* omx_pkt = NULL;
   while (true) {
@@ -166,7 +166,7 @@ void cOmxPlayerAudio::Process() {
   if (omx_pkt)
     cOmxReader::FreePacket (omx_pkt);
 
-  cLog::log (LOGNOTICE, "exit");
+  cLog::log (LOGNOTICE, "Process - exit");
   }
 //}}}
 //{{{
@@ -329,9 +329,9 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
 
   if (pkt->hints.codec != m_config.hints.codec ||
       pkt->hints.samplerate!= m_config.hints.samplerate || (!m_passthrough && minor_change)) {
-    cLog::log (LOGINFO, "C : %d %d %d %d %d",
+    cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
             m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate, m_config.hints.bitrate, m_config.hints.bitspersample);
-    cLog::log (LOGINFO, "N : %d %d %d %d %d",
+    cLog::log (LOGINFO, "Decode N : %d %d %d %d %d",
             pkt->hints.codec, channels, pkt->hints.samplerate, pkt->hints.bitrate, pkt->hints.bitspersample);
     CloseDecoder();
     CloseAudioCodec();
