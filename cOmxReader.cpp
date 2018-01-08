@@ -921,14 +921,6 @@ OMXPacket* cOmxReader::Read() {
     //}}}
 
   auto stream = mAvFormatContext->streams[avPacket.stream_index];
-  if (avPacket.dts == 0)
-    avPacket.dts = AV_NOPTS_VALUE;
-  if (avPacket.pts == 0)
-    avPacket.pts = AV_NOPTS_VALUE;
-
-  // AVI's borked pts, always use dts
-  if (m_bAVI && stream->codec && stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-    avPacket.pts = AV_NOPTS_VALUE;
 
   auto omxPkt = allocPacket (avPacket.size);
   if (!omxPkt) {

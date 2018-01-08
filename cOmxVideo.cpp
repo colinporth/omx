@@ -705,7 +705,8 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
   OMX_U32 nFlags = 0;
   if (m_setStartTime) {
     nFlags |= OMX_BUFFERFLAG_STARTTIME;
-    cLog::log (LOGINFO1, "cOmxVideo::Decode setStartTime:%f", (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / DVD_TIME_BASE);
+    cLog::log (LOGINFO1, "cOmxVideo::Decode setStartTime:%f", 
+                         (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / 1000000.f);
     m_setStartTime = false;
     }
 
