@@ -259,13 +259,13 @@ bool cOmxPlayerAudio::OpenDecoder() {
     return false;
     }
   else if (m_passthrough)
-    cLog::log (LOGINFO, "OpenDecoder %s passthrough ch:%d rate:%d bps:%d",
-               m_codec_name.c_str(), 
+    cLog::log (LOGINFO, "cOmxPlayerAudio::OpenDecoder %s passthrough ch:%d rate:%d bps:%d",
+               m_codec_name.c_str(),
                m_config.hints.channels,
                m_config.hints.samplerate, m_config.hints.bitspersample);
   else
-    cLog::log (LOGINFO, "OpenDecoder %s ch:%d rate:%d bps:%d",
-               m_codec_name.c_str(), 
+    cLog::log (LOGINFO, "cOmxPlayerAudio::OpenDecoder %s ch:%d rate:%d bps:%d",
+               m_codec_name.c_str(),
                m_config.hints.channels,
                m_config.hints.samplerate, m_config.hints.bitspersample);
 

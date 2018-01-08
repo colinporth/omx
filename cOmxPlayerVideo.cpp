@@ -238,16 +238,16 @@ bool cOmxPlayerVideo::OpenDecoder() {
     m_fps = 25.f;
 
   if (m_fps > 100.f || m_fps < 5.f) {
-    cLog::log (LOGERROR, "OpenDecoder = invalid framerate %d, using forced 25fps, trust timestamps", (int)m_fps);
+    cLog::log (LOGERROR, "cOmxPlayerVideo::OpenDecoder = invalid framerate %d, using forced 25fps, trust timestamps", (int)m_fps);
     m_fps = 25.f;
     }
   m_frametime = 1000000.0 / m_fps;
 
   m_decoder = new cOmxVideo();
   if (m_decoder->Open (m_av_clock, m_config)) {
-    cLog::log (LOGINFO, "OpenDecoder %s profile:%d %dx%d %ffps",
+    cLog::log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s profile:%d %dx%d %ffps",
                m_decoder->GetDecoderName().c_str(), m_config.hints.profile,
-               m_config.hints.width, m_config.hints.height, 
+               m_config.hints.width, m_config.hints.height,
                m_fps);
     return true;
     }
