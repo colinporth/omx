@@ -60,11 +60,11 @@ public:
     }
   //}}}
   //{{{
-  void run (bool windowed, float scale, int alpha, const string& fileName) {
+  void run (const string& fileName) {
 
     mDebugStr = fileName;
 
-    initialise (scale, alpha, true);
+    initialise (1.f, 0);
     add (new cTextBox (mDebugStr, 0.f));
 
     //mAudioConfig.is_live = true;
@@ -606,23 +606,17 @@ int main (int argc, char* argv[]) {
   //}}}
 
   bool logInfo = false;
-  bool windowed = true;
-  uint32_t alpha = 160;
-  float scale = 1.f;
   string fileName;
 
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logInfo = true;
-    else if (!strcmp(argv[arg], "w")) windowed = false;
-    else if (!strcmp(argv[arg], "a")) alpha = atoi (argv[++arg]);
-    else if (!strcmp(argv[arg], "s")) scale = atoi (argv[++arg]) / 100.f;
     else fileName = argv[arg];
 
   cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
   cAppWindow appWindow;
-  appWindow.run (windowed, scale, alpha, fileName);
+  appWindow.run (fileName);
 
   return EXIT_SUCCESS;
   }

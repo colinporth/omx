@@ -10,20 +10,25 @@
 //{{{
 cOmxPlayerAudio::cOmxPlayerAudio() {
 
-  m_open          = false;
-  m_stream_id     = -1;
-  m_pStream       = NULL;
-  m_av_clock      = NULL;
-  m_omx_reader    = NULL;
-  m_decoder       = NULL;
-  m_flush         = false;
+  m_open = false;
+
+  m_stream_id = -1;
+  m_pStream = NULL;
+
+  m_av_clock = NULL;
+  m_omx_reader = NULL;
+  m_decoder = NULL;
+
+  m_flush = false;
   m_flush_requested = false;
-  m_cached_size   = 0;
-  m_pAudioCodec   = NULL;
-  m_player_error  = true;
+
+  m_cached_size = 0;
+  m_pAudioCodec = NULL;
+  m_player_error = true;
   m_CurrentVolume = 0.0f;
+
   m_amplification = 0;
-  m_mute          = false;
+  m_mute = false;
 
   pthread_cond_init (&m_packet_cond, NULL);
   pthread_cond_init (&m_audio_cond, NULL);
@@ -199,14 +204,14 @@ void cOmxPlayerAudio::Flush() {
 //}}}
 
 //{{{
-void cOmxPlayerAudio::SubmitEOS() {
-  if (m_decoder)
-    m_decoder->SubmitEOS();
+bool cOmxPlayerAudio::IsEOS() {
+  return m_packets.empty() && (!m_decoder || m_decoder->IsEOS());
   }
 //}}}
 //{{{
-bool cOmxPlayerAudio::IsEOS() {
-  return m_packets.empty() && (!m_decoder || m_decoder->IsEOS());
+void cOmxPlayerAudio::SubmitEOS() {
+  if (m_decoder)
+    m_decoder->SubmitEOS();
   }
 //}}}
 
@@ -214,7 +219,7 @@ bool cOmxPlayerAudio::IsEOS() {
 //{{{
 bool cOmxPlayerAudio::Close() {
 
-  m_bAbort  = true;
+  m_bAbort = true;
   Flush();
 
   if (ThreadHandle()) {
@@ -293,15 +298,17 @@ bool cOmxPlayerAudio::OpenAudioCodec() {
     delete m_pAudioCodec;
     m_pAudioCodec = NULL;
     return false;
-   }
+    }
 
   return true;
   }
 //}}}
 //{{{
 void cOmxPlayerAudio::CloseAudioCodec() {
+
   if (m_pAudioCodec)
     delete m_pAudioCodec;
+
   m_pAudioCodec = NULL;
   }
 //}}}
@@ -319,7 +326,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
   unsigned int old_bitrate = m_config.hints.bitrate;
   unsigned int new_bitrate = pkt->hints.bitrate;
 
-  /* only check bitrate changes on AV_CODEC_ID_DTS, AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3 */
+  // only check bitrate changes on AV_CODEC_ID_DTS, AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3
   if (m_config.hints.codec != AV_CODEC_ID_DTS &&
       m_config.hints.codec != AV_CODEC_ID_AC3 && m_config.hints.codec != AV_CODEC_ID_EAC3)
     new_bitrate = old_bitrate = 0;
@@ -332,9 +339,11 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
   if (pkt->hints.codec != m_config.hints.codec ||
       pkt->hints.samplerate!= m_config.hints.samplerate || (!m_passthrough && minor_change)) {
     cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
-            m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate, m_config.hints.bitrate, m_config.hints.bitspersample);
+                        m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate, 
+                        m_config.hints.bitrate, m_config.hints.bitspersample);
     cLog::log (LOGINFO, "Decode N : %d %d %d %d %d",
-            pkt->hints.codec, channels, pkt->hints.samplerate, pkt->hints.bitrate, pkt->hints.bitspersample);
+                        pkt->hints.codec, channels, pkt->hints.samplerate, 
+                        pkt->hints.bitrate, pkt->hints.bitspersample);
     CloseDecoder();
     CloseAudioCodec();
 
@@ -348,7 +357,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
       return false;
     }
 
-  cLog::log (LOGINFO1, "Decode pts:%6.3f size:%d", pkt->pts / 1000000.f, pkt->size);
+  cLog::log (LOGINFO1, "Decode pts:%6.2f size:%d", pkt->pts / 1000000.f, pkt->size);
 
   if (pkt->pts != DVD_NOPTS_VALUE)
     m_iCurrentPts = pkt->pts;
@@ -359,7 +368,8 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
   int data_len = pkt->size;
 
   if (!m_passthrough && !m_hw_decode) {
-    double dts = pkt->dts, pts=pkt->pts;
+    double dts = pkt->dts;
+    double pts = pkt->pts;
     while (data_len > 0) {
       int len = m_pAudioCodec->Decode((BYTE*)data_dec, data_len, dts, pts);
       if ((len < 0) || (len >  data_len)) {

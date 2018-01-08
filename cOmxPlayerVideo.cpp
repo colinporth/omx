@@ -270,7 +270,7 @@ void cOmxPlayerVideo::CloseDecoder() {
 //{{{
 bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
-  cLog::log (LOGINFO1, "Decode pts:%6.3f curPts:%6.3f size:%d",
+  cLog::log (LOGINFO1, "Decode pts:%6.2f curPts:%6.2f size:%d",
                        pkt->pts / 1000000.f, m_iCurrentPts / 1000000.f, pkt->size);
 
   double dts = pkt->dts;
