@@ -35,15 +35,17 @@ bool cOmxPlayerVideo::Reset() {
 
   Flush();
 
-  m_stream_id         = -1;
-  m_pStream           = NULL;
-  m_iCurrentPts       = DVD_NOPTS_VALUE;
-  m_frametime         = 0;
-  m_bAbort            = false;
-  m_flush             = false;
-  m_flush_requested   = false;
-  m_cached_size       = 0;
-  m_iVideoDelay       = 0;
+  m_stream_id = -1;
+  m_pStream = NULL;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  m_frametime = 0;
+
+  m_bAbort = false;
+  m_flush = false;
+  m_flush_requested = false;
+
+  m_cached_size = 0;
+  m_iVideoDelay = 0;
 
   return true;
   }
@@ -60,13 +62,16 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
 
   mAvFormat.av_register_all();
 
-  m_config      = config;
-  m_av_clock    = av_clock;
-  m_fps         = 25.0f;
-  m_frametime   = 0;
+  m_config = config;
+  m_av_clock = av_clock;
+
+  m_fps = 25.0f;
+  m_frametime = 0;
+
   m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_bAbort      = false;
-  m_flush       = false;
+
+  m_bAbort = false;
+  m_flush = false;
   m_cached_size = 0;
   m_iVideoDelay = 0;
 
@@ -82,32 +87,13 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
   }
 //}}}
 
-//{{{
-int  cOmxPlayerVideo::GetDecoderBufferSize() {
-  return m_decoder ? m_decoder->GetInputBufferSize() : 0;
-  }
-//}}}
-//{{{
-int  cOmxPlayerVideo::GetDecoderFreeSpace() {
-  return m_decoder ? m_decoder->GetFreeSpace() : 0;
-  }
-//}}}
+int cOmxPlayerVideo::GetDecoderBufferSize() { return m_decoder ? m_decoder->GetInputBufferSize() : 0; }
+int cOmxPlayerVideo::GetDecoderFreeSpace() { return m_decoder ? m_decoder->GetFreeSpace() : 0; }
 
-//{{{
-void cOmxPlayerVideo::SetAlpha (int alpha) {
-  m_decoder->SetAlpha (alpha);
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) {
-  m_decoder->SetVideoRect (SrcRect, DestRect);
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::SetVideoRect (int aspectMode) {
-  m_decoder->SetVideoRect (aspectMode);
-  }
-//}}}
+
+void cOmxPlayerVideo::SetAlpha (int alpha) { m_decoder->SetAlpha (alpha); }
+void cOmxPlayerVideo::SetVideoRect (int aspectMode) { m_decoder->SetVideoRect (aspectMode); }
+void cOmxPlayerVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) { m_decoder->SetVideoRect (SrcRect, DestRect); }
 
 //{{{
 bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
@@ -171,6 +157,8 @@ void cOmxPlayerVideo::Process() {
 
   if (omx_pkt)
     cOmxReader::FreePacket (omx_pkt);
+
+  cLog::log (LOGNOTICE, "exit");
   }
 //}}}
 //{{{
@@ -251,14 +239,14 @@ bool cOmxPlayerVideo::OpenDecoder() {
     m_fps = 25;
 
   if (m_fps > 100 || m_fps < 5 ) {
-    printf ("Invalid framerate %d, using forced 25fps and just trust timestamps\n", (int)m_fps);
+    cLog::log (LOGINFO, "Invalid framerate %d, using forced 25fps, trust timestamps", (int)m_fps);
     m_fps = 25;
     }
   m_frametime = (double)DVD_TIME_BASE / m_fps;
 
   m_decoder = new cOmxVideo();
   if (m_decoder->Open (m_av_clock, m_config)) {
-    cLog::log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s w:%d h:%d profile:%d fps %f\n",
+    cLog::log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s w:%d h:%d profile:%d fps %f",
                m_decoder->GetDecoderName().c_str(),
                m_config.hints.width, m_config.hints.height, m_config.hints.profile, m_fps);
     return true;
@@ -274,6 +262,7 @@ void cOmxPlayerVideo::CloseDecoder() {
 
   if (m_decoder)
     delete m_decoder;
+
   m_decoder = NULL;
   }
 //}}}

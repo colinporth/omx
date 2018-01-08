@@ -164,6 +164,8 @@ void cOmxPlayerAudio::Process() {
 
   if (omx_pkt)
     cOmxReader::FreePacket (omx_pkt);
+
+  cLog::log (LOGNOTICE, "exit");
   }
 //}}}
 //{{{
