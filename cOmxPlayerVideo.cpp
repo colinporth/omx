@@ -45,7 +45,7 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
   m_config = config;
   m_av_clock = av_clock;
 
-  m_fps = 25.0f;
+  m_fps = 25.f;
   m_frametime = 0;
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
@@ -232,22 +232,23 @@ bool cOmxPlayerVideo::Close() {
 bool cOmxPlayerVideo::OpenDecoder() {
 
   if (m_config.hints.fpsrate && m_config.hints.fpsscale)
-    m_fps = DVD_TIME_BASE / cOmxReader::NormalizeFrameDuration (
-      (double)DVD_TIME_BASE * m_config.hints.fpsscale / m_config.hints.fpsrate);
+    m_fps = 1000000.f /
+            cOmxReader::NormalizeFrameDuration (1000000.0 * m_config.hints.fpsscale / m_config.hints.fpsrate);
   else
-    m_fps = 25;
+    m_fps = 25.f;
 
-  if (m_fps > 100 || m_fps < 5 ) {
-    cLog::log (LOGERROR, "Invalid framerate %d, using forced 25fps, trust timestamps", (int)m_fps);
-    m_fps = 25;
+  if (m_fps > 100.f || m_fps < 5.f) {
+    cLog::log (LOGERROR, "OpenDecoder = invalid framerate %d, using forced 25fps, trust timestamps", (int)m_fps);
+    m_fps = 25.f;
     }
-  m_frametime = (double)DVD_TIME_BASE / m_fps;
+  m_frametime = 1000000.0 / m_fps;
 
   m_decoder = new cOmxVideo();
   if (m_decoder->Open (m_av_clock, m_config)) {
-    cLog::log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s w:%d h:%d profile:%d fps %f",
-               m_decoder->GetDecoderName().c_str(),
-               m_config.hints.width, m_config.hints.height, m_config.hints.profile, m_fps);
+    cLog::log (LOGINFO, "OpenDecoder %s profile:%d %dx%d %ffps",
+               m_decoder->GetDecoderName().c_str(), m_config.hints.profile,
+               m_config.hints.width, m_config.hints.height, 
+               m_fps);
     return true;
     }
   else {
@@ -269,7 +270,8 @@ void cOmxPlayerVideo::CloseDecoder() {
 //{{{
 bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
-  cLog::log (LOGINFO1, "Decode pts:%.0f curPts:%.0f, size:%d", pkt->pts, m_iCurrentPts, pkt->size);
+  cLog::log (LOGINFO1, "Decode - pts:%6.3f curPts:%6.3f size:%d",
+                       pkt->pts / 1000000.f, m_iCurrentPts / 1000000.f, pkt->size);
 
   double dts = pkt->dts;
   if (dts != DVD_NOPTS_VALUE)

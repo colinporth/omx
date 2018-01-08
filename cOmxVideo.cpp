@@ -399,7 +399,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
 //{{{
 void cOmxVideo::PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
 
-  cLog::log (LOGNOTICE, "cOmxVideo::PortSettingsChanged %dx%d@%.2f int:%d deint:%d par:%.2f disp:%d lay:%d alpha:%d aspect:%d",
+  cLog::log (LOGINFO, "portSettings %dx%d@%.2f int:%d deint:%d par:%.2f disp:%d lay:%d alpha:%d aspect:%d",
              port_image.format.video.nFrameWidth, port_image.format.video.nFrameHeight,
              port_image.format.video.xFramerate / (float)(1<<16),
              interlaceEMode, m_deinterlace,  m_pixel_aspect, m_config.display,
@@ -454,7 +454,6 @@ bool cOmxVideo::PortSettingsChanged() {
     return false;
 
   m_omx_render.ResetEos();
-
   PortSettingsChangedLogger (port_image, interlace.eMode);
 
   if (!m_omx_sched.Initialize ("OMX.broadcom.video_scheduler", OMX_IndexParamVideoInit))
@@ -614,11 +613,7 @@ unsigned int cOmxVideo::GetFreeSpace() {
   }
 //}}}
 
-//{{{
-void cOmxVideo::SetDropState (bool bDrop) {
-  m_drop_state = bDrop;
-  }
-//}}}
+void cOmxVideo::SetDropState (bool bDrop) { m_drop_state = bDrop; }
 //{{{
 void cOmxVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) {
   m_config.src_rect = SrcRect;
