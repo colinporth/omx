@@ -34,13 +34,13 @@
 using namespace std;
 //}}}
 
-volatile sig_atomic_t g_abort = false;
+volatile sig_atomic_t gAbort = false;
 //{{{
 void sigHandler (int s) {
 
-  if (s == SIGINT && !g_abort) {
+  if (s == SIGINT && !gAbort) {
     signal (SIGINT, SIG_DFL);
-    g_abort = true;
+    gAbort = true;
     return;
     }
 
@@ -106,7 +106,7 @@ public:
         }
       }
 
-    cLog::log (LOGERROR, "run - exit");
+    cLog::log (LOGERROR, "cAppWindow::run - exit");
     }
   //}}}
 
@@ -116,8 +116,6 @@ protected:
 
     auto event = mKeyboard.getEvent();
     switch (event) {
-      case cKeyConfig::ACTION_EXIT: g_abort = true; mEscape = true; break;
-
       case cKeyConfig::ACTION_PLAYPAUSE: m_Pause = !m_Pause; break;
 
       case cKeyConfig::ACTION_STEP: mClock.step(); break;
@@ -173,8 +171,16 @@ protected:
       case cKeyConfig::KEY_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
       case cKeyConfig::KEY_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
 
-      case -1: break;
-      default: cLog::log (LOGNOTICE, "Keyboard %d", event); break;
+      case cKeyConfig::KEY_LOG1: cLog::setLogLevel (LOGNOTICE); break;
+      case cKeyConfig::KEY_LOG2: cLog::setLogLevel (LOGERROR); break;
+      case cKeyConfig::KEY_LOG3: cLog::setLogLevel (LOGINFO); break;
+      case cKeyConfig::KEY_LOG4: cLog::setLogLevel (LOGINFO1); break;
+      case cKeyConfig::KEY_LOG5: cLog::setLogLevel (LOGINFO2); break;
+      case cKeyConfig::KEY_LOG6: cLog::setLogLevel (LOGINFO3); break;
+
+      case cKeyConfig::ACTION_NONE: break;
+      case cKeyConfig::ACTION_EXIT: gAbort = true; mExit = true; break;
+      default: cLog::log (LOGNOTICE, "pollKeyboard - unused event %d", event); break;
       }
     }
   //}}}
@@ -183,13 +189,16 @@ private:
   //{{{
   class cKeyConfig {
   public:
+    //{{{  key defines
     #define KEY_ESC   27
     #define KEY_UP    0x5b41
     #define KEY_DOWN  0x5b42
     #define KEY_LEFT  0x5b44
     #define KEY_RIGHT 0x5b43
-
-    enum eKeyAction { ACTION_EXIT,
+    //}}}
+    //{{{  enum eKeyAction
+    enum eKeyAction { ACTION_NONE,
+                      ACTION_EXIT,
                       ACTION_PLAYPAUSE, ACTION_STEP,
                       ACTION_SEEK_BACK_SMALL, ACTION_SEEK_FORWARD_SMALL,
                       ACTION_SEEK_BACK_LARGE, ACTION_SEEK_FORWARD_LARGE,
@@ -197,15 +206,18 @@ private:
                       ACTION_PREVIOUS_AUDIO, ACTION_NEXT_AUDIO,
                       ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
                       KEY_TOGGLE_VSYNC, KEY_TOGGLE_PERF, KEY_TOGGLE_STATS, KEY_TOGGLE_TESTS,
-                      KEY_TOGGLE_SOLID, KEY_TOGGLE_EDGES, KEY_LESS_FRINGE, KEY_MORE_FRINGE,
+                      KEY_TOGGLE_SOLID, KEY_TOGGLE_EDGES,
+                      KEY_LESS_FRINGE, KEY_MORE_FRINGE,
+                      KEY_LOG1, KEY_LOG2,KEY_LOG3, KEY_LOG4, KEY_LOG5, KEY_LOG6,
                       };
+    //}}}
 
+    //{{{
     static map<int,int> buildDefaultKeymap() {
-
       map<int,int> keymap;
-
-      keymap[KEY_ESC] = ACTION_EXIT;
       keymap['q'] = ACTION_EXIT;
+      keymap['Q'] = ACTION_EXIT;
+      keymap[KEY_ESC] = ACTION_EXIT;
 
       keymap[' '] = ACTION_PLAYPAUSE;
       keymap['>'] = ACTION_STEP;
@@ -217,10 +229,14 @@ private:
       keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
 
       keymap['n'] = ACTION_PREVIOUS_VIDEO;
+      keymap['N'] = ACTION_PREVIOUS_VIDEO;
       keymap['m'] = ACTION_NEXT_VIDEO;
+      keymap['M'] = ACTION_NEXT_VIDEO;
 
       keymap['j'] = ACTION_PREVIOUS_AUDIO;
+      keymap['J'] = ACTION_PREVIOUS_AUDIO;
       keymap['k'] = ACTION_NEXT_AUDIO;
+      keymap['K'] = ACTION_NEXT_AUDIO;
 
       keymap['-'] = ACTION_DECREASE_VOLUME;
       keymap['+'] = ACTION_INCREASE_VOLUME;
@@ -243,8 +259,16 @@ private:
       keymap['w'] = KEY_MORE_FRINGE;
       keymap['W'] = KEY_MORE_FRINGE;
 
+      keymap['1'] = KEY_LOG1;
+      keymap['2'] = KEY_LOG2;
+      keymap['3'] = KEY_LOG3;
+      keymap['4'] = KEY_LOG4;
+      keymap['5'] = KEY_LOG5;
+      keymap['6'] = KEY_LOG6;
+
       return keymap;
       }
+    //}}}
     };
   //}}}
 
@@ -328,7 +352,7 @@ private:
     mClock.stateExecute();
 
     OMXPacket* omxPacket = nullptr;
-    while (!g_abort && !mPlayerAudio.Error()) {
+    while (!mExit && !gAbort && !mPlayerAudio.Error()) {
       if (m_incr != 0) {
         //{{{  seek
         double pts = mClock.getMediaTime();
@@ -362,7 +386,7 @@ private:
         if (mReader.IsEof() || (hasVideo && !mPlayerVideo.Reset()))
           return;
 
-        cLog::log (LOGNOTICE, "seekedTo %.0f %.0f %.0f",
+        cLog::log (LOGINFO, "seekedTo %.0f %.0f %.0f",
                    DVD_MSEC_TO_TIME(seek_pos), startpts, mClock.getMediaTime());
 
         mClock.pause();
@@ -420,7 +444,7 @@ private:
         if (!m_Pause && (latency != DVD_NOPTS_VALUE)) {
           if (mClock.isPaused()) {
             if (latency > m_threshold) {
-              cLog::log (LOGINFO, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+              cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                          audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                          audio_fifo_high, video_fifo_high, mReader.IsEof(), omxPacket);
               mClock.resume();
@@ -442,7 +466,7 @@ private:
 
             mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
             mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
-            cLog::log (LOGINFO, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
+            cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
                        m_latency, latency, speed, m_threshold);
             }
           }
@@ -451,7 +475,7 @@ private:
       else if (!m_Pause && (mReader.IsEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
         //{{{  pause
         if (mClock.isPaused()) {
-          cLog::log (LOGNOTICE, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
+          cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
                      audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                      audio_fifo_high, video_fifo_high, mReader.IsEof(), omxPacket);
 
@@ -464,11 +488,9 @@ private:
         if (!mClock.isPaused()) {
           if (!m_Pause)
             m_threshold = min(2.0f*m_threshold, 16.0f);
-
-          cLog::log (LOGNOTICE, "pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
+          cLog::log (LOGINFO, "pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
                      audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
                      audio_fifo_high, video_fifo_high, m_threshold);
-
           mClock.pause();
           }
         }
@@ -476,7 +498,7 @@ private:
 
       if (!sentStarted) {
         //{{{  reset
-        cLog::log (LOGINFO1, "omxPlayer reset");
+        cLog::log (LOGINFO, "omxPlayer reset");
         mClock.reset (hasVideo, hasAudio);
         sentStarted = true;
         }
@@ -535,6 +557,8 @@ private:
 
     if (omxPacket)
       mReader.FreePacket (omxPacket);
+
+    cLog::log (LOGNOTICE, "exit exit:%d abort:%d audioError:%d", mExit, gAbort, mPlayerAudio.Error());
     }
   //}}}
 
@@ -587,7 +611,7 @@ int main (int argc, char* argv[]) {
     else if (!strcmp(argv[arg], "s")) scale = atoi (argv[++arg]) / 100.f;
     else fileName = argv[arg];
 
-  cLog::init (logInfo ? LOGINFO : LOGINFO3, false, "");
+  cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
   cAppWindow appWindow;

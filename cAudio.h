@@ -164,7 +164,7 @@ private:
   void UpdateAttenuation();
 
   void PrintChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
-  void PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, std::string direction);
+  void PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, const std::string& direction);
 
   bool          m_Initialized;
   float         m_CurrentVolume;

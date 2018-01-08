@@ -130,97 +130,121 @@ bool cOmxAudio::Initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   else
     boolType.bEnabled = OMX_FALSE;
   if (m_omx_decoder.SetParameter (OMX_IndexParamBrcmDecoderPassThrough, &boolType) != OMX_ErrorNone) {
+    //{{{  error, return
     cLog::log (LOGERROR, "cOmxAudio::Initialize OMX_IndexParamBrcmDecoderPassThrough");
     return false;
     }
+    //}}}
 
   // set up the number/size of buffers for decoder input
   OMX_PARAM_PORTDEFINITIONTYPE port_param;
   OMX_INIT_STRUCTURE(port_param);
   port_param.nPortIndex = m_omx_decoder.GetInputPort();
   if (m_omx_decoder.GetParameter (OMX_IndexParamPortDefinition, &port_param) != OMX_ErrorNone) {
+    //{{{  error, return
     cLog::log (LOGERROR, "cOmxAudio::Initialize OMX_IndexParamPortDefinition");
     return false;
     }
+    //}}}
 
   port_param.format.audio.eEncoding = m_eEncoding;
   port_param.nBufferSize = m_ChunkLen;
-  port_param.nBufferCountActual = std::max (port_param.nBufferCountMin, 16U);
+  port_param.nBufferCountActual = max (port_param.nBufferCountMin, 16U);
   if (m_omx_decoder.SetParameter (OMX_IndexParamPortDefinition, &port_param) != OMX_ErrorNone) {
+    //{{{  error, return
     cLog::log (LOGERROR, "cOmxAudio::Initialize error set OMX_IndexParamPortDefinition");
     return false;
     }
+    //}}}
 
   // set up the number/size of buffers for decoder output
   OMX_INIT_STRUCTURE(port_param);
   port_param.nPortIndex = m_omx_decoder.GetOutputPort();
   if (m_omx_decoder.GetParameter (OMX_IndexParamPortDefinition, &port_param) != OMX_ErrorNone) {
+    //{{{  error, return
     cLog::log (LOGERROR, "cOmxAudio::Initialize get OMX_IndexParamPortDefinition out");
     return false;
     }
+    //}}}
 
-  port_param.nBufferCountActual = std::max ((unsigned int)port_param.nBufferCountMin, m_BufferLen / port_param.nBufferSize);
+  port_param.nBufferCountActual = max ((unsigned int)port_param.nBufferCountMin, m_BufferLen / port_param.nBufferSize);
   if (m_omx_decoder.SetParameter (OMX_IndexParamPortDefinition, &port_param) != OMX_ErrorNone) {
+    //{{{  error, return
     cLog::log (LOGERROR, "cOmxAudio::Initialize error set OMX_IndexParamPortDefinition out");
     return false;
     }
+    //}}}
 
   OMX_AUDIO_PARAM_PORTFORMATTYPE formatType;
   OMX_INIT_STRUCTURE(formatType);
   formatType.nPortIndex = m_omx_decoder.GetInputPort();
   formatType.eEncoding = m_eEncoding;
   if (m_omx_decoder.SetParameter (OMX_IndexParamAudioPortFormat, &formatType) != OMX_ErrorNone) {
+    //{{{  error, return
     cLog::log (LOGERROR, "cOmxAudio::Initialize  OMX_IndexParamAudioPortFormat");
     return false;
     }
+    //}}}
 
   if (m_omx_decoder.AllocInputBuffers() != OMX_ErrorNone) {
+    //{{{  error, return
     cLog::log (LOGERROR, "cOmxAudio::Initialize alloc buffers");
     return false;
     }
+    //}}}
 
   if (m_omx_decoder.SetStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    //{{{
     cLog::log (LOGERROR, "cOmxAudio::Initialize -  OMX_StateExecuting");
     return false;
     }
+    //}}}
 
   if (m_eEncoding == OMX_AUDIO_CodingPCM) {
     auto omx_buffer = m_omx_decoder.GetInputBuffer();
     if (omx_buffer == NULL) {
+      //{{{  error, return
       cLog::log (LOGERROR, "cOmxAudio::Initialize buffer error");
       return false;
       }
+      //}}}
 
     omx_buffer->nOffset = 0;
-    omx_buffer->nFilledLen = std::min (sizeof(m_wave_header), omx_buffer->nAllocLen);
+    omx_buffer->nFilledLen = min (sizeof(m_wave_header), omx_buffer->nAllocLen);
     memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
     memcpy ((unsigned char*)omx_buffer->pBuffer, &m_wave_header, omx_buffer->nFilledLen);
     omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
     if (m_omx_decoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
-      cLog::log (LOGERROR, "cOmxAudio::InitializeO MX_EmptyThisBuffer");
-      m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
-      return false;
-      }
+       //{{{  error, return
+       cLog::log (LOGERROR, "cOmxAudio::InitializeO MX_EmptyThisBuffer");
+       m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
+       return false;
+       }
+       //}}}
     }
   else if (m_config.hwdecode) {
     // send decoder config
     if (m_config.hints.extrasize > 0 && m_config.hints.extradata != NULL) {
       auto omx_buffer = m_omx_decoder.GetInputBuffer();
       if (omx_buffer == NULL) {
+        //{{{  error, return
         cLog::log (LOGERROR, "cOmxAudio::Initialize buffer error");
         return false;
         }
+        //}}}
 
       omx_buffer->nOffset = 0;
-      omx_buffer->nFilledLen = std::min((OMX_U32)m_config.hints.extrasize, omx_buffer->nAllocLen);
+      omx_buffer->nFilledLen = min((OMX_U32)m_config.hints.extrasize, omx_buffer->nAllocLen);
       memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
       memcpy ((unsigned char*)omx_buffer->pBuffer, m_config.hints.extradata, omx_buffer->nFilledLen);
       omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
       if (m_omx_decoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
+        //{{{  error, return
         cLog::log (LOGERROR, "cOmxAudio::Initialize OMX_EmptyThisBuffer");
         m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
         return false;
         }
+        //}}}
       }
     }
 
@@ -251,7 +275,8 @@ bool cOmxAudio::Initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   cLog::log (LOGINFO1, "cOmxAudio::Initialize Input bitsPer:%d rate:%d ch:%d buffer size:%d bytesPer:%d",
              (int)m_pcm_input.nBitPerSample, (int)m_pcm_input.nSamplingRate,
              (int)m_pcm_input.nChannels, m_BufferLen, m_InputBytesPerSec);
-  PrintPCM (&m_pcm_input, std::string ("input"));
+
+  PrintPCM (&m_pcm_input, string ("input"));
   cLog::log (LOGINFO1, "cOmxAudio::Initialize dev:%s pass:%d hw:%d",
              m_config.device.c_str(), m_config.passthrough, m_config.hwdecode);
 
@@ -359,7 +384,7 @@ bool cOmxAudio::PortSettingsChanged() {
     m_pcm_output.nChannels = m_OutputChannels > 4 ? 8 : m_OutputChannels > 2 ? 4 : m_OutputChannels;
 
     // limit samplerate (through resampling) if requested
-    m_pcm_output.nSamplingRate = std::min (std::max ((int)m_pcm_output.nSamplingRate, 8000), 192000);
+    m_pcm_output.nSamplingRate = min (max ((int)m_pcm_output.nSamplingRate, 8000), 192000);
 
     m_pcm_output.nPortIndex = m_omx_mixer.GetOutputPort();
     if (m_omx_mixer.SetParameter(OMX_IndexParamAudioPcm, &m_pcm_output) != OMX_ErrorNone) {
@@ -370,7 +395,7 @@ bool cOmxAudio::PortSettingsChanged() {
     cLog::log (LOGINFO1, "cOmxAudio::PortSettingsChanged Output bps:%d rate:%d ch:%d buffer size:%d bps:%d",
                (int)m_pcm_output.nBitPerSample, (int)m_pcm_output.nSamplingRate,
                (int)m_pcm_output.nChannels, m_BufferLen, m_BytesPerSec);
-    PrintPCM (&m_pcm_output, std::string ("output"));
+    PrintPCM (&m_pcm_output, string ("output"));
 
     if (m_omx_splitter.IsInitialized() ) {
       m_pcm_output.nPortIndex = m_omx_splitter.GetInputPort();
@@ -737,8 +762,8 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len,
     // it will be 16-bit and rounded up to next power of 2 in channels
     unsigned int max_buffer = AUDIO_DECODE_OUTPUT_BUFFER * (m_InputChannels * m_BitsPerSample) >> (rounded_up_channels_shift[m_InputChannels] + 4);
     unsigned int remaining = demuxer_samples-demuxer_samples_sent;
-    unsigned int samples_space = std::min(max_buffer, omx_buffer->nAllocLen)/pitch;
-    unsigned int samples = std::min(remaining, samples_space);
+    unsigned int samples_space = min(max_buffer, omx_buffer->nAllocLen)/pitch;
+    unsigned int samples = min(remaining, samples_space);
 
     omx_buffer->nFilledLen = samples * pitch;
 
@@ -752,7 +777,7 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len,
       for (unsigned int sample = 0; sample < samples;) {
         unsigned int frame = (demuxer_samples_sent + sample) / frame_samples;
         unsigned int sample_in_frame = (demuxer_samples_sent + sample) - frame * frame_samples;
-        int out_remaining = std::min(std::min(frame_samples - sample_in_frame, samples), samples-sample);
+        int out_remaining = min(min(frame_samples - sample_in_frame, samples), samples-sample);
         auto src = demuxer_content + frame*frame_size + sample_in_frame * sample_pitch;
         auto dst = (uint8_t*)omx_buffer->pBuffer + sample * sample_pitch;
         for (unsigned int channel = 0; channel < m_InputChannels; channel++) {
@@ -1100,7 +1125,7 @@ bool cOmxAudio::ApplyVolume() {
     return false;
     }
 
-  cLog::log (LOGINFO, "ApplyVolume vol:%.2f amp:%.2f att:%.2f", fVolume, m_amplification, m_attenuation);
+  cLog::log (LOGINFO2, "ApplyVolume vol:%.2f amp:%.2f att:%.2f", fVolume, m_amplification, m_attenuation);
   return true;
   }
 //}}}
@@ -1135,10 +1160,10 @@ void cOmxAudio::UpdateAttenuation() {
   float maxlevel = 0.0f, imminent_maxlevel = 0.0f;
   for (int i=0; i < (int)m_ampqueue.size(); i++) {
     amplitudes_t &v = m_ampqueue[i];
-    maxlevel = std::max(maxlevel, v.level);
+    maxlevel = max(maxlevel, v.level);
     // check for maximum volume in next 200ms
     if (v.pts != DVD_NOPTS_VALUE && v.pts < stamp + DVD_SEC_TO_TIME(0.2))
-      imminent_maxlevel = std::max (imminent_maxlevel, v.level);
+      imminent_maxlevel = max (imminent_maxlevel, v.level);
     }
 
   if (maxlevel != 0.0) {
@@ -1162,8 +1187,8 @@ void cOmxAudio::UpdateAttenuation() {
     float amp = m_amplification * m_attenuation;
 
     // We fade in the attenuation over first couple of seconds
-    float start = std::min (std::max ((m_submitted-1.0f), 0.0f), 1.0f);
-    float attenuation = std::min( 1.0f, std::max(m_attenuation / (amp * m_maxLevel), 1.0f/m_amplification));
+    float start = min (max ((m_submitted-1.0f), 0.0f), 1.0f);
+    float attenuation = min( 1.0f, max(m_attenuation / (amp * m_maxLevel), 1.0f/m_amplification));
     m_attenuation = (1.0f - start) * 1.0f/m_amplification + start * attenuation;
     }
   else
@@ -1226,7 +1251,7 @@ void cOmxAudio::PrintChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
   }
 //}}}
 //{{{
-void cOmxAudio::PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, std::string direction) {
+void cOmxAudio::PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, const string& direction) {
 
   cLog::log (LOGINFO1, "pcm->direction    : %s", direction.c_str());
   cLog::log (LOGINFO1, "pcm->nPortIndex   : %d", (int)pcm->nPortIndex);
