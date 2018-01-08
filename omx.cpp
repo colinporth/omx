@@ -386,7 +386,7 @@ private:
         if (mReader.IsEof() || (hasVideo && !mPlayerVideo.Reset()))
           return;
 
-        cLog::log (LOGINFO, "seekedTo %.0f %.0f %.0f",
+        cLog::log (LOGINFO, "seek to %.0f %.0f %.0f",
                    DVD_MSEC_TO_TIME(seek_pos), startpts, mClock.getMediaTime());
 
         mClock.pause();
@@ -445,8 +445,9 @@ private:
           if (mClock.isPaused()) {
             if (latency > m_threshold) {
               cLog::log (LOGINFO1, "omxPlayer resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
-                         audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
-                         audio_fifo_high, video_fifo_high, mReader.IsEof(), omxPacket);
+                         audio_fifo, video_fifo, 
+                         audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high, 
+                         mReader.IsEof(), omxPacket);
               mClock.resume();
               m_latency = latency;
               }
@@ -473,24 +474,26 @@ private:
         }
         //}}}
       else if (!m_Pause && (mReader.IsEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
-        //{{{  pause
+        //{{{  resume
         if (mClock.isPaused()) {
           cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) eof:%d pkt:%p",
-                     audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
-                     audio_fifo_high, video_fifo_high, mReader.IsEof(), omxPacket);
+                     audio_fifo, video_fifo, 
+                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high, 
+                     mReader.IsEof(), omxPacket);
 
           mClock.resume();
           }
         }
         //}}}
       else if (m_Pause || audio_fifo_low || video_fifo_low) {
-        //{{{  resume
+        //{{{  pause
         if (!mClock.isPaused()) {
           if (!m_Pause)
             m_threshold = min(2.0f*m_threshold, 16.0f);
-          cLog::log (LOGINFO, "pause %.2f,%.2f (%d,%d,%d,%d) %.2f",
-                     audio_fifo, video_fifo, audio_fifo_low, video_fifo_low,
-                     audio_fifo_high, video_fifo_high, m_threshold);
+          cLog::log (LOGINFO, "pause afifo:%.2f vfifo:%.2f alo:%d vlo:%d ahi:%d vhi:%d thesh:%.2f",
+                     audio_fifo, video_fifo, 
+                     audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high, 
+                     m_threshold);
           mClock.pause();
           }
         }
@@ -507,29 +510,10 @@ private:
       //{{{  packet reader
       if (!omxPacket)
         omxPacket = mReader.Read();
-      if (omxPacket)
-        m_send_eos = false;
-
-      if (mReader.IsEof() && !omxPacket) {
-        // demuxer EOF, but may have not played out data yet
-        if ( (hasVideo && mPlayerVideo.GetCached()) || (hasAudio && mPlayerAudio.GetCached()) ) {
-          cOmxClock::sleep (10);
-          return;
-          }
-        if (!m_send_eos && hasVideo)
-          mPlayerVideo.SubmitEOS();
-        if (!m_send_eos && hasAudio)
-          mPlayerAudio.SubmitEOS();
-
-        m_send_eos = true;
-        if ((hasVideo && !mPlayerVideo.IsEOS()) || (hasAudio && !mPlayerAudio.IsEOS())) {
-          cOmxClock::sleep (10);
-          return;
-          }
-        return;
-        }
 
       if (omxPacket) {
+        m_send_eos = false;
+
         if (hasVideo && mReader.IsActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
           if (mPlayerVideo.AddPacket (omxPacket))
             omxPacket = NULL;
@@ -547,8 +531,29 @@ private:
           omxPacket = NULL;
           }
         }
-      else
+
+      else {
+        if (mReader.IsEof()) {
+          // demuxer EOF, but may have not played out data yet
+          if ( (hasVideo && mPlayerVideo.GetCached()) || (hasAudio && mPlayerAudio.GetCached()) ) {
+            cOmxClock::sleep (10);
+            return;
+            }
+          if (!m_send_eos && hasVideo)
+            mPlayerVideo.SubmitEOS();
+          if (!m_send_eos && hasAudio)
+            mPlayerAudio.SubmitEOS();
+
+          m_send_eos = true;
+          if ((hasVideo && !mPlayerVideo.IsEOS()) || (hasAudio && !mPlayerAudio.IsEOS())) {
+            cOmxClock::sleep (10);
+            return;
+            }
+          return;
+          }
+
         cOmxClock::sleep (10);
+        }
       //}}}
       }
 
@@ -558,7 +563,8 @@ private:
     if (omxPacket)
       mReader.FreePacket (omxPacket);
 
-    cLog::log (LOGNOTICE, "exit exit:%d abort:%d audioError:%d", mExit, gAbort, mPlayerAudio.Error());
+    cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.Error:%d", 
+                          mExit, gAbort, mPlayerAudio.Error());
     }
   //}}}
 
