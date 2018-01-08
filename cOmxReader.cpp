@@ -216,18 +216,17 @@ int64_t CurrentHostCounter() {
 int interrupt_cb (void *unused)
 {
   int ret = 0;
-  if (g_abort)
-  {
-    cLog::log (LOGERROR, "cOmxReader::interrupt_cb - Told to abort");
+  if (g_abort) { 
+    cLog::log (LOGERROR, "cOmxReader::interrupt_cb - abort");
     ret = 1;
-  }
-  else if (timeout_duration && CurrentHostCounter() - timeout_start > timeout_duration)
-  {
+    }
+  else if (timeout_duration && CurrentHostCounter() - timeout_start > timeout_duration) {
     cLog::log (LOGERROR, "cOmxReader::interrupt_cb - Timed out");
     ret = 1;
-  }
+    }
+
   return ret;
-}
+  }
 //}}}
 //{{{
 int file_read (void *h, uint8_t* buf, int size) {
@@ -347,7 +346,7 @@ bool cOmxReader::Open (string filename, bool dump_format,
   result = mAvFormat.av_set_options_string (mAvFormatContext, lavfdopts.c_str(), ":", ",");
   if (result < 0) {
     //{{{  options error return
-    cLog::log (LOGERROR, "cOmxReader::Open nvalid lavfdopts %s ", lavfdopts.c_str());
+    cLog::log (LOGERROR, "cOmxReader::Open not valid lavfdopts %s ", lavfdopts.c_str());
     Close();
     return false;
     }
@@ -357,7 +356,7 @@ bool cOmxReader::Open (string filename, bool dump_format,
   result = mAvUtil.av_dict_parse_string (&d, avdict.c_str(), ":", ",", 0);
   //{{{  dict error return
   if (result < 0) {
-    cLog::log(LOGERROR, "cOmxReader::Open invalid avdict %s ", avdict.c_str());
+    cLog::log (LOGERROR, "cOmxReader::Open invalid avdict %s ", avdict.c_str());
     Close();
     return false;
     }
@@ -389,31 +388,35 @@ bool cOmxReader::Open (string filename, bool dump_format,
       if (!user_agent.empty())
         av_dict_set(&d, "user_agent", user_agent.c_str(), 0);
       }
-    cLog::log (LOGINFO1, "cOmxReader::Open avformat_open_input %s ", m_filename.c_str());
+    cLog::log (LOGINFO1, "cOmxReader::Open avformat_open_input %s", m_filename.c_str());
 
     result = mAvFormat.avformat_open_input (&mAvFormatContext, m_filename.c_str(), iformat, &d);
     if (av_dict_count(d) == 0) {
-      cLog::log (LOGINFO1, "cOmxReader::Open avformat_open_input enabled SEEKING ");
+      cLog::log (LOGINFO1, "cOmxReader::Open avformat_open_input enabled SEEKING");
       if (m_filename.substr(0,7) == "http://")
         mAvFormatContext->pb->seekable = AVIO_SEEKABLE_NORMAL;
       }
 
     av_dict_free (&d);
     if (result < 0) {
-      cLog::log (LOGERROR, "cOmxReader::Open avformat_open_input %s ", m_filename.c_str());
+      //{{{  error, return
+      cLog::log (LOGERROR, "cOmxReader::Open avformat_open_input%s ", m_filename.c_str());
       Close();
       return false;
       }
+      //}}}
     }
     //}}}
   else {
     //{{{  file input
     mFile = new cFile();
     if (!mFile->Open (m_filename, flags)) {
+      //{{{  error, return
       cLog::log (LOGERROR, "cOmxReader::Open %s ", m_filename.c_str());
       Close();
       return false;
       }
+      //}}}
 
     buffer = (unsigned char*)mAvUtil.av_malloc (FFMPEG_FILE_BUFFER_SIZE);
     m_ioContext = mAvFormat.avio_alloc_context (
@@ -427,12 +430,13 @@ bool cOmxReader::Open (string filename, bool dump_format,
       m_ioContext->seekable = 0;
 
     mAvFormat.av_probe_input_buffer (m_ioContext, &iformat, m_filename.c_str(), NULL, 0, 0);
-
     if (!iformat) {
+      //{{{  error, return
       cLog::log (LOGERROR, "cOmxReader::Open av_probe_input_buffer %s ", m_filename.c_str());
       Close();
       return false;
       }
+      //}}}
 
     mAvFormatContext->pb = m_ioContext;
     result = mAvFormat.avformat_open_input (&mAvFormatContext, m_filename.c_str(), iformat, &d);
@@ -449,14 +453,13 @@ bool cOmxReader::Open (string filename, bool dump_format,
   if (live)
     mAvFormatContext->flags |= AVFMT_FLAG_NOBUFFER;
 
-  cLog::log (LOGNOTICE, "cOmxReader::Open find streams");
   if ((mAvFormat.avformat_find_stream_info (mAvFormatContext, NULL) < 0) || !getStreams()) {
     //{{{  no streams, exit
     Close();
     return false;
     }
     //}}}
-  cLog::log (LOGNOTICE, "cOmxReader::Open stream found a:%d v:%d", AudioStreamCount(), VideoStreamCount());
+  cLog::log (LOGNOTICE, "cOmxReader::Open found a:%d v:%d", AudioStreamCount(), VideoStreamCount());
 
   m_speed = DVD_PLAYSPEED_NORMAL;
   if (dump_format)

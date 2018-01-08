@@ -43,8 +43,6 @@ CFLAGS=    -std=c++0x \
 	   -D _REENTRANT \
 	   -D _LARGEFILE64_SOURCE \
 	   -D _FILE_OFFSET_BITS=64 \
-	   -D TARGET_POSIX \
-	   -D TARGET_LINUX \
 	   -D OMX_SKIP64BIT \
 	   -U _FORTIFY_SOURCE \
 
