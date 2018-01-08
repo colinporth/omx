@@ -423,15 +423,16 @@ private:
         }
 
       // debug
-      mDebugStr = "p:"   + decFrac(pts/1000000.0,6,5,' ') +
-                  " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
-                  " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
-                  " af:" + decFrac(audio_fifo,6,5,' ') +
-                  " vf:" + decFrac(video_fifo,6,5,' ') +
-                  " al:" + dec(mPlayerAudio.GetLevel()) +
-                  " vl:" + dec(mPlayerVideo.GetLevel()) +
-                  " ad:" + dec(mPlayerAudio.GetDelay()) +
-                  " ac:" + dec(mPlayerAudio.GetCacheTotal());
+      auto str = "p:"   + decFrac(pts/1000000.0,6,5,' ') +
+                 " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
+                 " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
+                 " af:" + decFrac(audio_fifo,6,5,' ') +
+                 " vf:" + decFrac(video_fifo,6,5,' ') +
+                 " al:" + dec(mPlayerAudio.GetLevel()) +
+                 " vl:" + dec(mPlayerVideo.GetLevel()) +
+                 " ad:" + dec(mPlayerAudio.GetDelay()) +
+                 " ac:" + dec(mPlayerAudio.GetCacheTotal());
+      mDebugStr = str;
       //}}}
       if (mAudioConfig.is_live) {
         //{{{  live - latency under control by adjusting clock
