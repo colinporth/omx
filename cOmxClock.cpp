@@ -173,7 +173,7 @@ bool cOmxClock::setReferenceClock (bool has_audio) {
     refClock.eClock = OMX_TIME_RefClockVideo;
   if (refClock.eClock != m_eClock) {
     cLog::log (LOGINFO, "cOmxClock::setReferenceClock " +
-                        ((refClock.eClock == OMX_TIME_RefClockVideo) ? "video" : "audio"));
+                        string((refClock.eClock == OMX_TIME_RefClockVideo) ? "video" : "audio"));
 
     if (m_omx_clock.SetConfig(OMX_IndexConfigTimeActiveRefClock, &refClock) != OMX_ErrorNone) {
       //{{{  error, return
