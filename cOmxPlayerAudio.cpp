@@ -98,6 +98,7 @@ bool cOmxPlayerAudio::IsPassthrough (cOmxStreamInfo hints) {
     return true;
   if (hints.codec == AV_CODEC_ID_DTS)
     return true;
+
   return false;
   }
 //}}}
@@ -328,9 +329,9 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
 
   if (pkt->hints.codec != m_config.hints.codec ||
       pkt->hints.samplerate!= m_config.hints.samplerate || (!m_passthrough && minor_change)) {
-    printf ("C : %d %d %d %d %d\n",
+    cLog::log (LOGINFO, "C : %d %d %d %d %d",
             m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate, m_config.hints.bitrate, m_config.hints.bitspersample);
-    printf ("N : %d %d %d %d %d\n",
+    cLog::log (LOGINFO, "N : %d %d %d %d %d",
             pkt->hints.codec, channels, pkt->hints.samplerate, pkt->hints.bitrate, pkt->hints.bitspersample);
     CloseDecoder();
     CloseAudioCodec();
@@ -380,7 +381,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
 
       int ret = m_decoder->AddPackets (decoded, decoded_size, dts, pts, m_pAudioCodec->GetFrameSize());
       if (ret != decoded_size)
-        printf ("error ret %d decoded_size %d\n", ret, decoded_size);
+        cLog::log (LOGERROR, "error ret %d decoded_size %d", ret, decoded_size);
       }
     }
   else {

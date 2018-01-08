@@ -30,26 +30,6 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
   pthread_mutex_destroy (&m_lock_decoder);
   }
 //}}}
-//{{{
-bool cOmxPlayerVideo::Reset() {
-
-  Flush();
-
-  m_stream_id = -1;
-  m_pStream = NULL;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_frametime = 0;
-
-  m_bAbort = false;
-  m_flush = false;
-  m_flush_requested = false;
-
-  m_cached_size = 0;
-  m_iVideoDelay = 0;
-
-  return true;
-  }
-//}}}
 
 //{{{
 bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
@@ -86,10 +66,29 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
   return true;
   }
 //}}}
+//{{{
+bool cOmxPlayerVideo::Reset() {
+
+  Flush();
+
+  m_stream_id = -1;
+  m_pStream = NULL;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  m_frametime = 0;
+
+  m_bAbort = false;
+  m_flush = false;
+  m_flush_requested = false;
+
+  m_cached_size = 0;
+  m_iVideoDelay = 0;
+
+  return true;
+  }
+//}}}
 
 int cOmxPlayerVideo::GetDecoderBufferSize() { return m_decoder ? m_decoder->GetInputBufferSize() : 0; }
 int cOmxPlayerVideo::GetDecoderFreeSpace() { return m_decoder ? m_decoder->GetFreeSpace() : 0; }
-
 
 void cOmxPlayerVideo::SetAlpha (int alpha) { m_decoder->SetAlpha (alpha); }
 void cOmxPlayerVideo::SetVideoRect (int aspectMode) { m_decoder->SetVideoRect (aspectMode); }
