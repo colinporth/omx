@@ -14,7 +14,7 @@
 #include "../shared/utils/cSemaphore.h"
 #include "../shared/utils/cKeyboard.h"
 
-#include "cBcmHost.h"
+#include "bcm_host.h"
 #include "cPcmRemap.h"
 
 #define AV_NOWARN_DEPRECATED
@@ -64,7 +64,19 @@ public:
 
     mDebugStr = fileName;
 
+    blankBackground (0);
+
     initialise (1.f, 0);
+    //{{{  get display aspect
+    TV_DISPLAY_STATE_T tvDisplayState;
+    memset (&tvDisplayState, 0, sizeof(TV_DISPLAY_STATE_T));
+    vc_tv_get_display_state (&tvDisplayState);
+
+    mVideoConfig.display_aspect =
+      getAspectRatio ((HDMI_ASPECT_T)tvDisplayState.display.hdmi.aspect_ratio);
+    mVideoConfig.display_aspect *=
+      (float)tvDisplayState.display.hdmi.height / (float)tvDisplayState.display.hdmi.width;
+    //}}}
     add (new cTextBox (mDebugStr, 0.f));
 
     thread ([=]() { player (fileName); } ).detach();
@@ -312,18 +324,6 @@ private:
 
     cLog::setThreadName ("play");
 
-    blankBackground (0);
-    //{{{  get display aspect
-    TV_DISPLAY_STATE_T tvDisplayState;
-    memset (&tvDisplayState, 0, sizeof(TV_DISPLAY_STATE_T));
-    mBcmHost.vc_tv_get_display_state (&tvDisplayState);
-
-    mVideoConfig.display_aspect =
-      getAspectRatio ((HDMI_ASPECT_T)tvDisplayState.display.hdmi.aspect_ratio);
-    mVideoConfig.display_aspect *=
-      (float)tvDisplayState.display.hdmi.height / (float)tvDisplayState.display.hdmi.width;
-    //}}}
-
     //mAudioConfig.hwdecode = true;
     //mAudioConfig.is_live = true;
     bool dump = false;
@@ -560,14 +560,13 @@ private:
   //{{{  vars
   cKeyboard mKeyboard;
 
-  cOmxVideoConfig mVideoConfig;
-  cOmxAudioConfig mAudioConfig;
-
-  cBcmHost mBcmHost;
   cOmxClock mClock;
   cOmxReader mReader;
   cOmxPlayerVideo mPlayerVideo;
   cOmxPlayerAudio mPlayerAudio;
+
+  cOmxVideoConfig mVideoConfig;
+  cOmxAudioConfig mAudioConfig;
 
   long mVolume = 0;
   bool mPause = false;
