@@ -66,7 +66,7 @@ bool cOmxClock::hdmiClockSync() {
 
   if (m_omx_clock.SetConfig (OMX_IndexConfigLatencyTarget, &latencyTarget)!= OMX_ErrorNone) {
     //{{{  error, return
-    cLog::log(LOGERROR, "cOmxClock::hdmiClockSync");
+    cLog::log (LOGERROR, "cOmxClock::hdmiClockSync");
     return false;
     }
     //}}}
@@ -244,9 +244,9 @@ bool cOmxClock::setSpeed (int speed, bool pause_resume) {
 //{{{
 bool cOmxClock::stop() {
 
-  cSingleLock lock (mCriticalSection);
+  cLog::log (LOGINFO1, "cOmxClock::stop");
 
-  cLog::log (LOGINFO, "cOmxClock::stop");
+  cSingleLock lock (mCriticalSection);
 
   OMX_TIME_CONFIG_CLOCKSTATETYPE clock;
   OMX_INIT_STRUCTURE(clock);
@@ -267,6 +267,8 @@ bool cOmxClock::stop() {
 //{{{
 bool cOmxClock::step (int steps /* = 1 */) {
 
+  cLog::log (LOGINFO1, "cOmxClock::step");
+
   cSingleLock lock (mCriticalSection);
 
   OMX_PARAM_U32TYPE param;
@@ -281,8 +283,8 @@ bool cOmxClock::step (int steps /* = 1 */) {
     //}}}
 
   cLog::log (LOGINFO1, "cOmxClock::step %d", steps);
-
   m_last_media_time = 0.f;
+
   return true;
   }
 //}}}
@@ -290,6 +292,8 @@ bool cOmxClock::step (int steps /* = 1 */) {
 bool cOmxClock::reset (bool has_video, bool has_audio) {
 
   cSingleLock lock (mCriticalSection);
+
+  cLog::log (LOGINFO1, "cOmxClock::reset");
 
   if (!setReferenceClock (has_audio))
     return false;
