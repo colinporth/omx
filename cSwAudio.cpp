@@ -5,11 +5,13 @@
 #include "../shared/utils/cLog.h"
 #include "cPcmRemap.h"
 //}}}
-#define AUDIO_DECODE_OUTPUT_BUFFER (32*1024)
-static const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
 
+#define AUDIO_DECODE_OUTPUT_BUFFER (32*1024)
+
+// local
+const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
-static unsigned count_bits (int64_t value) {
+unsigned count_bits (int64_t value) {
   unsigned bits = 0;
   for (; value; ++bits)
     value &= value - 1;
@@ -17,26 +19,6 @@ static unsigned count_bits (int64_t value) {
   }
 //}}}
 
-//{{{
-cSwAudio::cSwAudio() {
-
-  m_pBufferOutput = NULL;
-  m_iBufferOutputAlloced = 0;
-  m_iBufferOutputUsed = 0;
-
-  m_pCodecContext = NULL;
-  m_pConvert = NULL;
-  m_bOpenedCodec = false;
-
-  m_channels = 0;
-  m_pFrame1 = NULL;
-  m_frameSize = 0;
-  m_bGotFrame = false;
-  m_bNoConcatenate = false;
-  m_iSampleFormat = AV_SAMPLE_FMT_NONE;
-  m_desiredSampleFormat = AV_SAMPLE_FMT_NONE;
-  }
-//}}}
 //{{{
 cSwAudio::~cSwAudio() {
 
@@ -90,7 +72,7 @@ bool cSwAudio::Open (cOmxStreamInfo &hints, enum PCMLayout layout) {
       }
     }
   if (m_pCodecContext->request_channel_layout)
-    cLog::log (LOGINFO, "cSwAudio - open channel layout %x", 
+    cLog::log (LOGINFO, "cSwAudio - open channel layout %x",
                         (unsigned)m_pCodecContext->request_channel_layout);
 
   if (m_pCodecContext->bits_per_coded_sample == 0)
@@ -154,12 +136,13 @@ int cSwAudio::GetBitsPerSample() {
 //{{{
 uint64_t cSwAudio::GetChannelMap() {
 
+  int bits = count_bits (m_pCodecContext->channel_layout);
+
   uint64_t layout;
-  int bits = count_bits(m_pCodecContext->channel_layout);
   if (bits == m_pCodecContext->channels)
     layout = m_pCodecContext->channel_layout;
   else {
-    cLog::log (LOGINFO, "cSwAudio - GetChannelMap channels:%d layout:%d", 
+    cLog::log (LOGINFO, "cSwAudio - GetChannelMap channels:%d layout:%d",
                         m_pCodecContext->channels, bits);
     layout = mAvUtil.av_get_default_channel_layout(m_pCodecContext->channels);
     }
@@ -201,7 +184,7 @@ int cSwAudio::Decode (BYTE* pData, int iSize, double dts, double pts) {
     cLog::log (LOGINFO, "cSwAudio - Decode %d format:%d:%d chan:%d samples:%d lineSize:%d",
                iSize,
                m_pCodecContext->sample_fmt, m_desiredSampleFormat,
-               m_pCodecContext->channels, 
+               m_pCodecContext->channels,
                m_pFrame1->nb_samples, m_pFrame1->linesize[0]
                );
 

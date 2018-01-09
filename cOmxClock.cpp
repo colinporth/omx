@@ -7,44 +7,30 @@
 #define OMX_PRE_ROLL 200
 #define TP(speed) ((speed) < 0 || (speed) > 4*DVD_PLAYSPEED_NORMAL)
 
-//{{{
-cOmxClock::cOmxClock() {
-
-  m_pause = false;
-  m_omx_speed = DVD_PLAYSPEED_NORMAL;
-  m_WaitMask = 0;
-  m_eState = OMX_TIME_ClockStateStopped;
-  m_eClock = OMX_TIME_RefClockNone;
-  m_last_media_time = 0.0f;
-  m_last_media_time_read = 0.0f;
-
-  m_pause = false;
-  m_omx_clock.Initialize ("OMX.broadcom.clock", OMX_IndexParamOtherInit);
-  }
-//}}}
+cOmxClock::cOmxClock() { m_omx_clock.Initialize ("OMX.broadcom.clock", OMX_IndexParamOtherInit); }
 //{{{
 cOmxClock::~cOmxClock() {
 
   m_omx_clock.Deinitialize();
   m_omx_speed = DVD_PLAYSPEED_NORMAL;
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   }
 //}}}
 
 //{{{
 void cOmxClock::stateIdle() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   if (m_omx_clock.GetState() != OMX_StateIdle)
     m_omx_clock.SetStateForComponent (OMX_StateIdle);
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   }
 //}}}
 //{{{
 bool cOmxClock::stateExecute() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   if (m_omx_clock.GetState() != OMX_StateExecuting) {
     stateIdle();
@@ -56,14 +42,14 @@ bool cOmxClock::stateExecute() {
       //}}}
     }
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return true;
   }
 //}}}
 //{{{
 bool cOmxClock::hdmiClockSync() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   OMX_CONFIG_LATENCYTARGETTYPE latencyTarget;
   OMX_INIT_STRUCTURE(latencyTarget);
@@ -83,7 +69,7 @@ bool cOmxClock::hdmiClockSync() {
     }
     //}}}
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return true;
   }
 //}}}
@@ -101,7 +87,7 @@ double cOmxClock::getMediaTime() {
   double pts = 0.0;
   double now = getAbsoluteClock();
   if (now - m_last_media_time_read > DVD_MSEC_TO_TIME(100) || m_last_media_time == 0.0) {
-    cSingleLock lock (m_critSection);
+    cSingleLock lock (mCriticalSection);
 
     OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
     OMX_INIT_STRUCTURE(timeStamp);
@@ -129,7 +115,7 @@ double cOmxClock::getMediaTime() {
 //{{{
 double cOmxClock::getClockAdjustment() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
   OMX_INIT_STRUCTURE(timeStamp);
@@ -149,7 +135,7 @@ double cOmxClock::getClockAdjustment() {
 //{{{
 void cOmxClock::setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool has_video, bool has_audio) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   clock->nWaitMask = 0;
   if (has_audio)
@@ -161,7 +147,7 @@ void cOmxClock::setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool has_v
 //{{{
 bool cOmxClock::setReferenceClock (bool has_audio) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   bool ret = true;
 
@@ -185,7 +171,7 @@ bool cOmxClock::setReferenceClock (bool has_audio) {
     m_eClock = refClock.eClock;
     }
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return ret;
   }
 //}}}
@@ -194,7 +180,7 @@ bool cOmxClock::setMediaTime (double pts) {
 // Set the media time, so calls to get media time use the updated value,
 // useful after a seek so mediatime is updated immediately (rather than waiting for first decoded packet)
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   OMX_INDEXTYPE index;
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
@@ -218,14 +204,14 @@ bool cOmxClock::setMediaTime (double pts) {
               index == OMX_IndexConfigTimeCurrentAudioReference ?
                 "OMX_IndexConfigTimeCurrentAudioReference":"OMX_IndexConfigTimeCurrentVideoReference", pts);
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return true;
   }
 //}}}
 //{{{
 bool cOmxClock::setSpeed (int speed, bool pause_resume) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   cLog::log (LOGINFO1, "cOmxClock::setSpeed %.2f pause_resume:%d",
                        (float)speed / (float)DVD_PLAYSPEED_NORMAL, pause_resume);
@@ -248,7 +234,7 @@ bool cOmxClock::setSpeed (int speed, bool pause_resume) {
   if (!pause_resume)
     m_omx_speed = speed;
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return true;
   }
 //}}}
@@ -256,7 +242,7 @@ bool cOmxClock::setSpeed (int speed, bool pause_resume) {
 //{{{
 bool cOmxClock::stop() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   cLog::log (LOGINFO, "cOmxClock::stop");
 
@@ -272,14 +258,14 @@ bool cOmxClock::stop() {
     //}}}
   m_eState = clock.eState;
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return true;
   }
 //}}}
 //{{{
 bool cOmxClock::step (int steps /* = 1 */) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   OMX_PARAM_U32TYPE param;
   OMX_INIT_STRUCTURE(param);
@@ -294,14 +280,14 @@ bool cOmxClock::step (int steps /* = 1 */) {
 
   cLog::log (LOGINFO1, "cOmxClock::step %d", steps);
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return true;
   }
 //}}}
 //{{{
 bool cOmxClock::reset (bool has_video, bool has_audio) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCriticalSection);
 
   if (!setReferenceClock (has_audio))
     return false;
@@ -329,7 +315,7 @@ bool cOmxClock::reset (bool has_video, bool has_audio) {
       }
     }
 
-  m_last_media_time = 0.0f;
+  m_last_media_time = 0.f;
   return true;
   }
 //}}}
@@ -337,29 +323,29 @@ bool cOmxClock::reset (bool has_video, bool has_audio) {
 bool cOmxClock::pause() {
 
   if (!m_pause) {
-    cSingleLock lock (m_critSection);
+    cSingleLock lock (mCriticalSection);
 
     if (setSpeed (0, true))
       m_pause = true;
-    m_last_media_time = 0.0f;
+    m_last_media_time = 0.f;
     }
 
-  return m_pause == true;
+  return m_pause;
   }
 //}}}
 //{{{
 bool cOmxClock::resume() {
 
   if (m_pause) {
-    cSingleLock lock (m_critSection);
+    cSingleLock lock (mCriticalSection);
 
     if (setSpeed (m_omx_speed, true))
       m_pause = false;
 
-    m_last_media_time = 0.0f;
+    m_last_media_time = 0.f;
     }
 
-  return m_pause == false;
+  return !m_pause;
   }
 //}}}
 

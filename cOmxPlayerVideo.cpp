@@ -11,10 +11,11 @@
 //{{{
 cOmxPlayerVideo::cOmxPlayerVideo() {
 
+  pthread_mutex_init (&mLock, NULL);
+  pthread_mutex_init (&mLockDecoder, NULL);
+
   pthread_cond_init (&m_packet_cond, NULL);
   pthread_cond_init (&m_picture_cond, NULL);
-  pthread_mutex_init (&m_lock, NULL);
-  pthread_mutex_init (&m_lock_decoder, NULL);
 
   m_flush_requested = false;
   }
@@ -26,18 +27,15 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
 
   pthread_cond_destroy (&m_packet_cond);
   pthread_cond_destroy (&m_picture_cond);
-  pthread_mutex_destroy (&m_lock);
-  pthread_mutex_destroy (&m_lock_decoder);
+  pthread_mutex_destroy (&mLock);
+  pthread_mutex_destroy (&mLockDecoder);
   }
 //}}}
 
 //{{{
 bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
 
-  if (!av_clock)
-    return false;
-
-  if (ThreadHandle())
+  if (getThreadHandle())
     Close();
 
   mAvFormat.av_register_all();
@@ -97,7 +95,7 @@ void cOmxPlayerVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect)
 //{{{
 bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
 
-  if (m_bStop || m_bAbort)
+  if (isStopped() || m_bAbort)
     return false;
 
   if ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024) {
@@ -106,9 +104,10 @@ bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
     m_packets.push_back (pkt);
     UnLock();
     pthread_cond_broadcast (&m_packet_cond);
+    return true;
     }
 
-  return true;
+  return false;
   }
 //}}}
 //{{{
@@ -119,10 +118,10 @@ void cOmxPlayerVideo::Process() {
   OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();
-    if (!(m_bStop || m_bAbort) && m_packets.empty())
-      pthread_cond_wait (&m_packet_cond, &m_lock);
+    if (!(isStopped() || m_bAbort) && m_packets.empty())
+      pthread_cond_wait (&m_packet_cond, &mLock);
 
-    if (m_bStop || m_bAbort) {
+    if (isStopped() || m_bAbort) {
       UnLock();
       break;
       }
@@ -210,9 +209,9 @@ bool cOmxPlayerVideo::Close() {
 
   Flush();
 
-  if (ThreadHandle()) {
+  if (getThreadHandle()) {
     Lock();
-    pthread_cond_broadcast(&m_packet_cond);
+    pthread_cond_broadcast (&m_packet_cond);
     UnLock();
     StopThread();
     }
@@ -270,9 +269,6 @@ void cOmxPlayerVideo::CloseDecoder() {
 //{{{
 bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
-  cLog::log (LOGINFO1, "Decode pts:%6.2f curPts:%6.2f size:%d",
-                       pkt->pts / 1000000.f, m_iCurrentPts / 1000000.f, pkt->size);
-
   double dts = pkt->dts;
   if (dts != DVD_NOPTS_VALUE)
     dts += m_iVideoDelay;
@@ -284,6 +280,9 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
     }
   else
     cLog::log (LOGINFO, "decode - DVD_NOPTS_VALUE");
+
+  cLog::log (LOGINFO1, "Decode pts:%6.2f curPts:%6.2f size:%d",
+                       pkt->pts / 1000000.f, m_iCurrentPts / 1000000.f, pkt->size);
 
   while ((int)m_decoder->GetFreeSpace() < pkt->size) {
     cOmxClock::sleep (10);

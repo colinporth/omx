@@ -37,7 +37,7 @@ public:
   //}}}
 
   //{{{
-  CPoint operator+(const CPoint &point) const {
+  CPoint operator + (const CPoint &point) const {
     CPoint ans;
     ans.x = x + point.x;
     ans.y = y + point.y;
@@ -45,14 +45,14 @@ public:
     };
   //}}}
   //{{{
-  const CPoint &operator+=(const CPoint &point) {
+  const CPoint &operator += (const CPoint &point) {
     x += point.x;
     y += point.y;
     return *this;
     };
   //}}}
   //{{{
-  CPoint operator-(const CPoint &point) const {
+  CPoint operator - (const CPoint &point) const {
     CPoint ans;
     ans.x = x - point.x;
     ans.y = y - point.y;
@@ -60,7 +60,7 @@ public:
     };
   //}}}
   //{{{
-  const CPoint &operator-=(const CPoint &point) {
+  const CPoint &operator -= (const CPoint &point) {
     x -= point.x;
     y -= point.y;
     return *this;
@@ -84,12 +84,12 @@ public:
   //}}}
 
   //{{{
-  void SetRect(float left, float top, float right, float bottom) {
+  void SetRect (float left, float top, float right, float bottom) {
     x1 = left; y1 = top; x2 = right; y2 = bottom;
     };
   //}}}
   //{{{
-  bool PtInRect(const CPoint &point) const {
+  bool PtInRect (const CPoint &point) const {
     if (x1 <= point.x && point.x <= x2 && y1 <= point.y && point.y <= y2)
       return true;
     return false;
@@ -97,7 +97,7 @@ public:
   //}}}
 
   //{{{
-  inline const CRect &operator -=(const CPoint &point)  {
+  inline const CRect& operator -= (const CPoint &point)  {
     x1 -= point.x;
     y1 -= point.y;
     x2 -= point.x;
@@ -106,7 +106,7 @@ public:
   };
   //}}}
   //{{{
-  inline const CRect &operator +=(const CPoint &point)  {
+  inline const CRect& operator += (const CPoint &point)  {
     x1 += point.x;
     y1 += point.y;
     x2 += point.x;
@@ -116,7 +116,7 @@ public:
   //}}}
 
   //{{{
-  const CRect &Intersect(const CRect &rect) {
+  const CRect& Intersect (const CRect &rect) {
     x1 = clamp_range(x1, rect.x1, rect.x2);
     x2 = clamp_range(x2, rect.x1, rect.x2);
     y1 = clamp_range(y1, rect.y1, rect.y2);
@@ -125,7 +125,7 @@ public:
   };
   //}}}
   //{{{
-  const CRect &Union(const CRect &rect) {
+  const CRect& Union (const CRect &rect) {
     if (IsEmpty())
       *this = rect;
     else if (!rect.IsEmpty())
@@ -164,7 +164,7 @@ public:
   //}}}
 
   //{{{
-  bool operator !=(const CRect &rect) const {
+  bool operator != (const CRect &rect) const {
     if (x1 != rect.x1) return true;
     if (x2 != rect.x2) return true;
     if (y1 != rect.y1) return true;
@@ -177,19 +177,20 @@ public:
 
 private:
   //{{{
-  inline static float clamp_range(float x, float l, float h)  {
+  inline static float clamp_range (float x, float l, float h)  {
     return (x > h) ? h : ((x < l) ? l : x);
   }
   //}}}
-};
+  };
 //}}}
+
 //{{{
 class cOmxVideoConfig {
 public:
   cOmxVideoConfig() {
     dst_rect.SetRect (0, 0, 0, 0);
     src_rect.SetRect (0, 0, 0, 0);
-    display_aspect = 0.0f;
+    display_aspect = 0.f;
     deinterlace = VS_DEINTERLACEMODE_AUTO;
     advanced_hd_deinterlace = true;
     hdmi_clock_sync = false;
@@ -198,7 +199,7 @@ public:
     aspectMode = 0;
     display = 0;
     layer = 0;
-    queue_size = 10.0f;
+    queue_size = 10.f;
     fifo_size = (float)80*1024*60 / (1024*1024);
     }
 
@@ -223,7 +224,6 @@ public:
 //{{{
 class cOmxVideo {
 public:
-  cOmxVideo();
   ~cOmxVideo();
 
   // Required overrides
@@ -255,38 +255,40 @@ public:
   void SubmitEOS();
   bool SubmittedEOS() { return m_submitted_eos; }
 
-protected:
-  cCriticalSection  m_critSection;
-
-  bool               m_drop_state;
-  OMX_VIDEO_CODINGTYPE m_codingType;
-
-  cOmxCoreComponent  m_omx_decoder;
-  cOmxCoreComponent  m_omx_render;
-  cOmxCoreComponent  m_omx_sched;
-  cOmxCoreComponent  m_omx_image_fx;
-  cOmxCoreComponent* m_omx_clock;
-  cOmxClock*         m_av_clock;
-
-  cOmxCoreTunnel     m_omx_tunnel_decoder;
-  cOmxCoreTunnel     m_omx_tunnel_clock;
-  cOmxCoreTunnel     m_omx_tunnel_sched;
-  cOmxCoreTunnel     m_omx_tunnel_image_fx;
-  bool               m_is_open;
-
-  bool               m_setStartTime;
-  std::string        m_video_codec_name;
-  bool               m_deinterlace;
-
-  cOmxVideoConfig    m_config;
-  float              m_pixel_aspect;
-  bool               m_submitted_eos;
-  bool               m_failed_eos;
-  OMX_DISPLAYTRANSFORMTYPE m_transform;
-  bool               m_settings_changed;
-
 private:
   void Close();
+
+  //{{{  vars
+  cCriticalSection mCriticalSection;
+
+  OMX_VIDEO_CODINGTYPE m_codingType;
+
+  cOmxCoreComponent m_omx_decoder;
+  cOmxCoreComponent m_omx_render;
+  cOmxCoreComponent m_omx_sched;
+  cOmxCoreComponent m_omx_image_fx;
+  cOmxCoreComponent* m_omx_clock = nullptr;
+  cOmxClock* m_av_clock = nullptr;
+  cOmxVideoConfig m_config;
+
+  cOmxCoreTunnel m_omx_tunnel_decoder;
+  cOmxCoreTunnel m_omx_tunnel_clock;
+  cOmxCoreTunnel m_omx_tunnel_sched;
+  cOmxCoreTunnel m_omx_tunnel_image_fx;
+
+  std::string m_video_codec_name;
+
+  bool m_is_open = false;
+  bool m_setStartTime = false;
+  bool m_deinterlace= false;
+  bool m_drop_state = false;
+  bool m_submitted_eos = false;
+  bool m_failed_eos = false;
+  bool m_settings_changed = false;
+
+  float m_pixel_aspect = 1.f;
+  OMX_DISPLAYTRANSFORMTYPE m_transform = OMX_DISPLAY_ROT0;
+  //}}}
   };
 //}}}
 
@@ -304,7 +306,7 @@ public:
   double GetFPS() { return m_fps; };
   //{{{
   unsigned int GetLevel() {
-    return m_config.queue_size ? 100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f) : 0;
+    return m_config.queue_size ? 100.f * m_cached_size / (m_config.queue_size * 1024.f * 1024.f) : 0;
     };
   //}}}
   unsigned int GetCached() { return m_cached_size; };
@@ -327,52 +329,49 @@ public:
   bool IsEOS();
   void SubmitEOS();
 
-protected:
+private:
+  bool Close();
+
+  void Lock() { pthread_mutex_lock (&mLock); }
+  void UnLock() { pthread_mutex_unlock (&mLock); }
+  void LockDecoder() { pthread_mutex_lock  (&mLockDecoder); }
+  void UnLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
+
+  bool OpenDecoder();
+  void CloseDecoder();
+
+  bool Decode (OMXPacket* pkt);
+
   //{{{  vars
+  pthread_mutex_t mLock;
+  pthread_mutex_t mLockDecoder;
   pthread_cond_t m_packet_cond;
   pthread_cond_t m_picture_cond;
-
-  pthread_mutex_t m_lock;
-  pthread_mutex_t m_lock_decoder;
-
-  double m_iVideoDelay = 0.0;
-  double m_iCurrentPts = 0.0;
-
-  cOmxClock* m_av_clock = nullptr;
-  cOmxVideo* m_decoder = nullptr;
-  cOmxVideoConfig m_config;
-
-  std::deque<OMXPacket*> m_packets;
-
-  int m_stream_id = -1;
-  AVStream* m_pStream = nullptr;
-  cAvUtil mAvUtil;
-  cAvCodec mAvCodec;
-  cAvFormat mAvFormat;
 
   bool m_open = false;
   bool m_bAbort = false;
   bool m_flush = false;
   std::atomic<bool>  m_flush_requested;
 
-  float m_display_aspect = false;
+  cOmxClock* m_av_clock = nullptr;
+  cOmxVideo* m_decoder = nullptr;
+  cOmxVideoConfig m_config;
 
-  float m_fps = 25.0f;
-  double m_frametime = 0.0;
+  cAvUtil mAvUtil;
+  cAvCodec mAvCodec;
+  cAvFormat mAvFormat;
 
   unsigned int m_cached_size = 0;
+  std::deque<OMXPacket*> m_packets;
+
+  int m_stream_id = -1;
+  AVStream* m_pStream = nullptr;
+
+  double m_iVideoDelay = 0.0;
+  double m_iCurrentPts = 0.0;
+
+  float m_fps = 25.f;
+  double m_frametime = 0.0;
+  float m_display_aspect = false;
   //}}}
-
-private:
-  bool Close();
-
-  void Lock() { pthread_mutex_lock (&m_lock); }
-  void UnLock() { pthread_mutex_unlock (&m_lock); }
-  void LockDecoder() { pthread_mutex_lock  (&m_lock_decoder); }
-  void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
-
-  bool OpenDecoder();
-  void CloseDecoder();
-
-  bool Decode (OMXPacket* pkt);
   };

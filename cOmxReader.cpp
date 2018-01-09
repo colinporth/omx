@@ -1131,7 +1131,7 @@ double cOmxReader::convertTimestamp (int64_t pts, int den, int num) {
   // do calculations in floats as they can easily overflow otherwise
   // we don't care for having a completly exact timestamp anyway
   double timestamp = (double)pts * num  / den;
-  double starttime = 0.0f;
+  double starttime = 0.0;
 
   if (mAvFormatContext->start_time != (int64_t)AV_NOPTS_VALUE)
     starttime = (double)mAvFormatContext->start_time / AV_TIME_BASE;

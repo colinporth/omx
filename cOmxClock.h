@@ -5,16 +5,16 @@
 #include "cOmxCoreComponent.h"
 //}}}
 //{{{  defines
-#define DVD_TIME_BASE 1000000
-#define DVD_NOPTS_VALUE    (-1LL<<52) // should be possible to represent in both double and __int64
+#define DVD_TIME_BASE        1000000
+#define DVD_NOPTS_VALUE      (-1LL<<52) // should be possible to represent in both double and __int64
 
-#define DVD_TIME_TO_SEC(x)  ((int)((double)(x) / DVD_TIME_BASE))
-#define DVD_TIME_TO_MSEC(x) ((int)((double)(x) * 1000 / DVD_TIME_BASE))
-#define DVD_SEC_TO_TIME(x)  ((double)(x) * DVD_TIME_BASE)
-#define DVD_MSEC_TO_TIME(x) ((double)(x) * DVD_TIME_BASE / 1000)
+#define DVD_TIME_TO_SEC(x)   ((int)((double)(x) / DVD_TIME_BASE))
+#define DVD_TIME_TO_MSEC(x)  ((int)((double)(x) * 1000 / DVD_TIME_BASE))
+#define DVD_SEC_TO_TIME(x)   ((double)(x) * DVD_TIME_BASE)
+#define DVD_MSEC_TO_TIME(x)  ((double)(x) * DVD_TIME_BASE / 1000)
 
-#define DVD_PLAYSPEED_PAUSE       0       // frame stepping
-#define DVD_PLAYSPEED_NORMAL      1000
+#define DVD_PLAYSPEED_PAUSE  0       // frame stepping
+#define DVD_PLAYSPEED_NORMAL 1000
 //}}}
 
 //{{{
@@ -65,17 +65,19 @@ public:
 
   static void sleep (unsigned int dwMilliSeconds);
 
-protected:
-  bool              m_pause;
-  int               m_omx_speed;
-  OMX_U32           m_WaitMask;
-  OMX_TIME_CLOCKSTATE   m_eState;
-  OMX_TIME_REFCLOCKTYPE m_eClock;
-
 private:
-  cCriticalSection  m_critSection;
-  cAvFormat         mAvFormat;
+  cCriticalSection  mCriticalSection;
+
+  cAvFormat mAvFormat;
   cOmxCoreComponent m_omx_clock;
-  double            m_last_media_time;
-  double            m_last_media_time_read;
+
+  bool m_pause = false;
+  int m_omx_speed = DVD_PLAYSPEED_NORMAL;
+
+  OMX_U32 m_WaitMask = 0;
+  OMX_TIME_CLOCKSTATE m_eState = OMX_TIME_ClockStateStopped;
+  OMX_TIME_REFCLOCKTYPE m_eClock = OMX_TIME_RefClockNone;
+
+  double m_last_media_time = 0.f;
+  double m_last_media_time_read = 0.f;
   };

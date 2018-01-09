@@ -25,16 +25,6 @@ static unsigned count_bits (uint64_t value) {
 //}}}
 
 //{{{
-cOmxAudio::cOmxAudio() :
-  m_Initialized(false), m_CurrentVolume(0), m_Mute(false  ), m_drc(0),
-  m_BytesPerSec(0), m_InputBytesPerSec(0), m_BufferLen(0), m_ChunkLen(0),
-  m_InputChannels(0), m_OutputChannels(0), m_BitsPerSample(0),
-  m_maxLevel(0.0f), m_amplification(1.0f), m_attenuation(1.0f),
-  m_submitted(0.0f), m_omx_clock(NULL), m_av_clock(NULL),
-  m_settings_changed(false), m_setStartTime(false), m_eEncoding(OMX_AUDIO_CodingPCM),
-  m_last_pts(DVD_NOPTS_VALUE), m_submitted_eos(false), m_failed_eos(false) {}
-//}}}
-//{{{
 cOmxAudio::~cOmxAudio() {
   Deinitialize();
   }
@@ -44,7 +34,7 @@ cOmxAudio::~cOmxAudio() {
 bool cOmxAudio::Initialize (cOmxClock* clock, const cOmxAudioConfig &config,
                             uint64_t channelMap, unsigned int uiBitsPerSample) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
   Deinitialize();
 
   m_config = config;
@@ -269,8 +259,8 @@ bool cOmxAudio::Initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   m_submitted_eos = false;
   m_failed_eos = false;
   m_last_pts = DVD_NOPTS_VALUE;
-  m_submitted = 0.0f;
-  m_maxLevel = 0.0f;
+  m_submitted = 0.f;
+  m_maxLevel = 0.f;
 
   cLog::log (LOGINFO1, "cOmxAudio::Initialize Input bitsPer:%d rate:%d ch:%d buffer size:%d bytesPer:%d",
              (int)m_pcm_input.nBitPerSample, (int)m_pcm_input.nSamplingRate,
@@ -286,7 +276,7 @@ bool cOmxAudio::Initialize (cOmxClock* clock, const cOmxAudioConfig &config,
 //{{{
 bool cOmxAudio::Deinitialize() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
 
   if (m_omx_tunnel_clock_analog.IsInitialized() )
     m_omx_tunnel_clock_analog.Deestablish();
@@ -324,18 +314,18 @@ bool cOmxAudio::Deinitialize() {
     m_omx_render_analog.Deinitialize();
 
   m_BytesPerSec = 0;
-  m_BufferLen   = 0;
+  m_BufferLen = 0;
 
   m_omx_clock = NULL;
-  m_av_clock  = NULL;
+  m_av_clock = NULL;
   m_Initialized = false;
 
   while (!m_ampqueue.empty())
     m_ampqueue.pop_front();
 
-  m_last_pts      = DVD_NOPTS_VALUE;
-  m_submitted     = 0.0f;
-  m_maxLevel      = 0.0f;
+  m_last_pts = DVD_NOPTS_VALUE;
+  m_submitted = 0.f;
+  m_maxLevel = 0.f;
 
   return true;
   }
@@ -343,7 +333,7 @@ bool cOmxAudio::Deinitialize() {
 //{{{
 bool cOmxAudio::PortSettingsChanged() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
 
   if (m_settings_changed) {
     m_omx_decoder.DisablePort (m_omx_decoder.GetOutputPort(), true);
@@ -584,7 +574,7 @@ float cOmxAudio::GetVolume() { return m_Mute ? VOLUME_MINIMUM : m_CurrentVolume;
 //{{{
 float cOmxAudio::GetDelay() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
 
   double stamp = DVD_NOPTS_VALUE;
   if (m_last_pts != DVD_NOPTS_VALUE && m_av_clock)
@@ -595,13 +585,13 @@ float cOmxAudio::GetDelay() {
     return (m_last_pts - stamp) * (1.0 / DVD_TIME_BASE);
   else { // just measure the input fifo
     unsigned int used = m_omx_decoder.GetInputBufferSize() - m_omx_decoder.GetInputBufferSpace();
-    return m_InputBytesPerSec ? (float)used / (float)m_InputBytesPerSec : 0.0f;
+    return m_InputBytesPerSec ? (float)used / (float)m_InputBytesPerSec : 0.f;
     }
   }
 //}}}
 //{{{
 float cOmxAudio::GetCacheTotal() {
-  float audioplus_buffer = m_config.hints.samplerate ? 32.0f * 512.0f / m_config.hints.samplerate : 0.0f;
+  float audioplus_buffer = m_config.hints.samplerate ? 32.f * 512.f / m_config.hints.samplerate : 0.f;
   float input_buffer = m_InputBytesPerSec ?
     (float)m_omx_decoder.GetInputBufferSize() / (float)m_InputBytesPerSec : 0;
   return AUDIO_BUFFER_SECONDS + input_buffer + audioplus_buffer;
@@ -610,7 +600,7 @@ float cOmxAudio::GetCacheTotal() {
 //{{{
 unsigned int cOmxAudio::GetAudioRenderingLatency() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
 
   if (!m_Initialized)
     return 0;
@@ -639,7 +629,7 @@ unsigned int cOmxAudio::GetAudioRenderingLatency() {
 //{{{
 float cOmxAudio::GetMaxLevel (double &pts) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
   if(!m_Initialized)
     return 0;
 
@@ -654,7 +644,7 @@ float cOmxAudio::GetMaxLevel (double &pts) {
     }
 
   pts = fromOmxTime (param.nTimeStamp);
-  return (float)param.nMaxSample * (100.0f / (1<<15));
+  return (float)param.nMaxSample * (100.f / (1<<15));
   }
 //}}}
 //{{{
@@ -683,7 +673,7 @@ uint64_t cOmxAudio::GetChannelLayout (enum PCMLayout layout) {
 //{{{
 void cOmxAudio::SetMute (bool bMute) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
   m_Mute = bMute;
   if (m_settings_changed)
     UpdateAttenuation();
@@ -692,7 +682,7 @@ void cOmxAudio::SetMute (bool bMute) {
 //{{{
 void cOmxAudio::SetVolume (float fVolume) {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
   m_CurrentVolume = fVolume;
   if (m_settings_changed)
     UpdateAttenuation();
@@ -723,8 +713,8 @@ void cOmxAudio::SetCodingType (AVCodecID codec) {
 //{{{
 void cOmxAudio::SetDynamicRangeCompression (long drc) {
 
-  cSingleLock lock (m_critSection);
-  m_amplification = powf (10.0f, (float)drc / 2000.0f);
+  cSingleLock lock (mCrtiticalSection);
+  m_amplification = powf (10.f, (float)drc / 2000.f);
   if (m_settings_changed)
     UpdateAttenuation();
   }
@@ -739,7 +729,7 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len,
     return len;
     }
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
 
   unsigned pitch = (m_config.passthrough || m_config.hwdecode) ? 1:(m_BitsPerSample >> 3) * m_InputChannels;
   unsigned int demuxer_samples = len / pitch;
@@ -842,7 +832,7 @@ unsigned int cOmxAudio::AddPackets (const void* data, unsigned int len) {
 //{{{
 void cOmxAudio::Flush() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
   if (!m_Initialized)
     return;
 
@@ -865,9 +855,9 @@ void cOmxAudio::Flush() {
   if (m_omx_render_hdmi.IsInitialized() )
     m_omx_render_hdmi.ResetEos();
 
-  m_last_pts      = DVD_NOPTS_VALUE;
-  m_submitted     = 0.0f;
-  m_maxLevel      = 0.0f;
+  m_last_pts = DVD_NOPTS_VALUE;
+  m_submitted = 0.f;
+  m_maxLevel = 0.f;
   m_setStartTime  = true;
   }
 //}}}
@@ -880,7 +870,7 @@ bool cOmxAudio::IsEOS() {
 
   unsigned int latency = GetAudioRenderingLatency();
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
 
   if (!m_failed_eos && !(m_omx_decoder.IsEOS() && latency == 0))
     return false;
@@ -896,7 +886,7 @@ bool cOmxAudio::IsEOS() {
 //{{{
 void cOmxAudio::SubmitEOS() {
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
   if (!m_Initialized)
     return;
 
@@ -1091,15 +1081,15 @@ bool cOmxAudio::CanHWDecode (AVCodecID codec) {
 //{{{
 bool cOmxAudio::ApplyVolume() {
 
-  float m_ac3Gain = 12.0f;
+  float m_ac3Gain = 12.f;
 
-  cSingleLock lock (m_critSection);
+  cSingleLock lock (mCrtiticalSection);
   if (!m_Initialized || m_config.passthrough)
     return false;
 
   // the analogue volume is too quiet for some. Allow use of an advancedsetting to boost this (at risk of distortion) (deprecated)
   float fVolume = m_Mute ? VOLUME_MINIMUM : m_CurrentVolume;
-  double gain = pow(10, (m_ac3Gain - 12.0f) / 20.0);
+  double gain = pow(10, (m_ac3Gain - 12.f) / 20.0);
   const float* coeff = m_downmix_matrix;
 
   OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
@@ -1157,7 +1147,7 @@ void cOmxAudio::UpdateAttenuation() {
       break;
     }
 
-  float maxlevel = 0.0f, imminent_maxlevel = 0.0f;
+  float maxlevel = 0.f, imminent_maxlevel = 0.f;
   for (int i=0; i < (int)m_ampqueue.size(); i++) {
     amplitudes_t &v = m_ampqueue[i];
     maxlevel = max(maxlevel, v.level);
@@ -1169,30 +1159,30 @@ void cOmxAudio::UpdateAttenuation() {
   if (maxlevel != 0.0) {
     float m_limiterHold = 0.025f;
     float m_limiterRelease = 0.100f;
-    float alpha_h = -1.0f/(0.025f*log10f(0.999f));
-    float alpha_r = -1.0f/(0.100f*log10f(0.900f));
-    float decay  = powf (10.0f, -1.0f / (alpha_h * m_limiterHold));
-    float attack = powf (10.0f, -1.0f / (alpha_r * m_limiterRelease));
+    float alpha_h = -1.f / (0.025f*log10f(0.999f));
+    float alpha_r = -1.f / (0.100f*log10f(0.900f));
+    float decay  = powf (10.f, -1.f / (alpha_h * m_limiterHold));
+    float attack = powf (10.f, -1.f / (alpha_r * m_limiterRelease));
     // if we are going to clip imminently then deal with it now
     if (imminent_maxlevel > m_maxLevel)
       m_maxLevel = imminent_maxlevel;
     // clip but not imminently can ramp up more slowly
     else if (maxlevel > m_maxLevel)
-      m_maxLevel = attack * m_maxLevel + (1.0f-attack) * maxlevel;
+      m_maxLevel = attack * m_maxLevel + (1.f - attack) * maxlevel;
     // not clipping, decay more slowly
     else
-      m_maxLevel = decay  * m_maxLevel + (1.0f-decay ) * maxlevel;
+      m_maxLevel = decay  * m_maxLevel + (1.f - decay ) * maxlevel;
 
     // want m_maxLevel * amp -> 1.0
     float amp = m_amplification * m_attenuation;
 
     // We fade in the attenuation over first couple of seconds
-    float start = min (max ((m_submitted-1.0f), 0.0f), 1.0f);
-    float attenuation = min( 1.0f, max(m_attenuation / (amp * m_maxLevel), 1.0f/m_amplification));
-    m_attenuation = (1.0f - start) * 1.0f/m_amplification + start * attenuation;
+    float start = min (max ((m_submitted-1.f), 0.f), 1.f);
+    float attenuation = min( 1.f, max(m_attenuation / (amp * m_maxLevel), 1.f / m_amplification));
+    m_attenuation = (1.f - start) * 1.f / m_amplification + start * attenuation;
     }
   else
-    m_attenuation = 1.0f / m_amplification;
+    m_attenuation = 1.f / m_amplification;
 
   ApplyVolume();
   }

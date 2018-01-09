@@ -40,10 +40,10 @@ public:
   float fifo_size = 2.f;
   };
 //}}}
+
 //{{{
 class cSwAudio {
 public:
-  cSwAudio();
   ~cSwAudio();
 
   bool Open (cOmxStreamInfo &hints, enum PCMLayout layout);
@@ -67,26 +67,26 @@ protected:
   cAvUtil mAvUtil;
   cSwResample mSwResample;
 
-  AVCodecContext* m_pCodecContext;
-  SwrContext* m_pConvert;
+  AVCodecContext* m_pCodecContext = NULL;
+  SwrContext* m_pConvert = NULL;
 
-  enum AVSampleFormat m_iSampleFormat;
-  enum AVSampleFormat m_desiredSampleFormat;
-  AVFrame* m_pFrame1;
+  enum AVSampleFormat m_iSampleFormat = AV_SAMPLE_FMT_NONE;
+  enum AVSampleFormat m_desiredSampleFormat = AV_SAMPLE_FMT_NONE;
+  AVFrame* m_pFrame1 = NULL;
 
-  BYTE* m_pBufferOutput;
-  int m_iBufferOutputUsed;
-  int m_iBufferOutputAlloced;
+  BYTE* m_pBufferOutput = NULL;
+  int m_iBufferOutputUsed = 0;
+  int m_iBufferOutputAlloced = 0;
 
-  bool m_bOpenedCodec;
-  int m_channels;
+  bool m_bOpenedCodec = false;
+  int m_channels = 0;
 
-  bool m_bFirstFrame;
-  bool m_bGotFrame;
-  bool m_bNoConcatenate;
-  unsigned int m_frameSize;
-  double m_dts;
-  double m_pts;
+  bool m_bFirstFrame = true;
+  bool m_bGotFrame = false;
+  bool m_bNoConcatenate = false;
+  unsigned int m_frameSize = 0;
+  double m_dts = 0.0;
+  double m_pts = 0.0;
   };
 //}}}
 //{{{
@@ -102,7 +102,6 @@ public:
     ENCODED_IEC61937_UNKNOWN,
     };
   //}}}
-  cOmxAudio();
   ~cOmxAudio();
 
   bool Initialize (cOmxClock *clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
@@ -140,7 +139,8 @@ public:
   void BuildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE *channelMap, uint64_t layout);
 
 protected:
-  cCriticalSection m_critSection;
+  //{{{  vars
+  cCriticalSection mCrtiticalSection;
 
   cOmxCoreComponent m_omx_render_analog;
   cOmxCoreComponent m_omx_render_hdmi;
@@ -156,6 +156,7 @@ protected:
   cOmxCoreTunnel m_omx_tunnel_splitter_hdmi;
 
   cAvUtil mAvUtil;
+  //}}}
 
 private:
   bool CanHWDecode (AVCodecID codec);
@@ -166,32 +167,33 @@ private:
   void PrintChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
   void PrintPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, const std::string& direction);
 
-  bool          m_Initialized;
-  float         m_CurrentVolume;
-  bool          m_Mute;
-  long          m_drc;
-  bool          m_Passthrough;
-  unsigned int  m_BytesPerSec;
-  unsigned int  m_InputBytesPerSec;
-  unsigned int  m_BufferLen;
-  unsigned int  m_ChunkLen;
-  unsigned int  m_InputChannels;
-  unsigned int  m_OutputChannels;
-  unsigned int  m_BitsPerSample;
-  float         m_maxLevel;
-  float         m_amplification;
-  float         m_attenuation;
-  float         m_submitted;
+  //{{{  vars
+  bool          m_Initialized = false;
+  float         m_CurrentVolume = 0.f;
+  bool          m_Mute = false;
+  long          m_drc = 0;
+  bool          m_Passthrough = false;
+  unsigned int  m_BytesPerSec = 0;
+  unsigned int  m_InputBytesPerSec = 0;
+  unsigned int  m_BufferLen = 0;
+  unsigned int  m_ChunkLen = 0;
+  unsigned int  m_InputChannels = 0;
+  unsigned int  m_OutputChannels = 0;
+  unsigned int  m_BitsPerSample = 0;
+  float         m_maxLevel = 0.f;
+  float         m_amplification = 1.f;
+  float         m_attenuation = 1.f;
+  float         m_submitted = 0.f;
 
-  cOmxCoreComponent* m_omx_clock;
-  cOmxClock*    m_av_clock;
-  bool          m_settings_changed;
-  bool          m_setStartTime;
+  cOmxCoreComponent* m_omx_clock = nullptr;
+  cOmxClock*    m_av_clock = nullptr;
+  bool          m_settings_changed = false;
+  bool          m_setStartTime = false;
 
-  OMX_AUDIO_CODINGTYPE m_eEncoding;
-  double        m_last_pts;
-  bool          m_submitted_eos;
-  bool          m_failed_eos;
+  OMX_AUDIO_CODINGTYPE m_eEncoding = OMX_AUDIO_CodingPCM;
+  double        m_last_pts = DVD_NOPTS_VALUE;
+  bool          m_submitted_eos = false;
+  bool          m_failed_eos = false;
 
   cOmxAudioConfig m_config;
 
@@ -210,6 +212,7 @@ private:
   //}}}
   std::deque<amplitudes_t> m_ampqueue;
   float m_downmix_matrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
+  //}}}
   };
 //}}}
 
@@ -226,7 +229,7 @@ public:
   double GetCurrentPTS() { return m_iCurrentPts; };
   //{{{
   unsigned int GetLevel() {
-    return m_config.queue_size ? (100.0f * m_cached_size / (m_config.queue_size * 1024.0f * 1024.0f)) : 0;
+    return m_config.queue_size ? (100.f * m_cached_size / (m_config.queue_size * 1024.f * 1024.f)) : 0;
     };
   //}}}
   unsigned int GetCached() { return m_cached_size; };
@@ -271,10 +274,10 @@ public:
 private:
   bool Close();
 
-  void Lock() { pthread_mutex_lock (&m_lock); }
-  void UnLock() { pthread_mutex_unlock(&m_lock); }
-  void LockDecoder() { pthread_mutex_lock (&m_lock_decoder); }
-  void UnLockDecoder() { pthread_mutex_unlock (&m_lock_decoder); }
+  void Lock() { pthread_mutex_lock (&mLock); }
+  void UnLock() { pthread_mutex_unlock (&mLock); }
+  void LockDecoder() { pthread_mutex_lock (&mLockDecoder); }
+  void UnLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
   bool OpenDecoder();
   void CloseDecoder();
@@ -284,28 +287,34 @@ private:
   bool Decode (OMXPacket *pkt);
 
   //{{{  vars
+  pthread_mutex_t mLock;
+  pthread_mutex_t mLockDecoder;
   pthread_cond_t  m_packet_cond;
   pthread_cond_t  m_audio_cond;
 
-  pthread_mutex_t m_lock;
-  pthread_mutex_t m_lock_decoder;
+  bool            m_open = false;
+  bool            m_bAbort;
+  bool            m_flush = false;
+  std::atomic<bool> m_flush_requested;
+  bool            m_player_error = false;
+
+  cOmxClock*      m_av_clock = nullptr;
+  cOmxReader*     m_omx_reader = nullptr;
+  cOmxStreamInfo  m_hints;
+  cOmxAudioConfig m_config;
+  cOmxAudio*      m_decoder = nullptr;
+  cSwAudio*       m_pAudioCodec = nullptr;
 
   cAvUtil         mAvUtil;
   cAvCodec        mAvCodec;
   cAvFormat       mAvFormat;
 
-  cOmxClock*      m_av_clock;
-  cOmxReader*     m_omx_reader;
-  cOmxStreamInfo  m_hints;
-  cOmxAudioConfig m_config;
-  cOmxAudio*      m_decoder;
-  cSwAudio*       m_pAudioCodec;
-
-  AVStream*       m_pStream;
-  int             m_stream_id;
+  unsigned int    m_cached_size = 0;
   std::deque<OMXPacket*> m_packets;
 
-  bool            m_open;
+  AVStream*       m_pStream = nullptr;
+  int             m_stream_id = -1;
+
   double          m_iCurrentPts;
 
   std::string     m_codec_name;
@@ -314,14 +323,8 @@ private:
   bool            m_hw_decode;
   bool            m_boost_on_downmix;
 
-  bool            m_bAbort;
-  bool            m_flush;
-  std::atomic<bool> m_flush_requested;
-  unsigned int    m_cached_size;
-
-  float           m_CurrentVolume;
-  long            m_amplification;
-  bool            m_mute;
-  bool            m_player_error;
+  float           m_CurrentVolume = 0.f;
+  long            m_amplification = 0;
+  bool            m_mute = false;
   //}}}
   };

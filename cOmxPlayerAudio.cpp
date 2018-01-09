@@ -10,30 +10,13 @@
 //{{{
 cOmxPlayerAudio::cOmxPlayerAudio() {
 
-  m_open = false;
-
-  m_stream_id = -1;
-  m_pStream = NULL;
-
-  m_av_clock = NULL;
-  m_omx_reader = NULL;
-  m_decoder = NULL;
-
-  m_flush = false;
-  m_flush_requested = false;
-
-  m_cached_size = 0;
-  m_pAudioCodec = NULL;
-  m_player_error = true;
-  m_CurrentVolume = 0.0f;
-
-  m_amplification = 0;
-  m_mute = false;
+  pthread_mutex_init (&mLock, NULL);
+  pthread_mutex_init (&mLockDecoder, NULL);
 
   pthread_cond_init (&m_packet_cond, NULL);
   pthread_cond_init (&m_audio_cond, NULL);
-  pthread_mutex_init (&m_lock, NULL);
-  pthread_mutex_init (&m_lock_decoder, NULL);
+
+  m_flush_requested = false;
   }
 //}}}
 //{{{
@@ -43,15 +26,15 @@ cOmxPlayerAudio::~cOmxPlayerAudio() {
 
   pthread_cond_destroy (&m_audio_cond);
   pthread_cond_destroy (&m_packet_cond);
-  pthread_mutex_destroy (&m_lock);
-  pthread_mutex_destroy (&m_lock_decoder);
+  pthread_mutex_destroy (&mLock);
+  pthread_mutex_destroy (&mLockDecoder);
   }
 //}}}
 
 //{{{
 bool cOmxPlayerAudio::Open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader) {
 
-  if (ThreadHandle())
+  if (getThreadHandle())
     Close();
 
   if (!av_clock)
@@ -111,7 +94,7 @@ bool cOmxPlayerAudio::IsPassthrough (cOmxStreamInfo hints) {
 //{{{
 bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
 
-  if (m_bStop || m_bAbort)
+  if (isStopped() || m_bAbort)
     return false;
 
   if ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024) {
@@ -135,10 +118,10 @@ void cOmxPlayerAudio::Process() {
   OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();
-    if (!(m_bStop || m_bAbort) && m_packets.empty())
-      pthread_cond_wait (&m_packet_cond, &m_lock);
+    if (!(isStopped() || m_bAbort) && m_packets.empty())
+      pthread_cond_wait (&m_packet_cond, &mLock);
 
-    if (m_bStop || m_bAbort) {
+    if (isStopped() || m_bAbort) {
       UnLock();
       break;
       }
@@ -222,7 +205,7 @@ bool cOmxPlayerAudio::Close() {
   m_bAbort = true;
   Flush();
 
-  if (ThreadHandle()) {
+  if (getThreadHandle()) {
     Lock();
     pthread_cond_broadcast (&m_packet_cond);
     UnLock();
@@ -339,10 +322,10 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
   if (pkt->hints.codec != m_config.hints.codec ||
       pkt->hints.samplerate!= m_config.hints.samplerate || (!m_passthrough && minor_change)) {
     cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
-                        m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate, 
+                        m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate,
                         m_config.hints.bitrate, m_config.hints.bitspersample);
     cLog::log (LOGINFO, "Decode N : %d %d %d %d %d",
-                        pkt->hints.codec, channels, pkt->hints.samplerate, 
+                        pkt->hints.codec, channels, pkt->hints.samplerate,
                         pkt->hints.bitrate, pkt->hints.bitspersample);
     CloseDecoder();
     CloseAudioCodec();
