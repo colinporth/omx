@@ -33,6 +33,30 @@ cOmxPlayerAudio::~cOmxPlayerAudio() {
   }
 //}}}
 
+double cOmxPlayerAudio::GetDelay() { return m_decoder ? m_decoder->GetDelay() : 0; }
+double cOmxPlayerAudio::GetCacheTime() { return m_decoder ? m_decoder->GetCacheTime() : 0; }
+double cOmxPlayerAudio::GetCacheTotal() { return m_decoder ? m_decoder->GetCacheTotal() : 0; }
+//{{{
+bool cOmxPlayerAudio::IsPassthrough (cOmxStreamInfo hints) {
+
+  if (m_config.device == "omx:local")
+    return false;
+  if (hints.codec == AV_CODEC_ID_AC3)
+    return true;
+  if (hints.codec == AV_CODEC_ID_EAC3)
+    return true;
+  if (hints.codec == AV_CODEC_ID_DTS)
+    return true;
+
+  return false;
+  }
+//}}}
+//{{{
+bool cOmxPlayerAudio::IsEOS() {
+  return m_packets.empty() && (!m_decoder || m_decoder->IsEOS());
+  }
+//}}}
+
 //{{{
 bool cOmxPlayerAudio::Open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader) {
 
@@ -65,45 +89,8 @@ bool cOmxPlayerAudio::Open (cOmxClock* av_clock, const cOmxAudioConfig& config, 
   return true;
   }
 //}}}
-
-double cOmxPlayerAudio::GetDelay() { return m_decoder ? m_decoder->GetDelay() : 0; }
-double cOmxPlayerAudio::GetCacheTime() { return m_decoder ? m_decoder->GetCacheTime() : 0; }
-double cOmxPlayerAudio::GetCacheTotal() { return m_decoder ? m_decoder->GetCacheTotal() : 0; }
 //{{{
-bool cOmxPlayerAudio::IsPassthrough (cOmxStreamInfo hints) {
-
-  if (m_config.device == "omx:local")
-    return false;
-  if (hints.codec == AV_CODEC_ID_AC3)
-    return true;
-  if (hints.codec == AV_CODEC_ID_EAC3)
-    return true;
-  if (hints.codec == AV_CODEC_ID_DTS)
-    return true;
-
-  return false;
-  }
-//}}}
-
-//{{{
-bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
-
-  if (!mAbort &&
-      ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024)) {
-    Lock();
-    m_cached_size += pkt->size;
-    m_packets.push_back (pkt);
-    UnLock();
-
-    pthread_cond_broadcast (&m_packet_cond);
-    return true;
-    }
-
-  return false;
-  }
-//}}}
-//{{{
-void cOmxPlayerAudio::Process() {
+void cOmxPlayerAudio::Run() {
 
   cLog::setThreadName ("aud ");
 
@@ -142,7 +129,30 @@ void cOmxPlayerAudio::Process() {
   if (omx_pkt)
     cOmxReader::FreePacket (omx_pkt);
 
-  cLog::log (LOGNOTICE, "Process - exit");
+  cLog::log (LOGNOTICE, "exit");
+  }
+//}}}
+//{{{
+bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
+
+  if (!mAbort &&
+      ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024)) {
+    Lock();
+    m_cached_size += pkt->size;
+    m_packets.push_back (pkt);
+    UnLock();
+
+    pthread_cond_broadcast (&m_packet_cond);
+    return true;
+    }
+
+  return false;
+  }
+//}}}
+//{{{
+void cOmxPlayerAudio::SubmitEOS() {
+  if (m_decoder)
+    m_decoder->SubmitEOS();
   }
 //}}}
 //{{{
@@ -171,18 +181,6 @@ void cOmxPlayerAudio::Flush() {
 
   UnLockDecoder();
   UnLock();
-  }
-//}}}
-
-//{{{
-bool cOmxPlayerAudio::IsEOS() {
-  return m_packets.empty() && (!m_decoder || m_decoder->IsEOS());
-  }
-//}}}
-//{{{
-void cOmxPlayerAudio::SubmitEOS() {
-  if (m_decoder)
-    m_decoder->SubmitEOS();
   }
 //}}}
 

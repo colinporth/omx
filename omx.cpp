@@ -340,11 +340,11 @@ private:
       mReader.GetHints (OMXSTREAM_VIDEO, mVideoConfig.hints);
 
       if (hasVideo && mPlayerVideo.Open (&mClock, mVideoConfig))
-        thread ([=]() { mPlayerVideo.Process(); } ).detach();
+        thread ([=]() { mPlayerVideo.Run(); } ).detach();
 
       mAudioConfig.device = "omx:local";
       if (hasAudio && mPlayerAudio.Open (&mClock, mAudioConfig, &mReader)) {
-        thread ([=]() { mPlayerAudio.Process(); } ).detach();
+        thread ([=]() { mPlayerAudio.Run(); } ).detach();
         mPlayerAudio.SetVolume (pow (10, mVolume / 2000.0));
         }
 

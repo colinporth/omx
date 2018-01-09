@@ -216,8 +216,6 @@ public:
   cOmxPlayerAudio();
   ~cOmxPlayerAudio();
 
-  bool Open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader);
-
   double GetDelay();
   double GetCacheTime();
   double GetCacheTotal();
@@ -231,6 +229,7 @@ public:
   unsigned int GetMaxCached() { return m_config.queue_size * 1024 * 1024; };
   float GetVolume() { return m_CurrentVolume; }
   bool IsPassthrough (cOmxStreamInfo hints);
+  bool IsEOS();
   bool Error() { return !m_player_error; };
 
   //{{{
@@ -255,12 +254,11 @@ public:
     }
   //}}}
 
+  bool Open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader);
+  void Run();
   bool AddPacket (OMXPacket *pkt);
-  void Process();
-  void Flush();
-
-  bool IsEOS();
   void SubmitEOS();
+  void Flush();
 
 private:
   void Lock() { pthread_mutex_lock (&mLock); }

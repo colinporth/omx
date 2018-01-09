@@ -284,9 +284,6 @@ public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
 
-  bool Open (cOmxClock* av_clock, const cOmxVideoConfig& config);
-  void Reset();
-
   int GetDecoderBufferSize();
   int GetDecoderFreeSpace();
   double GetCurrentPTS() { return m_iCurrentPts; };
@@ -303,18 +300,19 @@ public:
     };
   //}}}
   double GetDelay() { return m_iVideoDelay; }
+  bool IsEOS();
 
   void SetDelay (double delay) { m_iVideoDelay = delay; }
   void SetAlpha (int alpha);
   void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
   void SetVideoRect (int aspectMode);
 
+  bool Open (cOmxClock* av_clock, const cOmxVideoConfig& config);
+  void Run();
   bool AddPacket (OMXPacket* pkt);
-  void Process();
-  void Flush();
-
-  bool IsEOS();
   void SubmitEOS();
+  void Flush();
+  void Reset();
 
 private:
   bool Close();
