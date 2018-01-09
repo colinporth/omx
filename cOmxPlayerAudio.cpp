@@ -18,7 +18,7 @@ cOmxPlayerAudio::cOmxPlayerAudio() {
   pthread_cond_init (&m_packet_cond, NULL);
   pthread_cond_init (&m_audio_cond, NULL);
 
-  m_flush_requested = false;
+  mFlush_requested = false;
   }
 //}}}
 //{{{
@@ -36,12 +36,6 @@ cOmxPlayerAudio::~cOmxPlayerAudio() {
 //{{{
 bool cOmxPlayerAudio::Open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader) {
 
-  if (getThreadHandle())
-    Close();
-
-  if (!av_clock)
-    return false;
-
   mAvFormat.av_register_all();
 
   m_config = config;
@@ -51,8 +45,8 @@ bool cOmxPlayerAudio::Open (cOmxClock* av_clock, const cOmxAudioConfig& config, 
   m_hw_decode = false;
   m_iCurrentPts = DVD_NOPTS_VALUE;
   mAbort = false;
-  m_flush = false;
-  m_flush_requested = false;
+  mFlush = false;
+  mFlush_requested = false;
   m_cached_size = 0;
   mAudioCodec = NULL;
 
@@ -67,9 +61,7 @@ bool cOmxPlayerAudio::Open (cOmxClock* av_clock, const cOmxAudioConfig& config, 
     Close();
     return false;
     }
-  Create();
 
-  m_open = true;
   return true;
   }
 //}}}
@@ -96,10 +88,8 @@ bool cOmxPlayerAudio::IsPassthrough (cOmxStreamInfo hints) {
 //{{{
 bool cOmxPlayerAudio::AddPacket (OMXPacket *pkt) {
 
-  if (isStopped() || mAbort)
-    return false;
-
-  if ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024) {
+  if (!mAbort &&
+      ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024)) {
     Lock();
     m_cached_size += pkt->size;
     m_packets.push_back (pkt);
@@ -120,18 +110,17 @@ void cOmxPlayerAudio::Process() {
   OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();
-    if (!(isStopped() || mAbort) && m_packets.empty())
+    if (!mAbort && m_packets.empty())
       pthread_cond_wait (&m_packet_cond, &mLock);
 
-    if (isStopped() || mAbort) {
+    if (mAbort) {
       UnLock();
       break;
       }
 
-    if (m_flush && omx_pkt) {
+    if (mFlush && omx_pkt) {
       cOmxReader::FreePacket (omx_pkt);
-      omx_pkt = NULL;
-      m_flush = false;
+      mFlush = false;
       }
     else if (!omx_pkt && !m_packets.empty()) {
       omx_pkt = m_packets.front();
@@ -141,15 +130,12 @@ void cOmxPlayerAudio::Process() {
     UnLock();
 
     LockDecoder();
-    if (m_flush && omx_pkt) {
+    if (mFlush && omx_pkt) {
       cOmxReader::FreePacket (omx_pkt);
-      omx_pkt = NULL;
-      m_flush = false;
+      mFlush = false;
       }
-    else if (omx_pkt && Decode (omx_pkt)) {
+    else if (omx_pkt && Decode (omx_pkt))
       cOmxReader::FreePacket (omx_pkt);
-      omx_pkt = NULL;
-      }
     UnLockDecoder();
     }
 
@@ -162,7 +148,7 @@ void cOmxPlayerAudio::Process() {
 //{{{
 void cOmxPlayerAudio::Flush() {
 
-  m_flush_requested = true;
+  mFlush_requested = true;
 
   Lock();
   LockDecoder();
@@ -170,8 +156,8 @@ void cOmxPlayerAudio::Flush() {
   if (mAudioCodec)
     mAudioCodec->Reset();
 
-  m_flush_requested = false;
-  m_flush = true;
+  mFlush_requested = false;
+  mFlush = true;
   while (!m_packets.empty()) {
     auto pkt = m_packets.front();
     m_packets.pop_front();
@@ -347,7 +333,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
 
       while ((int)m_decoder->GetSpace() < decoded_size) {
         cOmxClock::sleep (10);
-        if (m_flush_requested)
+        if (mFlush_requested)
           return true;
         }
 
@@ -359,7 +345,7 @@ bool cOmxPlayerAudio::Decode (OMXPacket *pkt) {
   else {
     while ((int) m_decoder->GetSpace() < pkt->size) {
       cOmxClock::sleep (10);
-      if (m_flush_requested)
+      if (mFlush_requested)
         return true;
       }
 
@@ -376,17 +362,13 @@ bool cOmxPlayerAudio::Close() {
   mAbort = true;
   Flush();
 
-  if (getThreadHandle()) {
-    Lock();
-    pthread_cond_broadcast (&m_packet_cond);
-    UnLock();
-    StopThread();
-    }
+  Lock();
+  pthread_cond_broadcast (&m_packet_cond);
+  UnLock();
 
   CloseHwDecoder();
   CloseSwDecoder();
 
-  m_open = false;
   m_stream_id = -1;
   m_iCurrentPts = DVD_NOPTS_VALUE;
   mStream = NULL;

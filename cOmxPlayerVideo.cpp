@@ -19,7 +19,7 @@ cOmxPlayerVideo::cOmxPlayerVideo() {
   pthread_cond_init (&m_packet_cond, NULL);
   pthread_cond_init (&m_picture_cond, NULL);
 
-  m_flush_requested = false;
+  mFlush_requested = false;
   }
 //}}}
 //{{{
@@ -37,9 +37,6 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
 //{{{
 bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
 
-  if (getThreadHandle())
-    Close();
-
   mAvFormat.av_register_all();
 
   m_config = config;
@@ -50,8 +47,8 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
 
-  m_bAbort = false;
-  m_flush = false;
+  mAbort = false;
+  mFlush = false;
   m_cached_size = 0;
   m_iVideoDelay = 0;
 
@@ -60,14 +57,11 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
     return false;
     }
 
-  Create();
-
-  m_open = true;
   return true;
   }
 //}}}
 //{{{
-bool cOmxPlayerVideo::Reset() {
+void cOmxPlayerVideo::Reset() {
 
   Flush();
 
@@ -76,14 +70,12 @@ bool cOmxPlayerVideo::Reset() {
   m_iCurrentPts = DVD_NOPTS_VALUE;
   m_frametime = 0;
 
-  m_bAbort = false;
-  m_flush = false;
-  m_flush_requested = false;
+  mAbort = false;
+  mFlush = false;
+  mFlush_requested = false;
 
   m_cached_size = 0;
   m_iVideoDelay = 0;
-
-  return true;
   }
 //}}}
 
@@ -97,10 +89,8 @@ void cOmxPlayerVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect)
 //{{{
 bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
 
-  if (isStopped() || m_bAbort)
-    return false;
-
-  if ((m_cached_size + pkt->size) < (m_config.queue_size * 1024 * 1024)) {
+  if (!mAbort &&
+      ((m_cached_size + pkt->size) < (m_config.queue_size * 1024 * 1024))) {
     Lock();
     m_cached_size += pkt->size;
     m_packets.push_back (pkt);
@@ -120,18 +110,17 @@ void cOmxPlayerVideo::Process() {
   OMXPacket* omx_pkt = NULL;
   while (true) {
     Lock();
-    if (!(isStopped() || m_bAbort) && m_packets.empty())
+    if (!mAbort && m_packets.empty())
       pthread_cond_wait (&m_packet_cond, &mLock);
 
-    if (isStopped() || m_bAbort) {
+    if (mAbort) {
       UnLock();
       break;
       }
 
-    if (m_flush && omx_pkt) {
+    if (mFlush && omx_pkt) {
       cOmxReader::FreePacket (omx_pkt);
-      omx_pkt = NULL;
-      m_flush = false;
+      mFlush = false;
       }
     else if (!omx_pkt && !m_packets.empty()) {
       omx_pkt = m_packets.front();
@@ -142,15 +131,12 @@ void cOmxPlayerVideo::Process() {
 
     LockDecoder();
     if (omx_pkt) {
-      if (m_flush) {
+      if (mFlush) {
         cOmxReader::FreePacket (omx_pkt);
-        omx_pkt = NULL;
-        m_flush = false;
+        mFlush = false;
         }
-      else if (Decode (omx_pkt)) {
+      else if (Decode (omx_pkt))
         cOmxReader::FreePacket (omx_pkt);
-        omx_pkt = NULL;
-        }
       }
     UnLockDecoder();
     }
@@ -164,13 +150,13 @@ void cOmxPlayerVideo::Process() {
 //{{{
 void cOmxPlayerVideo::Flush() {
 
-  m_flush_requested = true;
+  mFlush_requested = true;
 
   Lock();
   LockDecoder();
 
-  m_flush_requested = false;
-  m_flush = true;
+  mFlush_requested = false;
+  mFlush = true;
   while (!m_packets.empty()) {
     OMXPacket *pkt = m_packets.front();
     m_packets.pop_front();
@@ -190,6 +176,7 @@ void cOmxPlayerVideo::Flush() {
 
 //{{{
 void cOmxPlayerVideo::SubmitEOS() {
+
   if (m_decoder)
     m_decoder->SubmitEOS();
   }
@@ -207,20 +194,16 @@ bool cOmxPlayerVideo::IsEOS() {
 //{{{
 bool cOmxPlayerVideo::Close() {
 
-  m_bAbort  = true;
+  mAbort  = true;
 
   Flush();
 
-  if (getThreadHandle()) {
-    Lock();
-    pthread_cond_broadcast (&m_packet_cond);
-    UnLock();
-    StopThread();
-    }
+  Lock();
+  pthread_cond_broadcast (&m_packet_cond);
+  UnLock();
 
   CloseDecoder();
 
-  m_open = false;
   m_stream_id = -1;
   m_iCurrentPts = DVD_NOPTS_VALUE;
   m_pStream = NULL;
@@ -287,7 +270,7 @@ bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
 
   while ((int)m_decoder->GetFreeSpace() < pkt->size) {
     cOmxClock::sleep (10);
-    if (m_flush_requested)
+    if (mFlush_requested)
       return true;
     }
 

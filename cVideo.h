@@ -10,7 +10,6 @@
 #include "cSingleLock.h"
 
 #include "avLibs.h"
-#include "cOmxThread.h"
 #include "cOmxCoreComponent.h"
 #include "cOmxCoreTunnel.h"
 #include "cOmxClock.h"
@@ -280,13 +279,13 @@ private:
   };
 //}}}
 
-class cOmxPlayerVideo : public cOmxThread {
+class cOmxPlayerVideo {
 public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
 
-  bool Reset();
   bool Open (cOmxClock* av_clock, const cOmxVideoConfig& config);
+  void Reset();
 
   int GetDecoderBufferSize();
   int GetDecoderFreeSpace();
@@ -336,10 +335,9 @@ private:
   pthread_cond_t m_packet_cond;
   pthread_cond_t m_picture_cond;
 
-  bool m_open = false;
-  bool m_bAbort = false;
-  bool m_flush = false;
-  std::atomic<bool>  m_flush_requested;
+  bool mAbort = false;
+  bool mFlush = false;
+  std::atomic<bool>  mFlush_requested;
 
   cOmxClock* m_av_clock = nullptr;
   cOmxVideo* m_decoder = nullptr;

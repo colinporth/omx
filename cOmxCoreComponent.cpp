@@ -83,7 +83,7 @@ cOmxCoreComponent::cOmxCoreComponent() {
   pthread_cond_init (&m_output_buffer_cond, NULL);
   pthread_cond_init (&m_omx_event_cond, NULL);
 
-  mOmx = cOmx::GetOMX();
+  mOmx = cOmx::getOMX();
   }
 //}}}
 //{{{
@@ -146,7 +146,7 @@ bool cOmxCoreComponent::Initialize (const string &component_name,
     if (strncmp ("OMX.alsa.", component_name.c_str(), 9) == 0)
       omx_err = OMXALSA_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
     else
-      omx_err = mOmx->OMX_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
+      omx_err = mOmx->getHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
 
     if (!m_handle || omx_err != OMX_ErrorNone) {
       cLog::log (LOGERROR, "omxCoreComp::Initialize no component handle %s 0x%08x",
@@ -203,7 +203,7 @@ bool cOmxCoreComponent::Deinitialize() {
     if (strncmp ("OMX.alsa.", m_componentName.c_str(), 9) == 0)
       omx_err = OMXALSA_FreeHandle (m_handle);
     else
-      omx_err = mOmx->OMX_FreeHandle (m_handle);
+      omx_err = mOmx->freeHandle (m_handle);
     if (omx_err != OMX_ErrorNone)
       cLog::log (LOGERROR, "omxCoreComp::Deinitialize() no free handle %s 0x%08x",
                  m_componentName.c_str(), omx_err);

@@ -328,23 +328,26 @@ private:
     //mAudioConfig.is_live = true;
     bool dump = false;
     if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.Open (fileName.c_str(), dump, mAudioConfig.is_live, 10.f,
+        mReader.Open (fileName.c_str(), dump, mAudioConfig.is_live, 5.f,
                       "", "", "probesize:400000", "")) {
       mClock.stateIdle();
       mClock.stop();
       mClock.pause();
 
-      bool hasAudio = mReader.AudioStreamCount();
-      bool hasVideo = mReader.VideoStreamCount();
+      bool hasAudio = mReader.GetAudioStreamCount();
+      bool hasVideo = mReader.GetVideoStreamCount();
       mReader.GetHints (OMXSTREAM_AUDIO, mAudioConfig.hints);
       mReader.GetHints (OMXSTREAM_VIDEO, mVideoConfig.hints);
 
-      bool ok = hasVideo && mPlayerVideo.Open (&mClock, mVideoConfig);
+      if (hasVideo && mPlayerVideo.Open (&mClock, mVideoConfig))
+        thread ([=]() { mPlayerVideo.Process(); } ).detach();
+
       mAudioConfig.device = "omx:local";
-      if (hasAudio) {
-        ok &= mPlayerAudio.Open (&mClock, mAudioConfig, &mReader);
+      if (hasAudio && mPlayerAudio.Open (&mClock, mAudioConfig, &mReader)) {
+        thread ([=]() { mPlayerAudio.Process(); } ).detach();
         mPlayerAudio.SetVolume (pow (10, mVolume / 2000.0));
         }
+
       auto loadThreshold = mAudioConfig.is_live ? 0.7f : 0.2f;
       float loadLatency = 0.f;
 
@@ -363,7 +366,6 @@ private:
 
           double seekPts = 0;
           if (mReader.SeekTime ((int)(seekPosSec * 1000.0), mSeekIncSec < 0.0, &seekPts)) {
-            // flush streams
             mClock.stop();
             mClock.pause();
 
@@ -371,22 +373,14 @@ private:
               mPlayerVideo.Flush();
             if (hasAudio)
               mPlayerAudio.Flush();
-            if (omxPacket) {
-              mReader.FreePacket (omxPacket);
-              omxPacket = NULL;
-              }
+            mReader.FreePacket (omxPacket);
 
             if (pts != DVD_NOPTS_VALUE)
               mClock.setMediaTime (seekPts);
             mClock.reset (hasVideo, hasAudio);
             }
 
-          if (mReader.IsEof() || (hasVideo && !mPlayerVideo.Reset()))
-            return;
-
-          cLog::log (LOGINFO, "seekPos:"  + decFrac(seekPosSec,6,5,' ') +
-                              " seekPts:"  + decFrac(seekPts/1000000.0,6,5,' ') +
-                              " clockPts:"  + decFrac(mClock.getMediaTime()/1000000.0,6,5,' '));
+          cLog::log (LOGINFO, "seekPos:"  + decFrac(seekPosSec,6,5,' '));
           mSeekIncSec = 0.0;
           }
           //}}}
@@ -475,10 +469,10 @@ private:
           if (mClock.isPaused()) {
             cLog::log (LOGINFO, "resume aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
                        audio_fifo, video_fifo,
-                       audio_fifo_low ? "audFifoLo ":"",
-                       video_fifo_low ? "vidFifoLo ":"",
-                       audio_fifo_high ? "audFifoHi ":"",
-                       video_fifo_high ? "vidFifoHi ":"",
+                       audio_fifo_low ? "aFifoLo ":"",
+                       video_fifo_low ? "vFifoLo ":"",
+                       audio_fifo_high ? "aFifoHi ":"",
+                       video_fifo_high ? "vFifoHi ":"",
                        mReader.IsEof() ? "eof " : "",
                        omxPacket ? "" : "emptyPkt");
 
@@ -491,10 +485,15 @@ private:
           if (!mClock.isPaused()) {
             if (!mPause)
               loadThreshold = min(2.f*loadThreshold, 16.f);
-            cLog::log (LOGINFO, "pause afifo:%.2f vfifo:%.2f alo:%d vlo:%d ahi:%d vhi:%d thresh:%.2f",
+
+            cLog::log (LOGINFO, "pause aFifo:%.2f vFifo:%.2f %s%s%s%s thresh:%.2f",
                        audio_fifo, video_fifo,
-                       audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
+                       audio_fifo_low ? "aFifoLo ":"",
+                       video_fifo_low ? "vFifoLo ":"",
+                       audio_fifo_high ? "aFifoHi ":"",
+                       video_fifo_high ? "vFifoHi ":"",
                        loadThreshold);
+
             mClock.pause();
             }
           }
@@ -519,10 +518,8 @@ private:
             else
               cOmxClock::sleep (10);
             }
-          else {
+          else
             mReader.FreePacket (omxPacket);
-            omxPacket = NULL;
-            }
           }
 
         else {
@@ -552,9 +549,7 @@ private:
 
       mClock.stop();
       mClock.stateIdle();
-
-      if (omxPacket)
-        mReader.FreePacket (omxPacket);
+      mReader.FreePacket (omxPacket);
       }
 
     cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.Error:%d",

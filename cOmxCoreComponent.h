@@ -76,7 +76,7 @@ public:
   OMX_ERRORTYPE SetConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct);
   OMX_ERRORTYPE GetConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) const;
 
-  OMX_ERRORTYPE UseEGLImage (OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_U32 nPortIndex, 
+  OMX_ERRORTYPE UseEGLImage (OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_U32 nPortIndex,
                              OMX_PTR pAppPrivate, void* eglImage);
 
   // OMXCore Decoder delegate callback routines.
@@ -93,8 +93,8 @@ public:
   OMX_ERRORTYPE DecoderEmptyBufferDone (OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE* pBuffer);
   OMX_ERRORTYPE DecoderFillBufferDone (OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE* pBuffer);
 
-  OMX_ERRORTYPE EmptyThisBuffer (OMX_BUFFERHEADERTYPE *omx_buffer);
-  OMX_ERRORTYPE FillThisBuffer (OMX_BUFFERHEADERTYPE *omx_buffer);
+  OMX_ERRORTYPE EmptyThisBuffer (OMX_BUFFERHEADERTYPE* omx_buffer);
+  OMX_ERRORTYPE FillThisBuffer (OMX_BUFFERHEADERTYPE* omx_buffer);
 
   OMX_ERRORTYPE WaitForInputDone (long timeout=200);
   OMX_ERRORTYPE WaitForOutputDone (long timeout=200);
@@ -120,32 +120,32 @@ private:
   OMX_CALLBACKTYPE  m_callbacks;
 
   // OMXCore input buffers (demuxer packets)
-  pthread_mutex_t   m_omx_input_mutex;
+  pthread_mutex_t m_omx_input_mutex;
   std::queue<OMX_BUFFERHEADERTYPE*> m_omx_input_avaliable;
   std::vector<OMX_BUFFERHEADERTYPE*> m_omx_input_buffers;
-  unsigned int  m_input_alignment;
-  unsigned int  m_input_buffer_size;
-  unsigned int  m_input_buffer_count;
-  bool          m_omx_input_use_buffers;
+  unsigned int m_input_alignment;
+  unsigned int m_input_buffer_size;
+  unsigned int m_input_buffer_count;
+  bool         m_omx_input_use_buffers;
 
   // OMXCore output buffers (video frames)
   pthread_mutex_t   m_omx_output_mutex;
   std::queue<OMX_BUFFERHEADERTYPE*> m_omx_output_available;
   std::vector<OMX_BUFFERHEADERTYPE*> m_omx_output_buffers;
-  unsigned int   m_output_alignment;
-  unsigned int   m_output_buffer_size;
-  unsigned int   m_output_buffer_count;
-  bool           m_omx_output_use_buffers;
-
+  unsigned int m_output_alignment;
+  unsigned int m_output_buffer_size;
+  unsigned int m_output_buffer_count;
+  bool         m_omx_output_use_buffers;
   cOmx*          mOmx;
+
   pthread_cond_t m_input_buffer_cond;
   pthread_cond_t m_output_buffer_cond;
   pthread_cond_t m_omx_event_cond;
 
-  bool           m_flush_input;
-  bool           m_flush_output;
-  bool           m_resource_error;
+  bool m_flush_input;
+  bool m_flush_output;
+  bool m_resource_error;
 
-  bool           m_eos;
-  bool           m_exit;
+  bool m_eos;
+  bool m_exit;
   };

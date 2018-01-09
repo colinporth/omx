@@ -11,7 +11,6 @@
 
 #include "avLibs.h"
 #include "cPcmRemap.h"
-#include "cOmxThread.h"
 #include "cOmxCoreComponent.h"
 #include "cOmxCoreTunnel.h"
 #include "cOmxClock.h"
@@ -212,7 +211,7 @@ private:
   };
 //}}}
 
-class cOmxPlayerAudio : public cOmxThread {
+class cOmxPlayerAudio {
 public:
   cOmxPlayerAudio();
   ~cOmxPlayerAudio();
@@ -285,10 +284,9 @@ private:
   pthread_cond_t  m_packet_cond;
   pthread_cond_t  m_audio_cond;
 
-  bool            m_open = false;
   bool            mAbort;
-  bool            m_flush = false;
-  std::atomic<bool> m_flush_requested;
+  bool            mFlush = false;
+  std::atomic<bool> mFlush_requested;
   bool            m_player_error = false;
 
   cOmxClock*      m_av_clock = nullptr;

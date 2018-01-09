@@ -257,12 +257,13 @@ offset_t file_seek (void* h, offset_t pos, int whence) {
 
 // static
 //{{{
-void cOmxReader::FreePacket (OMXPacket* pkt) {
-  if (pkt) {
-    if (pkt->data)
-      free (pkt->data);
-    free (pkt);
-    }
+void cOmxReader::FreePacket (OMXPacket*& pkt) {
+
+  if (pkt)
+    free (pkt->data);
+
+  free (pkt);
+  pkt = nullptr;
   }
 //}}}
 //{{{
@@ -294,9 +295,7 @@ double cOmxReader::NormalizeFrameDuration (double frameduration) {
 //{{{
 cOmxReader::cOmxReader() {
 
-  m_open = false;
   m_filename = "";
-  m_bAVI = false;
   g_abort = false;
   mFile = NULL;
   m_ioContext = NULL;
@@ -364,11 +363,6 @@ bool cOmxReader::Open (string filename, bool dump_format, bool live, float timeo
   mAvFormatContext->interrupt_callback = int_cb;
   mAvFormatContext->flags |= AVFMT_FLAG_NONBLOCK;
 
-  // strip off file://
-  if (m_filename.substr (0, 7) == "file://" )
-    m_filename.replace (0, 7, "");
-  if (m_filename.substr (0, 8) == "shout://" )
-    m_filename.replace (0, 8, "http://");
   if (m_filename.substr (0,7) == "http://" || m_filename.substr (0,8) == "https://" ||
       m_filename.substr (0,7) == "rtmp://" || m_filename.substr (0,7) == "rtsp://") {
     //{{{  non file input
@@ -447,25 +441,23 @@ bool cOmxReader::Open (string filename, bool dump_format, bool live, float timeo
     }
     //}}}
 
-  m_bAVI = strcmp (mAvFormatContext->iformat->name, "avi") == 0;
   mAvFormatContext->max_analyze_duration = 10000000;
   if (live)
     mAvFormatContext->flags |= AVFMT_FLAG_NOBUFFER;
 
   if ((mAvFormat.avformat_find_stream_info (mAvFormatContext, NULL) < 0) || !getStreams()) {
-    //{{{  no streams, exit
+    //{{{  no streams, exit, return
     Close();
     return false;
     }
     //}}}
-  cLog::log (LOGNOTICE, "cOmxReader::Open found a:%d v:%d", AudioStreamCount(), VideoStreamCount());
+  cLog::log (LOGNOTICE, "cOmxReader::Open streams a:%d v:%d", GetAudioStreamCount(), GetVideoStreamCount());
 
   m_speed = DVD_PLAYSPEED_NORMAL;
   if (dump_format)
     mAvFormat.av_dump_format (mAvFormatContext, 0, m_filename.c_str(), 0);
 
   UpdateCurrentPTS();
-  m_open = true;
   return true;
   }
 //}}}
@@ -495,9 +487,7 @@ bool cOmxReader::Close() {
 
   mAvFormat.avformat_network_deinit();
 
-  m_open = false;
   m_filename = "";
-  m_bAVI = false;
   m_video_count = 0;
   m_audio_count = 0;
   m_audio_index = -1;
@@ -773,8 +763,6 @@ bool cOmxReader::GetHints (AVStream* stream, cOmxStreamInfo* hints) {
       }
 
     hints->aspect = SelectAspect (stream, hints->forced_aspect) * stream->codec->width / stream->codec->height;
-    if (m_bAVI && stream->codec->codec_id == AV_CODEC_ID_H264)
-      hints->ptsinvalid = true;
 
     auto rtag = mAvUtil.av_dict_get (stream->metadata, "rotate", NULL, 0);
     if (rtag)

@@ -64,7 +64,7 @@ public:
   cOmxReader();
   ~cOmxReader();
 
-  static void FreePacket (OMXPacket* pkt);
+  static void FreePacket (OMXPacket*& pkt);
   static double NormalizeFrameDuration (double frameduration);
 
   bool Open (std::string filename, bool dump_format, bool live, float timeout,
@@ -82,16 +82,11 @@ public:
   int GetHeight() { return m_height; };
   double GetAspectRatio() { return m_aspect; };
 
-  int AudioStreamCount() { return m_audio_count; };
-  int VideoStreamCount() { return m_video_count; };
+  int GetAudioStreamCount() { return m_audio_count; };
+  int GetVideoStreamCount() { return m_video_count; };
   int GetAudioIndex() { return (m_audio_index >= 0) ? m_streams[m_audio_index].index : -1; };
   int GetVideoIndex() { return (m_video_index >= 0) ? m_streams[m_video_index].index : -1; };
-  //{{{
-  int GetRelativeIndex (size_t index) {
-    assert(index < MAX_STREAMS);
-    return m_streams[index].index;
-    }
-  //}}}
+  int GetRelativeIndex (size_t index) { return m_streams[index].index; }
 
   int GetStreamLength();
   std::string GetCodecName (OMXStreamType type);
@@ -125,6 +120,8 @@ private:
   //{{{  vars
   cCriticalSection  m_critSection;
 
+  std::string      m_filename;
+
   cFile*           mFile;
   AVFormatContext* mAvFormatContext;
   AVIOContext*     m_ioContext;
@@ -135,15 +132,10 @@ private:
   cAvFormat        mAvFormat;
 
   OMXStream        m_streams[MAX_STREAMS];
-
   int              m_video_index;
   int              m_audio_index;
   int              m_video_count;
   int              m_audio_count;
-
-  bool             m_open;
-  std::string      m_filename;
-  bool             m_bAVI;
 
   double           m_iCurrentPts;
   int              m_speed;
