@@ -23,8 +23,6 @@
 //{{{
 class cOmxAudioConfig {
 public:
-  cOmxAudioConfig() {}
-
   cOmxStreamInfo hints;
   std::string device;
   std::string subdevice;
@@ -65,23 +63,23 @@ protected:
   cAvUtil mAvUtil;
   cSwResample mSwResample;
 
-  AVCodecContext* m_pCodecContext = NULL;
-  SwrContext* m_pConvert = NULL;
+  AVCodecContext* mCodecContext = NULL;
+  SwrContext* mConvert = NULL;
 
   enum AVSampleFormat m_iSampleFormat = AV_SAMPLE_FMT_NONE;
   enum AVSampleFormat m_desiredSampleFormat = AV_SAMPLE_FMT_NONE;
-  AVFrame* m_pFrame1 = NULL;
+  AVFrame* mFrame1 = NULL;
 
-  BYTE* m_pBufferOutput = NULL;
+  BYTE* mBufferOutput = NULL;
   int m_iBufferOutputUsed = 0;
   int m_iBufferOutputAlloced = 0;
 
-  bool m_bOpenedCodec = false;
+  bool mOpenedCodec = false;
   int m_channels = 0;
 
-  bool m_bFirstFrame = true;
-  bool m_bGotFrame = false;
-  bool m_bNoConcatenate = false;
+  bool mFirstFrame = true;
+  bool mGotFrame = false;
+  bool mNoConcatenate = false;
   unsigned int m_frameSize = 0;
   double m_dts = 0.0;
   double m_pts = 0.0;
@@ -266,19 +264,20 @@ public:
   void SubmitEOS();
 
 private:
-  bool Close();
-
   void Lock() { pthread_mutex_lock (&mLock); }
   void UnLock() { pthread_mutex_unlock (&mLock); }
   void LockDecoder() { pthread_mutex_lock (&mLockDecoder); }
   void UnLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
-  bool OpenDecoder();
-  void CloseDecoder();
-  bool OpenAudioCodec();
-  void CloseAudioCodec();
+  bool OpenSwDecoder();
+  void CloseSwDecoder();
+
+  bool OpenHwDecoder();
+  void CloseHwDecoder();
 
   bool Decode (OMXPacket *pkt);
+
+  bool Close();
 
   //{{{  vars
   pthread_mutex_t mLock;
@@ -287,7 +286,7 @@ private:
   pthread_cond_t  m_audio_cond;
 
   bool            m_open = false;
-  bool            m_bAbort;
+  bool            mAbort;
   bool            m_flush = false;
   std::atomic<bool> m_flush_requested;
   bool            m_player_error = false;
@@ -297,7 +296,7 @@ private:
   cOmxStreamInfo  m_hints;
   cOmxAudioConfig m_config;
   cOmxAudio*      m_decoder = nullptr;
-  cSwAudio*       m_pAudioCodec = nullptr;
+  cSwAudio*       mAudioCodec = nullptr;
 
   cAvUtil         mAvUtil;
   cAvCodec        mAvCodec;
@@ -306,7 +305,7 @@ private:
   unsigned int    m_cached_size = 0;
   std::deque<OMXPacket*> m_packets;
 
-  AVStream*       m_pStream = nullptr;
+  AVStream*       mStream = nullptr;
   int             m_stream_id = -1;
 
   double          m_iCurrentPts;

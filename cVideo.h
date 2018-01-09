@@ -17,8 +17,12 @@
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
 //}}}
-#define VIDEO_BUFFERS 60
-enum EDEINTERLACEMODE { VS_DEINTERLACEMODE_OFF=0, VS_DEINTERLACEMODE_AUTO=1, VS_DEINTERLACEMODE_FORCE=2 };
+//{{{
+enum EDEINTERLACEMODE {
+  VS_DEINTERLACEMODE_OFF = 0,
+  VS_DEINTERLACEMODE_AUTO = 1,
+  VS_DEINTERLACEMODE_FORCE = 2 };
+//}}}
 
 //{{{
 class CPoint {
@@ -187,38 +191,23 @@ private:
 //{{{
 class cOmxVideoConfig {
 public:
-  cOmxVideoConfig() {
-    dst_rect.SetRect (0, 0, 0, 0);
-    src_rect.SetRect (0, 0, 0, 0);
-    display_aspect = 0.f;
-    deinterlace = VS_DEINTERLACEMODE_AUTO;
-    advanced_hd_deinterlace = true;
-    hdmi_clock_sync = false;
-    allow_mvc = false;
-    alpha = 255;
-    aspectMode = 0;
-    display = 0;
-    layer = 0;
-    queue_size = 10.f;
-    fifo_size = (float)80*1024*60 / (1024*1024);
-    }
-
   cOmxStreamInfo hints;
 
-  CRect dst_rect;
-  CRect src_rect;
-  float display_aspect;
-  EDEINTERLACEMODE deinterlace;
-  bool advanced_hd_deinterlace;
+  CRect dst_rect = {0, 0, 0, 0};
+  CRect src_rect = {0, 0, 0, 0};
 
-  bool hdmi_clock_sync;
-  bool allow_mvc;
-  int alpha;
-  int aspectMode;
-  int display;
-  int layer;
-  float queue_size;
-  float fifo_size;
+  float display_aspect = 0.f;
+  EDEINTERLACEMODE deinterlace = VS_DEINTERLACEMODE_AUTO;
+  bool advanced_hd_deinterlace = true;
+
+  bool hdmi_clock_sync = false;
+  bool allow_mvc = false;
+  int alpha = 255;
+  int aspectMode = 0;
+  int display = 0;
+  int layer = 0;
+  float queue_size = 5.f;
+  float fifo_size = (float)80*1024*60 / (1024*1024);
   };
 //}}}
 //{{{
@@ -278,9 +267,8 @@ private:
 
   std::string m_video_codec_name;
 
-  bool m_is_open = false;
   bool m_setStartTime = false;
-  bool m_deinterlace= false;
+  bool m_deinterlace = false;
   bool m_drop_state = false;
   bool m_submitted_eos = false;
   bool m_failed_eos = false;

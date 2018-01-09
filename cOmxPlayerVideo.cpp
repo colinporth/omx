@@ -100,7 +100,7 @@ bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
   if (isStopped() || m_bAbort)
     return false;
 
-  if ((m_cached_size + pkt->size) < m_config.queue_size * 1024 * 1024) {
+  if ((m_cached_size + pkt->size) < (m_config.queue_size * 1024 * 1024)) {
     Lock();
     m_cached_size += pkt->size;
     m_packets.push_back (pkt);
@@ -263,7 +263,6 @@ void cOmxPlayerVideo::CloseDecoder() {
 
   if (m_decoder)
     delete m_decoder;
-
   m_decoder = NULL;
   }
 //}}}
