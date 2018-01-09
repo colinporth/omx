@@ -418,7 +418,7 @@ private:
           video_fifo_high = !hasVideo ||
                             ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > m_threshold));
           }
-        // debug 
+        // debug
         auto str = decFrac(clockPts/1000000.0,6,5,' ') +
                    " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
                    " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +

@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include <algorithm>
+
 #include <alsa/asoundlib.h>
 
 #include <IL/OMX_Core.h>
@@ -15,16 +17,20 @@
 #include <IL/OMX_Broadcom.h>
 
 #include "avLibs.h"
+
+using namespace std;
 //}}}
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 struct _GOMX_COMMAND;
 struct _GOMX_PORT;
 struct _GOMX_COMPONENT;
+
 //{{{
-template <class X> static inline X max(X a, X b)
+template <class X> static void omx_init(X &omx)
 {
-  return (a > b) ? a : b;
+  omx.nSize = sizeof(X);
+  omx.nVersion.nVersion = OMX_VERSION;
 }
 //}}}
 //{{{
@@ -34,13 +40,6 @@ template <class X> static OMX_ERRORTYPE omx_cast(X* &toptr, OMX_PTR fromptr)
   if (toptr->nSize < sizeof(X)) return OMX_ErrorBadParameter;
   if (toptr->nVersion.nVersion != OMX_VERSION) return OMX_ErrorVersionMismatch;
   return OMX_ErrorNone;
-}
-//}}}
-//{{{
-template <class X> static void omx_init(X &omx)
-{
-  omx.nSize = sizeof(X);
-  omx.nVersion.nVersion = OMX_VERSION;
 }
 //}}}
 

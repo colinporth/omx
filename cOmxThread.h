@@ -9,14 +9,14 @@ class cOmxThread {
 public:
   //{{{
   cOmxThread() {
-    pthread_mutex_init (&mThreadLock, NULL);
+    //pthread_mutex_init (&mThreadLock, NULL);
     pthread_attr_init (&mTattr);
     pthread_attr_setdetachstate (&mTattr, PTHREAD_CREATE_JOINABLE);
     }
   //}}}
   //{{{
   ~cOmxThread() {
-    pthread_mutex_destroy (&mThreadLock);
+    //pthread_mutex_destroy (&mThreadLock);
     pthread_attr_destroy (&mTattr);
     }
   //}}}
@@ -50,10 +50,6 @@ public:
   //}}}
   virtual void Process() = 0;
 
-protected:
-  void Lock() { pthread_mutex_lock (&mThreadLock); }
-  void UnLock() { pthread_mutex_unlock (&mThreadLock); }
-
 private:
   //{{{
   static void* Run (void* arg) {
@@ -67,7 +63,6 @@ private:
     }
   //}}}
 
-  pthread_mutex_t mThreadLock;
   pthread_t mThread = 0;
   pthread_attr_t mTattr;
   struct sched_param mSchedParam;

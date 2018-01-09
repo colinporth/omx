@@ -4,18 +4,11 @@
 
 #include "../shared/utils/cLog.h"
 #include "cOmxClock.h"
+
+using namespace std;
 //}}}
 
-//{{{
-cOmxCoreTunnel::cOmxCoreTunnel() {
-  m_src_component = NULL;
-  m_dst_component = NULL;
-  m_src_port = 0;
-  m_dst_port = 0;
-  m_tunnel_set = false;
-  m_OMX = cOmx::GetOMX();
-  }
-//}}}
+cOmxCoreTunnel::cOmxCoreTunnel() { m_OMX = cOmx::GetOMX(); }
 cOmxCoreTunnel::~cOmxCoreTunnel() {}
 
 //{{{

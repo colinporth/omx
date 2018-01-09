@@ -2,6 +2,8 @@
 //{{{  includes
 #include "cOmxClock.h"
 #include "../shared/utils/cLog.h"
+
+using namespace std;
 //}}}
 
 #define OMX_PRE_ROLL 200

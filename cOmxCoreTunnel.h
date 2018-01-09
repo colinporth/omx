@@ -1,3 +1,4 @@
+// cOmxCoreTunnel.h
 #pragma once
 #include "cOmxCoreComponent.h"
 
@@ -14,10 +15,12 @@ public:
   OMX_ERRORTYPE Deestablish (bool noWait = false);
 
 private:
-  cOmxCoreComponent* m_src_component;
-  cOmxCoreComponent* m_dst_component;
-  unsigned int       m_src_port;
-  unsigned int       m_dst_port;
-  bool               m_tunnel_set;
-  cOmx*              m_OMX;
+  cOmx* m_OMX;
+
+  cOmxCoreComponent* m_src_component = nullptr;
+  cOmxCoreComponent* m_dst_component = nullptr;
+
+  unsigned int m_src_port = 0;
+  unsigned int m_dst_port = 0;
+  bool m_tunnel_set = false;
   };

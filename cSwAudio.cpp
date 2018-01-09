@@ -4,6 +4,8 @@
 
 #include "../shared/utils/cLog.h"
 #include "cPcmRemap.h"
+
+using namespace std;
 //}}}
 
 #define AUDIO_DECODE_OUTPUT_BUFFER (32*1024)

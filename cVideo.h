@@ -1,15 +1,15 @@
 #pragma once
 //{{{  includes
+#include <sys/types.h>
 #include <deque>
 #include <string>
 #include <atomic>
-#include <sys/types.h>
 
-#include "cSingleLock.h"
 #include <IL/OMX_Video.h>
 
-#include "avLibs.h"
+#include "cSingleLock.h"
 
+#include "avLibs.h"
 #include "cOmxThread.h"
 #include "cOmxCoreComponent.h"
 #include "cOmxCoreTunnel.h"

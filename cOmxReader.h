@@ -1,3 +1,4 @@
+// cOmxReader.h
 #pragma once
 //{{{  includes
 #include <sys/types.h>
@@ -9,8 +10,6 @@
 
 #include "cOmxStreamInfo.h"
 #include "cSingleLock.h"
-
-using namespace std;
 //}}}
 //{{{  defines
 #define MAX_OMX_STREAMS        100
@@ -68,7 +67,7 @@ public:
   static void FreePacket (OMXPacket* pkt);
   static double NormalizeFrameDuration (double frameduration);
 
-  bool Open (std::string filename, bool dump_format, bool live, float timeout, 
+  bool Open (std::string filename, bool dump_format, bool live, float timeout,
              std::string cookie, std::string user_agent, std::string lavfdopts, std::string avdict);
   bool Close();
   void ClearStreams();

@@ -2,7 +2,6 @@
 omx.log
 omx.old.log
 omx
-version.h
 *.~*
 *.*~
 Makefile~

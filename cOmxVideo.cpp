@@ -7,6 +7,8 @@
 
 #include "cOmxStreamInfo.h"
 #include "../shared/utils/cLog.h"
+
+using namespace std;
 //}}}
 //{{{  decoder defines
 #define OMX_VIDEO_DECODER       "OMX.broadcom.video_decode"

@@ -5,6 +5,8 @@
 
 #include "cAudio.h"
 #include "../shared/utils/cLog.h"
+
+using namespace std;
 //}}}
 
 //{{{

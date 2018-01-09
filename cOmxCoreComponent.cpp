@@ -9,6 +9,8 @@
 #include "../shared/utils/cLog.h"
 #include "omxAlsa.h"
 #include "cOmxClock.h"
+
+using namespace std;
 //}}}
 
 //{{{
@@ -100,7 +102,7 @@ cOmxCoreComponent::~cOmxCoreComponent() {
 //}}}
 
 //{{{
-bool cOmxCoreComponent::Initialize (const std::string &component_name,
+bool cOmxCoreComponent::Initialize (const string &component_name,
                                     OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks) {
   m_input_port  = 0;
   m_output_port = 0;
@@ -749,7 +751,7 @@ OMX_ERRORTYPE cOmxCoreComponent::AddEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1,
 //{{{
 void cOmxCoreComponent::RemoveEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2) {
 
-  for (std::vector<omx_event>::iterator it = m_omx_events.begin(); it != m_omx_events.end(); ) {
+  for (vector<omx_event>::iterator it = m_omx_events.begin(); it != m_omx_events.end(); ) {
     omx_event event = *it;
     if (event.eEvent == eEvent && event.nData1 == nData1 && event.nData2 == nData2) {
       it = m_omx_events.erase(it);
@@ -768,7 +770,7 @@ OMX_ERRORTYPE cOmxCoreComponent::WaitForEvent (OMX_EVENTTYPE eventType, long tim
   clock_gettime (CLOCK_REALTIME, &endtime);
   add_timespecs (endtime, timeout);
   while (true) {
-    for (std::vector<omx_event>::iterator it = m_omx_events.begin(); it != m_omx_events.end(); it++) {
+    for (vector<omx_event>::iterator it = m_omx_events.begin(); it != m_omx_events.end(); it++) {
       omx_event event = *it;
       if (event.eEvent == OMX_EventError && event.nData1 == (OMX_U32)OMX_ErrorSameState && event.nData2 == 1) {
         m_omx_events.erase (it);
@@ -824,7 +826,7 @@ OMX_ERRORTYPE cOmxCoreComponent::WaitForCommand (OMX_U32 command, OMX_U32 nData2
   add_timespecs (endtime, timeout);
 
   while (true) {
-    for (std::vector<omx_event>::iterator it = m_omx_events.begin(); it != m_omx_events.end(); it++) {
+    for (vector<omx_event>::iterator it = m_omx_events.begin(); it != m_omx_events.end(); it++) {
       omx_event event = *it;
       if (event.eEvent == OMX_EventError && event.nData1 == (OMX_U32)OMX_ErrorSameState && event.nData2 == 1) {
         m_omx_events.erase (it);

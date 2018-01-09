@@ -1,24 +1,22 @@
 #pragma once
 //{{{  includes
+#include <sys/types.h>
 #include <deque>
 #include <string>
 #include <atomic>
-#include <sys/types.h>
+
+#include "cSingleLock.h"
 
 #include "platformDefs.h"
-#include "cSingleLock.h"
-#include "cPcmRemap.h"
 
 #include "avLibs.h"
-
+#include "cPcmRemap.h"
 #include "cOmxThread.h"
 #include "cOmxCoreComponent.h"
 #include "cOmxCoreTunnel.h"
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
-
-using namespace std;
 //}}}
 #define AUDIO_BUFFER_SECONDS 3
 
@@ -28,8 +26,8 @@ public:
   cOmxAudioConfig() {}
 
   cOmxStreamInfo hints;
-  string device;
-  string subdevice;
+  std::string device;
+  std::string subdevice;
 
   enum PCMLayout layout = PCM_LAYOUT_2_0;
   bool boostOnDownmix = true;
@@ -233,11 +231,7 @@ public:
     };
   //}}}
   unsigned int GetCached() { return m_cached_size; };
-  //{{{
-  unsigned int GetMaxCached() {
-    return m_config.queue_size * 1024 * 1024;
-    };
-  //}}}
+  unsigned int GetMaxCached() { return m_config.queue_size * 1024 * 1024; };
   float GetVolume() { return m_CurrentVolume; }
   bool IsPassthrough (cOmxStreamInfo hints);
   bool Error() { return !m_player_error; };
