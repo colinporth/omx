@@ -890,7 +890,10 @@ OMXPacket* cOmxReader::readPacket() {
   }
 //}}}
 //{{{
-bool cOmxReader::seek (int time, double& startPts) {
+bool cOmxReader::seek (float time, double& startPts) {
+
+  // secs to ms
+  time *= 1000;
 
   bool backwards = (time < 0);
   if (backwards)
@@ -900,7 +903,7 @@ bool cOmxReader::seek (int time, double& startPts) {
     return false;
 
   if (mFile && !mFile->IoControl (IOCTRL_SEEK_POSSIBLE, NULL)) {
-    cLog::log (LOGINFO1, "cOmxReader::SeekTime input stream reports it is not seekable");
+    cLog::log (LOGERROR, "cOmxReader::seek - not seekable");
     return false;
     }
 
@@ -909,12 +912,12 @@ bool cOmxReader::seek (int time, double& startPts) {
   if (m_ioContext)
     m_ioContext->buf_ptr = m_ioContext->buf_end;
 
-  int64_t seek_pts = (int64_t)time * (AV_TIME_BASE / 1000);
+  auto seekPts = (int64_t)time * (AV_TIME_BASE / 1000);
   if (mAvFormatContext->start_time != (int64_t)AV_NOPTS_VALUE)
-    seek_pts += mAvFormatContext->start_time;
+    seekPts += mAvFormatContext->start_time;
 
   RESET_TIMEOUT(1);
-  int ret = mAvFormat.av_seek_frame (mAvFormatContext, -1, seek_pts, backwards ? AVSEEK_FLAG_BACKWARD : 0);
+  auto ret = mAvFormat.av_seek_frame (mAvFormatContext, -1, seekPts, backwards ? AVSEEK_FLAG_BACKWARD : 0);
   if (ret >= 0)
     updateCurrentPTS();
 
@@ -927,12 +930,12 @@ bool cOmxReader::seek (int time, double& startPts) {
   if (ret < 0) {
     m_eof = true;
     ret = 0;
-   }
+    }
 
   cLog::log (LOGINFO1, "cOmxReader::SeekTime %d seek ended up on time %d",
-             time, (int)(m_iCurrentPts / DVD_TIME_BASE * 1000));
+                       time, (int)(m_iCurrentPts / DVD_TIME_BASE * 1000));
 
-  return (ret >= 0);
+  return ret >= 0;
   }
 //}}}
 //{{{

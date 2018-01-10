@@ -104,7 +104,7 @@ public:
   bool open (std::string filename, bool dump_format, bool live, float timeout,
              std::string cookie, std::string user_agent, std::string lavfdopts, std::string avdict);
   OMXPacket* readPacket();
-  bool seek (int time, double& startPts);
+  bool seek (float time, double& startPts);
   void updateCurrentPTS();
   void clearStreams();
   bool close();

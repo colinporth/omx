@@ -324,11 +324,10 @@ private:
     vc_dispmanx_update_submit_sync (update);
     //}}}
 
-    //audioConfig.hwdecode = true;
     //audioConfig.is_live = true;
-    bool dump = false;
+    //audioConfig.hwdecode = true;
     if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.open (fileName.c_str(), dump, audioConfig.is_live, 5.f, "","","probesize:400000","")) {
+        mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:400000","")) {
       mClock.stateIdle();
       mClock.stop();
       mClock.pause();
@@ -364,7 +363,7 @@ private:
           lastSeekPosSec = seekPosSec;
 
           double seekPts = 0;
-          if (mReader.seek ((int)(seekPosSec * 1000.0), seekPts)) {
+          if (mReader.seek (seekPosSec, seekPts)) {
             mClock.stop();
             mClock.pause();
 

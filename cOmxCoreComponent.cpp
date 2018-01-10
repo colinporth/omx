@@ -17,7 +17,7 @@ using namespace std;
 // aligned memory allocation.
 // - alloc extra space and store the original allocation in it (so that we can free later on)
 //   the returned address will be the nearest alligned address within the space allocated.
-void* aligned_malloc (size_t s, size_t alignTo) {
+void* alignedMalloc (size_t s, size_t alignTo) {
 
   char* fullAlloc = (char*)malloc (s + alignTo + sizeof (char*));
   char* alignedAlloc = (char*)(((((unsigned long)fullAlloc + sizeof (char*))) + (alignTo-1)) & ~(alignTo-1));
@@ -26,7 +26,7 @@ void* aligned_malloc (size_t s, size_t alignTo) {
   }
 //}}}
 //{{{
-void aligned_free (void* p) {
+void alignedFree (void* p) {
 
   if (!p)
     return;
@@ -247,14 +247,15 @@ OMX_ERRORTYPE cOmxCoreComponent::AllocInputBuffers (bool use_buffers /* = false 
   m_input_buffer_count = portFormat.nBufferCountActual;
   m_input_buffer_size= portFormat.nBufferSize;
   cLog::log (LOGINFO1, "%s %s port:%d, min:%u, act:%u, size:%u, a:%u",
-             __func__, m_componentName.c_str(), GetInputPort(), portFormat.nBufferCountMin,
+             __func__, m_componentName.c_str(), 
+             GetInputPort(), portFormat.nBufferCountMin,
              portFormat.nBufferCountActual, portFormat.nBufferSize, portFormat.nBufferAlignment);
 
   for (size_t i = 0; i < portFormat.nBufferCountActual; i++) {
     OMX_BUFFERHEADERTYPE* buffer = NULL;
     OMX_U8* data = NULL;
     if (m_omx_input_use_buffers) {
-      data = (OMX_U8*)aligned_malloc (portFormat.nBufferSize, m_input_alignment);
+      data = (OMX_U8*)alignedMalloc (portFormat.nBufferSize, m_input_alignment);
       omx_err = OMX_UseBuffer (m_handle, &buffer, m_input_port, NULL, portFormat.nBufferSize, data);
       }
     else
@@ -262,7 +263,7 @@ OMX_ERRORTYPE cOmxCoreComponent::AllocInputBuffers (bool use_buffers /* = false 
     if (omx_err != OMX_ErrorNone) {
       cLog::log (LOGERROR, "%s %s OMX_UseBuffer 0x%x", __func__, m_componentName.c_str(), omx_err);
       if (m_omx_input_use_buffers && data)
-        aligned_free (data);
+        alignedFree (data);
       return omx_err;
       }
 
@@ -321,16 +322,16 @@ OMX_ERRORTYPE cOmxCoreComponent::AllocOutputBuffers (bool use_buffers /* = false
     OMX_U8* data = NULL;
 
     if (m_omx_output_use_buffers) {
-      data = (OMX_U8*)aligned_malloc(portFormat.nBufferSize, m_output_alignment);
+      data = (OMX_U8*)alignedMalloc (portFormat.nBufferSize, m_output_alignment);
       omx_err = OMX_UseBuffer(m_handle, &buffer, m_output_port, NULL, portFormat.nBufferSize, data);
       }
     else
-      omx_err = OMX_AllocateBuffer(m_handle, &buffer, m_output_port, NULL, portFormat.nBufferSize);
+      omx_err = OMX_AllocateBuffer (m_handle, &buffer, m_output_port, NULL, portFormat.nBufferSize);
     if (omx_err != OMX_ErrorNone) {
       cLog::log (LOGERROR, "%s %sOMX_UseBuffer 0x%x", __func__, m_componentName.c_str(), omx_err);
 
       if (m_omx_output_use_buffers && data)
-       aligned_free(data);
+       alignedFree(data);
 
       return omx_err;
       }
@@ -385,7 +386,7 @@ OMX_ERRORTYPE cOmxCoreComponent::FreeInputBuffers() {
     uint8_t* buf = m_omx_input_buffers[i]->pBuffer;
     omx_err = OMX_FreeBuffer (m_handle, m_input_port, m_omx_input_buffers[i]);
     if(m_omx_input_use_buffers && buf)
-      aligned_free(buf);
+      alignedFree(buf);
     if (omx_err != OMX_ErrorNone)
       cLog::log (LOGERROR, "%s deallocate omx input buffer%s 0x%08x", __func__, m_componentName.c_str(), omx_err);
     }
@@ -430,7 +431,7 @@ OMX_ERRORTYPE cOmxCoreComponent::FreeOutputBuffers() {
     uint8_t* buf = m_omx_output_buffers[i]->pBuffer;
     omx_err = OMX_FreeBuffer (m_handle, m_output_port, m_omx_output_buffers[i]);
     if (m_omx_output_use_buffers && buf)
-      aligned_free (buf);
+      alignedFree (buf);
     if (omx_err != OMX_ErrorNone)
       cLog::log (LOGERROR, "%s deallocate omx output buffer %s 0x%08x", __func__, m_componentName.c_str(), omx_err);
     }
