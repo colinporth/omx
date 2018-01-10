@@ -578,7 +578,6 @@ int main (int argc, char* argv[]) {
   signal (SIGFPE, sigHandler);
   signal (SIGINT, sigHandler);
   //}}}
-
   bool logInfo = false;
   string fileName;
 
