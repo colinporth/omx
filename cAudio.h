@@ -71,7 +71,6 @@ protected:
   int m_iBufferOutputUsed = 0;
   int m_iBufferOutputAlloced = 0;
 
-  bool mOpenedCodec = false;
   int m_channels = 0;
 
   bool mFirstFrame = true;

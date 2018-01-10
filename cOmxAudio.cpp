@@ -239,27 +239,18 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   cSingleLock lock (mCrtiticalSection);
   deinitialize();
 
-  mConfig = config;
-  m_InputChannels = count_bits (channelMap);
-  if (m_InputChannels == 0)
-    return false;
-  if (mConfig.hints.samplerate == 0)
-    return false;
-
   mAvClock = clock;
-  if (!mAvClock)
-    return false;
-
-  // passthrough overwrites hw decode
-  if (mConfig.passthrough)
+  mConfig = config;
+  if (mConfig.passthrough) // passthrough overwrites hw decode
     mConfig.hwdecode = false;
   else if (mConfig.hwdecode) // check again if we are capable to hw decode the format
     mConfig.hwdecode = canHwDecode (mConfig.hints.codec);
-
   if (mConfig.passthrough || mConfig.hwdecode)
     setCodingType (mConfig.hints.codec);
   else
     setCodingType (AV_CODEC_ID_PCM_S16LE);
+
+  m_InputChannels = count_bits (channelMap);
 
   m_omx_clock = mAvClock->getOmxClock();
 
@@ -470,7 +461,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   }
 //}}}
 //{{{
-void cOmxAudio::buildChannelMap (enum PCMChannels *channelMap, uint64_t layout) {
+void cOmxAudio::buildChannelMap (enum PCMChannels* channelMap, uint64_t layout) {
 
   int index = 0;
   if (layout & AV_CH_FRONT_LEFT           ) channelMap[index++] = PCM_FRONT_LEFT           ;
@@ -498,7 +489,7 @@ void cOmxAudio::buildChannelMap (enum PCMChannels *channelMap, uint64_t layout) 
 //}}}
 //{{{
 // See CEA spec: Table 20, Audio InfoFrame data byte 4 for the ordering here
-int cOmxAudio::buildChannelMapCEA (enum PCMChannels *channelMap, uint64_t layout) {
+int cOmxAudio::buildChannelMapCEA (enum PCMChannels* channelMap, uint64_t layout) {
 
   int index = 0;
   if (layout & AV_CH_FRONT_LEFT   ) channelMap[index++] = PCM_FRONT_LEFT;
@@ -524,7 +515,7 @@ int cOmxAudio::buildChannelMapCEA (enum PCMChannels *channelMap, uint64_t layout
   }
 //}}}
 //{{{
-void cOmxAudio::buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE * channelMap, uint64_t layout) {
+void cOmxAudio::buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE* channelMap, uint64_t layout) {
 
   int index = 0;
 
@@ -1215,7 +1206,7 @@ void cOmxAudio::printChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
   }
 //}}}
 //{{{
-void cOmxAudio::printPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, const string& direction) {
+void cOmxAudio::printPCM (OMX_AUDIO_PARAM_PCMMODETYPE* pcm, const string& direction) {
 
   cLog::log (LOGINFO1, "pcm->direction    : %s", direction.c_str());
   cLog::log (LOGINFO1, "pcm->nPortIndex   : %d", (int)pcm->nPortIndex);

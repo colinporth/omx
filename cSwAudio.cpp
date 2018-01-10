@@ -150,10 +150,11 @@ int cSwAudio::getData (BYTE** dst, double& dts, double& pts) {
 //{{{
 bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
 
-  mOpenedCodec = false;
+  cLog::log (LOGINFO, "cSwAudio::open");
+
   mAvCodec.avcodec_register_all();
 
-  AVCodec* codec = mAvCodec.avcodec_find_decoder (hints.codec);
+  auto codec = mAvCodec.avcodec_find_decoder (hints.codec);
   if (!codec) {
     //{{{  error return
     cLog::log (LOGINFO1,"cSwAudio - Open no codec %d", hints.codec);
@@ -214,11 +215,8 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
     //}}}
 
   mFrame1 = mAvCodec.av_frame_alloc();
-  mOpenedCodec = true;
   m_iSampleFormat = AV_SAMPLE_FMT_NONE;
   m_desiredSampleFormat = mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
-
-  cLog::log (LOGINFO, "cSwAudio - Open");
 
   return true;
   }
@@ -277,9 +275,7 @@ void cSwAudio::dispose() {
     if (mCodecContext->extradata)
       mAvUtil.av_free (mCodecContext->extradata);
     mCodecContext->extradata = NULL;
-    if (mOpenedCodec)
-      mAvCodec.avcodec_close (mCodecContext);
-    mOpenedCodec = false;
+    mAvCodec.avcodec_close (mCodecContext);
     mAvUtil.av_free(mCodecContext);
     mCodecContext = NULL;
     }
