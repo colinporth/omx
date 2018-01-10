@@ -25,7 +25,7 @@ cOmxPlayerVideo::cOmxPlayerVideo() {
 //{{{
 cOmxPlayerVideo::~cOmxPlayerVideo() {
 
-  Close();
+  close();
 
   pthread_cond_destroy (&m_packet_cond);
   pthread_cond_destroy (&m_picture_cond);
@@ -34,24 +34,23 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
   }
 //}}}
 
-int cOmxPlayerVideo::GetDecoderBufferSize() { return m_decoder ? m_decoder->GetInputBufferSize() : 0; }
-int cOmxPlayerVideo::GetDecoderFreeSpace() { return m_decoder ? m_decoder->GetFreeSpace() : 0; }
-
-void cOmxPlayerVideo::SetAlpha (int alpha) { m_decoder->SetAlpha (alpha); }
-void cOmxPlayerVideo::SetVideoRect (int aspectMode) { m_decoder->SetVideoRect (aspectMode); }
-void cOmxPlayerVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) { m_decoder->SetVideoRect (SrcRect, DestRect); }
-
+int cOmxPlayerVideo::getDecoderBufferSize() { return m_decoder ? m_decoder->GetInputBufferSize() : 0; }
+int cOmxPlayerVideo::getDecoderFreeSpace() { return m_decoder ? m_decoder->GetFreeSpace() : 0; }
 //{{{
-bool cOmxPlayerVideo::IsEOS() {
+bool cOmxPlayerVideo::isEOS() {
 
   if (!m_decoder)
     return false;
-  return m_packets.empty() && (!m_decoder || m_decoder->IsEOS());
+  return mPackets.empty() && (!m_decoder || m_decoder->IsEOS());
   }
 //}}}
 
+void cOmxPlayerVideo::setAlpha (int alpha) { m_decoder->SetAlpha (alpha); }
+void cOmxPlayerVideo::setVideoRect (int aspectMode) { m_decoder->SetVideoRect (aspectMode); }
+void cOmxPlayerVideo::setVideoRect (const CRect& SrcRect, const CRect& DestRect) { m_decoder->SetVideoRect (SrcRect, DestRect); }
+
 //{{{
-bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
+bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
 
   mAvFormat.av_register_all();
 
@@ -65,155 +64,10 @@ bool cOmxPlayerVideo::Open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
 
   mAbort = false;
   mFlush = false;
-  m_cached_size = 0;
+  mCachedSize = 0;
   m_iVideoDelay = 0;
 
-  if (!OpenDecoder()) {
-    Close();
-    return false;
-    }
-
-  return true;
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::Run() {
-
-  cLog::setThreadName ("vid ");
-
-  OMXPacket* omx_pkt = NULL;
-  while (true) {
-    Lock();
-    if (!mAbort && m_packets.empty())
-      pthread_cond_wait (&m_packet_cond, &mLock);
-
-    if (mAbort) {
-      UnLock();
-      break;
-      }
-
-    if (mFlush && omx_pkt) {
-      cOmxReader::FreePacket (omx_pkt);
-      mFlush = false;
-      }
-    else if (!omx_pkt && !m_packets.empty()) {
-      omx_pkt = m_packets.front();
-      m_cached_size -= omx_pkt->size;
-      m_packets.pop_front();
-      }
-    UnLock();
-
-    LockDecoder();
-    if (omx_pkt) {
-      if (mFlush) {
-        cOmxReader::FreePacket (omx_pkt);
-        mFlush = false;
-        }
-      else if (Decode (omx_pkt))
-        cOmxReader::FreePacket (omx_pkt);
-      }
-    UnLockDecoder();
-    }
-
-  if (omx_pkt)
-    cOmxReader::FreePacket (omx_pkt);
-
-  cLog::log (LOGNOTICE, "exit");
-  }
-//}}}
-//{{{
-bool cOmxPlayerVideo::AddPacket (OMXPacket* pkt) {
-
-  if (!mAbort &&
-      ((m_cached_size + pkt->size) < (m_config.queue_size * 1024 * 1024))) {
-    Lock();
-    m_cached_size += pkt->size;
-    m_packets.push_back (pkt);
-    UnLock();
-    pthread_cond_broadcast (&m_packet_cond);
-    return true;
-    }
-
-  return false;
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::SubmitEOS() {
-
-  if (m_decoder)
-    m_decoder->SubmitEOS();
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::Flush() {
-
-  mFlush_requested = true;
-
-  Lock();
-  LockDecoder();
-
-  mFlush_requested = false;
-  mFlush = true;
-  while (!m_packets.empty()) {
-    OMXPacket *pkt = m_packets.front();
-    m_packets.pop_front();
-    cOmxReader::FreePacket (pkt);
-    }
-
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_cached_size = 0;
-
-  if (m_decoder)
-    m_decoder->Reset();
-
-  UnLockDecoder();
-  UnLock();
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::Reset() {
-
-  Flush();
-
-  m_stream_id = -1;
-  m_pStream = NULL;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_frametime = 0;
-
-  mAbort = false;
-  mFlush = false;
-  mFlush_requested = false;
-
-  m_cached_size = 0;
-  m_iVideoDelay = 0;
-  }
-//}}}
-
-// private
-//{{{
-bool cOmxPlayerVideo::Close() {
-
-  mAbort  = true;
-
-  Flush();
-
-  Lock();
-  pthread_cond_broadcast (&m_packet_cond);
-  UnLock();
-
-  CloseDecoder();
-
-  m_stream_id = -1;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_pStream = NULL;
-
-  return true;
-  }
-//}}}
-
-//{{{
-bool cOmxPlayerVideo::OpenDecoder() {
-
+  // open decoder
   if (m_config.hints.fpsrate && m_config.hints.fpsscale)
     m_fps = 1000000.f /
             cOmxReader::NormalizeFrameDuration (1000000.0 * m_config.hints.fpsscale / m_config.hints.fpsrate);
@@ -230,27 +84,156 @@ bool cOmxPlayerVideo::OpenDecoder() {
   if (m_decoder->Open (m_av_clock, m_config)) {
     cLog::log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s profile:%d %dx%d %ffps",
                m_decoder->GetDecoderName().c_str(), m_config.hints.profile,
-               m_config.hints.width, m_config.hints.height,
-               m_fps);
+               m_config.hints.width, m_config.hints.height, m_fps);
     return true;
     }
   else {
-    CloseDecoder();
+    close();
     return false;
     }
   }
 //}}}
 //{{{
-void cOmxPlayerVideo::CloseDecoder() {
+void cOmxPlayerVideo::run() {
+
+  cLog::setThreadName ("vid ");
+
+  OMXPacket* omx_pkt = NULL;
+  while (true) {
+    lock();
+    if (!mAbort && mPackets.empty())
+      pthread_cond_wait (&m_packet_cond, &mLock);
+
+    if (mAbort) {
+      unLock();
+      break;
+      }
+
+    if (mFlush && omx_pkt) {
+      cOmxReader::FreePacket (omx_pkt);
+      mFlush = false;
+      }
+    else if (!omx_pkt && !mPackets.empty()) {
+      omx_pkt = mPackets.front();
+      mCachedSize -= omx_pkt->size;
+      mPackets.pop_front();
+      }
+    unLock();
+
+    lockDecoder();
+    if (omx_pkt) {
+      if (mFlush) {
+        cOmxReader::FreePacket (omx_pkt);
+        mFlush = false;
+        }
+      else if (decode (omx_pkt))
+        cOmxReader::FreePacket (omx_pkt);
+      }
+    unLockDecoder();
+    }
+
+  if (omx_pkt)
+    cOmxReader::FreePacket (omx_pkt);
+
+  cLog::log (LOGNOTICE, "exit");
+  }
+//}}}
+//{{{
+bool cOmxPlayerVideo::addPacket (OMXPacket* pkt) {
+
+  if (!mAbort &&
+      ((mCachedSize + pkt->size) < (m_config.queue_size * 1024 * 1024))) {
+
+    lock();
+    mCachedSize += pkt->size;
+    mPackets.push_back (pkt);
+    unLock();
+
+    pthread_cond_broadcast (&m_packet_cond);
+    return true;
+    }
+
+  return false;
+  }
+//}}}
+//{{{
+void cOmxPlayerVideo::submitEOS() {
+
+  if (m_decoder)
+    m_decoder->SubmitEOS();
+  }
+//}}}
+//{{{
+void cOmxPlayerVideo::flush() {
+
+  mFlush_requested = true;
+
+  lock();
+  lockDecoder();
+
+  mFlush_requested = false;
+  mFlush = true;
+  while (!mPackets.empty()) {
+    OMXPacket *pkt = mPackets.front();
+    mPackets.pop_front();
+    cOmxReader::FreePacket (pkt);
+    }
+
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  mCachedSize = 0;
+
+  if (m_decoder)
+    m_decoder->Reset();
+
+  unLockDecoder();
+  unLock();
+  }
+//}}}
+//{{{
+void cOmxPlayerVideo::reset() {
+
+  flush();
+
+  m_stream_id = -1;
+  m_pStream = NULL;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  m_frametime = 0;
+
+  mAbort = false;
+  mFlush = false;
+  mFlush_requested = false;
+
+  mCachedSize = 0;
+  m_iVideoDelay = 0;
+  }
+//}}}
+
+// private
+//{{{
+bool cOmxPlayerVideo::close() {
+
+  mAbort  = true;
+
+  flush();
+
+  lock();
+  pthread_cond_broadcast (&m_packet_cond);
+  unLock();
 
   if (m_decoder)
     delete m_decoder;
   m_decoder = NULL;
+
+  m_stream_id = -1;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  m_pStream = NULL;
+
+  return true;
   }
 //}}}
 
 //{{{
-bool cOmxPlayerVideo::Decode (OMXPacket* pkt) {
+bool cOmxPlayerVideo::decode (OMXPacket* pkt) {
 
   double dts = pkt->dts;
   if (dts != DVD_NOPTS_VALUE)
