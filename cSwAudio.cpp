@@ -238,7 +238,7 @@ int cSwAudio::decode (BYTE* pData, int iSize, double dts, double pts) {
   if (mGotFrame)
     return 0;
 
-  mAvCodec.av_init_packet(&avpkt);
+  mAvCodec.av_init_packet (&avpkt);
   avpkt.data = pData;
   avpkt.size = iSize;
   iBytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame1, &got_frame, &avpkt);

@@ -53,7 +53,7 @@ bool cOmxPlayerAudio::isPassthrough (cOmxStreamInfo hints) {
 //}}}
 //{{{
 bool cOmxPlayerAudio::isEOS() {
-  return mPackets.empty() && (!mDecoder || mDecoder->isEOS());
+  return mPackets.empty() && mDecoder->isEOS();
   }
 //}}}
 
@@ -69,19 +69,14 @@ bool cOmxPlayerAudio::open (cOmxClock* av_clock, const cOmxAudioConfig& config, 
   mAbort = false;
   mFlush = false;
   mFlush_requested = false;
-  m_passthrough = false;
-  m_hw_decode = false;
+  mPassthrough = false;
+  mHwDecode = false;
   m_iCurrentPts = DVD_NOPTS_VALUE;
   mCachedSize = 0;
   mAudioCodec = NULL;
 
   mPlayerError = openSwDecoder();
-  if (!mPlayerError) {
-    close();
-    return false;
-    }
-
-  mPlayerError = openHwDecoder();
+  mPlayerError |= openHwDecoder();
   if (!mPlayerError) {
     close();
     return false;
@@ -95,7 +90,7 @@ void cOmxPlayerAudio::run() {
 
   cLog::setThreadName ("aud ");
 
-  OMXPacket* omx_pkt = NULL;
+  OMXPacket* packet = NULL;
   while (true) {
     lock();
     if (!mAbort && mPackets.empty())
@@ -106,40 +101,40 @@ void cOmxPlayerAudio::run() {
       break;
       }
 
-    if (mFlush && omx_pkt) {
-      cOmxReader::freePacket (omx_pkt);
+    if (mFlush && packet) {
+      cOmxReader::freePacket (packet);
       mFlush = false;
       }
-    else if (!omx_pkt && !mPackets.empty()) {
-      omx_pkt = mPackets.front();
-      mCachedSize -= omx_pkt->size;
+    else if (!packet && !mPackets.empty()) {
+      packet = mPackets.front();
+      mCachedSize -= packet->size;
       mPackets.pop_front();
       }
     unLock();
 
     lockDecoder();
-    if (mFlush && omx_pkt) {
-      cOmxReader::freePacket (omx_pkt);
+    if (mFlush && packet) {
+      cOmxReader::freePacket (packet);
       mFlush = false;
       }
-    else if (omx_pkt && decode (omx_pkt))
-      cOmxReader::freePacket (omx_pkt);
+    else if (packet && decode (packet))
+      cOmxReader::freePacket (packet);
     unLockDecoder();
     }
 
-  cOmxReader::freePacket (omx_pkt);
+  cOmxReader::freePacket (packet);
 
   cLog::log (LOGNOTICE, "exit");
   }
 //}}}
 //{{{
-bool cOmxPlayerAudio::addPacket (OMXPacket *pkt) {
+bool cOmxPlayerAudio::addPacket (OMXPacket* packet) {
 
   if (!mAbort &&
-      ((mCachedSize + pkt->size) < m_config.queue_size * 1024 * 1024)) {
+      ((mCachedSize + packet->size) < m_config.queue_size * 1024 * 1024)) {
     lock();
-    mCachedSize += pkt->size;
-    mPackets.push_back (pkt);
+    mCachedSize += packet->size;
+    mPackets.push_back (packet);
     unLock();
 
     pthread_cond_broadcast (&m_packet_cond);
@@ -169,9 +164,9 @@ void cOmxPlayerAudio::flush() {
   mFlush_requested = false;
   mFlush = true;
   while (!mPackets.empty()) {
-    auto pkt = mPackets.front();
+    auto packet = mPackets.front();
     mPackets.pop_front();
-    cOmxReader::freePacket (pkt);
+    cOmxReader::freePacket (packet);
     }
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
@@ -198,24 +193,15 @@ bool cOmxPlayerAudio::openSwDecoder() {
   }
 //}}}
 //{{{
-void cOmxPlayerAudio::closeSwDecoder() {
-
-  if (mAudioCodec)
-    delete mAudioCodec;
-  mAudioCodec = NULL;
-  }
-//}}}
-
-//{{{
 bool cOmxPlayerAudio::openHwDecoder() {
 
   mDecoder = new cOmxAudio();
   if (m_config.passthrough)
-    m_passthrough = isPassthrough (m_config.hints);
-  if (!m_passthrough && m_config.hwdecode)
-    m_hw_decode = cOmxAudio::hwDecode (m_config.hints.codec);
-  if (m_passthrough)
-    m_hw_decode = false;
+    mPassthrough = isPassthrough (m_config.hints);
+  if (!mPassthrough && m_config.hwdecode)
+    mHwDecode = cOmxAudio::hwDecode (m_config.hints.codec);
+  if (mPassthrough)
+    mHwDecode = false;
 
   bool render = mDecoder->initialize (
     m_av_clock, m_config, mAudioCodec->getChannelMap(), mAudioCodec->getBitsPerSample());
@@ -226,7 +212,7 @@ bool cOmxPlayerAudio::openHwDecoder() {
     mDecoder = NULL;
     return false;
     }
-  else if (m_passthrough)
+  else if (mPassthrough)
     cLog::log (LOGINFO, "cOmxPlayerAudio::OpenDecoder %s passthrough ch:%d rate:%d bps:%d",
                m_codec_name.c_str(),
                m_config.hints.channels,
@@ -239,28 +225,22 @@ bool cOmxPlayerAudio::openHwDecoder() {
 
   // setup current volume settings
   mDecoder->setVolume (m_CurrentVolume);
-  mDecoder->setMute (m_mute);
+  mDecoder->setMute (mMute);
   mDecoder->setDynamicRangeCompression (m_amplification);
 
   return true;
   }
 //}}}
-//{{{
-void cOmxPlayerAudio::closeHwDecoder() {
-  delete mDecoder;
-  mDecoder = NULL;
-  }
-//}}}
 
 //{{{
-bool cOmxPlayerAudio::decode (OMXPacket *pkt) {
+bool cOmxPlayerAudio::decode (OMXPacket* packet) {
 
-  if (!m_omx_reader->isActive (OMXSTREAM_AUDIO, pkt->stream_index))
+  if (!m_omx_reader->isActive (OMXSTREAM_AUDIO, packet->stream_index))
     return true;
 
-  int channels = pkt->hints.channels;
+  int channels = packet->hints.channels;
   unsigned int old_bitrate = m_config.hints.bitrate;
-  unsigned int new_bitrate = pkt->hints.bitrate;
+  unsigned int new_bitrate = packet->hints.bitrate;
 
   // only check bitrate changes on AV_CODEC_ID_DTS, AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3
   if (m_config.hints.codec != AV_CODEC_ID_DTS &&
@@ -269,21 +249,21 @@ bool cOmxPlayerAudio::decode (OMXPacket *pkt) {
 
   // for passthrough we only care about the codec and the samplerate
   bool minor_change = channels != m_config.hints.channels ||
-                      pkt->hints.bitspersample != m_config.hints.bitspersample ||
+                      packet->hints.bitspersample != m_config.hints.bitspersample ||
                       old_bitrate != new_bitrate;
 
-  if (pkt->hints.codec != m_config.hints.codec ||
-      pkt->hints.samplerate!= m_config.hints.samplerate || (!m_passthrough && minor_change)) {
+  if (packet->hints.codec != m_config.hints.codec ||
+      packet->hints.samplerate!= m_config.hints.samplerate || (!mPassthrough && minor_change)) {
     cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
                         m_config.hints.codec, m_config.hints.channels, m_config.hints.samplerate,
                         m_config.hints.bitrate, m_config.hints.bitspersample);
     cLog::log (LOGINFO, "Decode N : %d %d %d %d %d",
-                        pkt->hints.codec, channels, pkt->hints.samplerate,
-                        pkt->hints.bitrate, pkt->hints.bitspersample);
+                        packet->hints.codec, channels, packet->hints.samplerate,
+                        packet->hints.bitrate, packet->hints.bitspersample);
     closeSwDecoder();
     closeHwDecoder();
 
-    m_config.hints = pkt->hints;
+    m_config.hints = packet->hints;
     mPlayerError = openSwDecoder();
     if (!mPlayerError)
       return false;
@@ -293,19 +273,19 @@ bool cOmxPlayerAudio::decode (OMXPacket *pkt) {
       return false;
     }
 
-  cLog::log (LOGINFO1, "Decode pts:%6.2f size:%d", pkt->pts / 1000000.f, pkt->size);
+  cLog::log (LOGINFO1, "Decode pts:%6.2f size:%d", packet->pts / 1000000.f, packet->size);
 
-  if (pkt->pts != DVD_NOPTS_VALUE)
-    m_iCurrentPts = pkt->pts;
-  else if (pkt->dts != DVD_NOPTS_VALUE)
-    m_iCurrentPts = pkt->dts;
+  if (packet->pts != DVD_NOPTS_VALUE)
+    m_iCurrentPts = packet->pts;
+  else if (packet->dts != DVD_NOPTS_VALUE)
+    m_iCurrentPts = packet->dts;
 
-  const uint8_t* data_dec = pkt->data;
-  int data_len = pkt->size;
+  const uint8_t* data_dec = packet->data;
+  int data_len = packet->size;
 
-  if (!m_passthrough && !m_hw_decode) {
-    double dts = pkt->dts;
-    double pts = pkt->pts;
+  if (!mPassthrough && !mHwDecode) {
+    double dts = packet->dts;
+    double pts = packet->pts;
     while (data_len > 0) {
       int len = mAudioCodec->decode((BYTE*)data_dec, data_len, dts, pts);
       if ((len < 0) || (len >  data_len)) {
@@ -333,19 +313,34 @@ bool cOmxPlayerAudio::decode (OMXPacket *pkt) {
       }
     }
   else {
-    while ((int) mDecoder->getSpace() < pkt->size) {
+    while ((int) mDecoder->getSpace() < packet->size) {
       cOmxClock::sleep (10);
       if (mFlush_requested)
         return true;
       }
 
-    mDecoder->addPackets (pkt->data, pkt->size, pkt->dts, pkt->pts, 0);
+    mDecoder->addPackets (packet->data, packet->size, packet->dts, packet->pts, 0);
     }
 
   return true;
   }
 //}}}
 
+//{{{
+void cOmxPlayerAudio::closeSwDecoder() {
+
+  if (mAudioCodec)
+    delete mAudioCodec;
+  mAudioCodec = NULL;
+  }
+//}}}
+//{{{
+void cOmxPlayerAudio::closeHwDecoder() {
+
+  delete mDecoder;
+  mDecoder = NULL;
+  }
+//}}}
 //{{{
 bool cOmxPlayerAudio::close() {
 

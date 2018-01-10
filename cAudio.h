@@ -109,11 +109,10 @@ public:
   float getVolume();
   bool isEOS();
 
-  void setMute (bool bOnOff);
+  void setMute (bool mute);
   void setVolume (float nVolume);
-  void setCodingType (AVCodecID codec);
   void setDynamicRangeCompression (long drc);
-  bool setClock (cOmxClock *clock);
+  void setCodingType (AVCodecID codec);
 
   bool initialize (cOmxClock *clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
   void buildChannelMap (enum PCMChannels *channelMap, uint64_t layout);
@@ -121,7 +120,6 @@ public:
   void buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE *channelMap, uint64_t layout);
   bool portSettingsChanged();
   unsigned int addPackets (const void* data, unsigned int len, double dts, double pts, unsigned int frame_size);
-  unsigned int addPackets (const void* data, unsigned int len);
   void process();
   void submitEOS();
   void flush();
@@ -164,10 +162,6 @@ private:
   OMX_AUDIO_PARAM_PCMMODETYPE m_pcm_output;
 
   bool m_Initialized = false;
-  float m_CurrentVolume = 0.f;
-  bool m_Mute = false;
-  long m_drc = 0;
-  bool m_Passthrough = false;
   unsigned int m_BytesPerSec = 0;
   unsigned int m_InputBytesPerSec = 0;
   unsigned int m_BufferLen = 0;
@@ -175,9 +169,14 @@ private:
   unsigned int m_InputChannels = 0;
   unsigned int m_OutputChannels = 0;
   unsigned int m_BitsPerSample = 0;
+
+  float m_CurrentVolume = 0.f;
+  bool mMute = false;
+  long m_drc = 0;
   float m_maxLevel = 0.f;
   float m_amplification = 1.f;
   float m_attenuation = 1.f;
+
   float m_submitted = 0.f;
   bool m_settings_changed = false;
   bool  m_setStartTime = false;
@@ -230,7 +229,7 @@ public:
   //}}}
   //{{{
   void setMute (bool mute) {
-    m_mute = mute;
+    mMute = mute;
     if (mDecoder)
       mDecoder->setMute (mute);
       }
@@ -245,7 +244,7 @@ public:
 
   bool open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader);
   void run();
-  bool addPacket (OMXPacket *pkt);
+  bool addPacket (OMXPacket* packet);
   void submitEOS();
   void flush();
 
@@ -256,13 +255,12 @@ private:
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
   bool openSwDecoder();
-  void closeSwDecoder();
-
   bool openHwDecoder();
+
+  bool decode (OMXPacket *packet);
+
+  void closeSwDecoder();
   void closeHwDecoder();
-
-  bool decode (OMXPacket *pkt);
-
   bool close();
 
   //{{{  vars
@@ -297,12 +295,12 @@ private:
 
   std::string     m_codec_name;
   std::string     m_device;
-  bool            m_passthrough;
-  bool            m_hw_decode;
+  bool            mPassthrough;
+  bool            mHwDecode;
   bool            m_boost_on_downmix;
 
   float           m_CurrentVolume = 0.f;
   long            m_amplification = 0;
-  bool            m_mute = false;
+  bool            mMute = false;
   //}}}
   };
