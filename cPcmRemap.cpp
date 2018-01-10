@@ -55,23 +55,6 @@ const struct PCMMapInfo PCMDownmixTable[PCM_MAX_CH][PCM_MAX_MIX] = {
 //}}}
 
 //{{{
-int round_int (double x) {
-
-  assert (x > static_cast<double>(INT_MIN / 2) - 1.0);
-  assert (x < static_cast <double>(INT_MAX / 2) + 1.0);
-  return floor (x + 0.5f);
-  }
-//}}}
-
-//{{{
-cPcmRemap::cPcmRemap() :
-    m_inSet(false), m_outSet(false), m_inChannels(0), m_outChannels(0), 
-    m_inSampleSize(0), m_ignoreLayout(false) {
-  }
-//}}}
-cPcmRemap::~cPcmRemap() {}
-
-//{{{
 void cPcmRemap::getDownmixMatrix (float *downmix) {
 
   for (int i = 0; i < 8*8; i++)
@@ -94,9 +77,8 @@ enum PCMChannels* cPcmRemap::setInputFormat (unsigned int channels, enum PCMChan
                                              enum PCMLayout channelLayout, bool dontnormalize) {
 // sets the input format, and returns the requested channel layout */
 
-  m_inChannels   = channels;
-  m_inSampleSize = sampleSize;
-  m_inSet        = channelMap != NULL;
+  m_inChannels = channels;
+  m_inSet = channelMap != NULL;
   if (channelMap)
     memcpy(m_inMap, channelMap, sizeof(enum PCMChannels) * channels);
 
@@ -114,7 +96,7 @@ enum PCMChannels* cPcmRemap::setInputFormat (unsigned int channels, enum PCMChan
     // Do basic channel resolving to find out the empty channels;
     // If m_outSet == true, this was done already by BuildMap() above */
     if (!m_outSet)
-      resolveChannels(); 
+      resolveChannels();
 
     int i = 0;
     for (enum PCMChannels *chan = PCMLayoutMap[m_channelLayout]; *chan != PCM_INVALID; ++chan)
@@ -154,6 +136,7 @@ void cPcmRemap::reset() {
   }
 //}}}
 
+// private
 //{{{
 /* resolves the channels recursively and returns the new index of tablePtr */
 struct PCMMapInfo* cPcmRemap::resolveChannel (enum PCMChannels channel, float level, bool ifExists,
@@ -303,12 +286,10 @@ void cPcmRemap::buildMap() {
   if (!m_inSet || !m_outSet)
     return;
 
-  m_inStride  = m_inSampleSize * m_inChannels ;
-  m_outStride = m_inSampleSize * m_outChannels;
-
   /* see if we need to normalize the levels */
   bool dontnormalize = m_dontnormalize;
-  cLog::log(LOGINFO1, "cPcmRemap - Downmix normalization is %s", (dontnormalize ? "disabled" : "enabled"));
+  cLog::log(LOGINFO1, "cPcmRemap - Downmix normalization is %s", 
+                      (dontnormalize ? "disabled" : "enabled"));
 
   resolveChannels();
 
@@ -337,7 +318,7 @@ void cPcmRemap::buildMap() {
         dst->level /= scale;
         /* find the loudest output level we have that is not 1-1 */
         if (dst->level < 1.0 && loudest < dst->level) {
-          loudest    = dst->level;
+          loudest = dst->level;
           hasLoudest = true;
           }
         }

@@ -59,9 +59,6 @@ struct PCMMapInfo
 
 class cPcmRemap {
 public:
-  cPcmRemap();
-  ~cPcmRemap();
-
   void getDownmixMatrix (float* downmix);
 
   enum PCMChannels* setInputFormat (unsigned int channels, enum PCMChannels* channelMap,
@@ -73,7 +70,7 @@ public:
 
 private:
   struct PCMMapInfo* resolveChannel (enum PCMChannels channel, float level, bool ifExists, std::vector<enum PCMChannels> path, struct PCMMapInfo *tablePtr);
-  void resolveChannels(); 
+  void resolveChannels();
 
   void buildMap();
   void dumpMap (std::string info, int unsigned channels, enum PCMChannels *channelMap);
@@ -81,23 +78,20 @@ private:
   std::string pcmChannelStr (enum PCMChannels ename);
 
   // vars
-  bool m_inSet;
-  bool m_outSet;
+  bool m_inSet = false;
+  bool m_outSet = false;
   enum PCMLayout m_channelLayout;
-  unsigned int m_inChannels;
-  unsigned int m_outChannels;
-  unsigned int m_inSampleSize;
+  unsigned int m_inChannels = 0;
+  unsigned int m_outChannels = 0;
 
   enum PCMChannels m_inMap [PCM_MAX_CH];
   enum PCMChannels m_outMap[PCM_MAX_CH];
   enum PCMChannels m_layoutMap[PCM_MAX_CH + 1];
 
-  bool m_ignoreLayout;
+  bool m_ignoreLayout = false;
   bool m_useable [PCM_MAX_CH];
-  int m_inStride;
-  int m_outStride;
   struct PCMMapInfo  m_lookupMap[PCM_MAX_CH + 1][PCM_MAX_CH + 1];
   int m_counts[PCM_MAX_CH];
 
-  bool m_dontnormalize;
+  bool m_dontnormalize = false;
   };
