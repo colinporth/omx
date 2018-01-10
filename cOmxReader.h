@@ -64,7 +64,7 @@ public:
   cOmxReader();
   ~cOmxReader();
 
-  static void freePacket (OMXPacket*& pkt);
+  static void freePacket (OMXPacket*& packet);
   static double normalizeFrameDuration (double frameduration);
 
   // gets
@@ -93,7 +93,7 @@ public:
   bool getHints (AVStream *stream, cOmxStreamInfo *hints);
   bool getHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
   bool getHints (OMXStreamType type, cOmxStreamInfo &hints);
-  AVMediaType getPacketType (OMXPacket *pkt);
+  AVMediaType getPacketType (OMXPacket* packet);
 
   // sets
   bool setActiveStream (OMXStreamType type, unsigned int index);
@@ -104,7 +104,7 @@ public:
   bool open (std::string filename, bool dump_format, bool live, float timeout,
              std::string cookie, std::string user_agent, std::string lavfdopts, std::string avdict);
   OMXPacket* readPacket();
-  bool seek (int time, bool backwords, double *startpts);
+  bool seek (int time, double& startPts);
   void updateCurrentPTS();
   void clearStreams();
   bool close();

@@ -230,7 +230,7 @@ int interrupt_cb (void *unused) {
   }
 //}}}
 //{{{
-int file_read (void* h, uint8_t* buf, int size) {
+int fileRead (void* h, uint8_t* buf, int size) {
 
   RESET_TIMEOUT(1);
   if (interrupt_cb(NULL))
@@ -241,7 +241,7 @@ int file_read (void* h, uint8_t* buf, int size) {
   }
 //}}}
 //{{{
-offset_t file_seek (void* h, offset_t pos, int whence) {
+offset_t fileSeek (void* h, offset_t pos, int whence) {
 
   RESET_TIMEOUT(1);
   if (interrupt_cb (NULL))
@@ -257,13 +257,13 @@ offset_t file_seek (void* h, offset_t pos, int whence) {
 
 // static
 //{{{
-void cOmxReader::freePacket (OMXPacket*& pkt) {
+void cOmxReader::freePacket (OMXPacket*& packet) {
 
-  if (pkt)
-    free (pkt->data);
+  if (packet)
+    free (packet->data);
 
-  free (pkt);
-  pkt = nullptr;
+  free (packet);
+  packet = nullptr;
   }
 //}}}
 //{{{
@@ -602,9 +602,9 @@ bool cOmxReader::getHints (OMXStreamType type, cOmxStreamInfo& hints) {
   }
 //}}}
 //{{{
-AVMediaType cOmxReader::getPacketType (OMXPacket* pkt) {
-  return (!mAvFormatContext || !pkt) ?
-    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[pkt->stream_index]->codec->codec_type;
+AVMediaType cOmxReader::getPacketType (OMXPacket* packet) {
+  return (!mAvFormatContext || !packet) ?
+    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[packet->stream_index]->codec->codec_type;
   }
 //}}}
 
@@ -671,8 +671,6 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
   m_filename = filename;
   m_speed = DVD_PLAYSPEED_NORMAL;
   m_program = UINT_MAX;
-
-  const AVIOInterruptCB int_cb = { interrupt_cb, NULL };
   AVInputFormat* iformat = NULL;
 
   RESET_TIMEOUT(3);
@@ -682,12 +680,11 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
   mAvFormat.avformat_network_init();
   mAvUtil.av_log_set_level (dump_format ? AV_LOG_INFO : AV_LOG_QUIET);
 
-  int result = -1;
   unsigned char* buffer = NULL;
   unsigned int flags = READ_TRUNCATED | READ_BITRATE | READ_CHUNKED;
 
   mAvFormatContext = mAvFormat.avformat_alloc_context();
-  result = mAvFormat.av_set_options_string (mAvFormatContext, lavfdopts.c_str(), ":", ",");
+  int result = mAvFormat.av_set_options_string (mAvFormatContext, lavfdopts.c_str(), ":", ",");
   if (result < 0) {
     //{{{  options error return
     cLog::log (LOGERROR, "cOmxReader::Open not valid lavfdopts %s ", lavfdopts.c_str());
@@ -706,11 +703,14 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
     }
   //}}}
 
+  const AVIOInterruptCB int_cb = { interrupt_cb, NULL };
   mAvFormatContext->interrupt_callback = int_cb;
   mAvFormatContext->flags |= AVFMT_FLAG_NONBLOCK;
 
-  if (m_filename.substr (0,7) == "http://" || m_filename.substr (0,8) == "https://" ||
-      m_filename.substr (0,7) == "rtmp://" || m_filename.substr (0,7) == "rtsp://") {
+  if (m_filename.substr (0,7) == "http://" ||
+      m_filename.substr (0,8) == "https://" ||
+      m_filename.substr (0,7) == "rtmp://" ||
+      m_filename.substr (0,7) == "rtsp://") {
     //{{{  non file input
     // ffmpeg dislikes the useragent from AirPlay urls
     //int idx = m_filename.Find("|User-Agent=AppleCoreMedia");
@@ -759,7 +759,7 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
 
     buffer = (unsigned char*)mAvUtil.av_malloc (FFMPEG_FILE_BUFFER_SIZE);
     m_ioContext = mAvFormat.avio_alloc_context (
-      buffer, FFMPEG_FILE_BUFFER_SIZE, 0, mFile, file_read, NULL, file_seek);
+      buffer, FFMPEG_FILE_BUFFER_SIZE, 0, mFile, fileRead, NULL, fileSeek);
     m_ioContext->max_packet_size = 6144;
 
     if (m_ioContext->max_packet_size)
@@ -845,8 +845,8 @@ OMXPacket* cOmxReader::readPacket() {
 
   auto stream = mAvFormatContext->streams[avPacket.stream_index];
 
-  auto omxPkt = allocPacket (avPacket.size);
-  if (!omxPkt) {
+  auto packet = allocPacket (avPacket.size);
+  if (!packet) {
     //{{{  error return
     m_eof = true;
     mAvCodec.av_free_packet (&avPacket);
@@ -854,21 +854,21 @@ OMXPacket* cOmxReader::readPacket() {
     }
     //}}}
 
-  omxPkt->codec_type = stream->codec->codec_type;
-  omxPkt->size = avPacket.size;
+  packet->codec_type = stream->codec->codec_type;
+  packet->size = avPacket.size;
   if (avPacket.data)
-    memcpy (omxPkt->data, avPacket.data, omxPkt->size);
+    memcpy (packet->data, avPacket.data, packet->size);
 
-  omxPkt->stream_index = avPacket.stream_index;
-  getHints (stream, &omxPkt->hints);
-  omxPkt->dts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
-  omxPkt->pts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
-  omxPkt->duration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
+  packet->stream_index = avPacket.stream_index;
+  getHints (stream, &packet->hints);
+  packet->dts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
+  packet->pts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
+  packet->duration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
 
   // used to guess streamlength
-  if ((omxPkt->dts != DVD_NOPTS_VALUE) &&
-      (omxPkt->dts > m_iCurrentPts || m_iCurrentPts == DVD_NOPTS_VALUE))
-    m_iCurrentPts = omxPkt->dts;
+  if ((packet->dts != DVD_NOPTS_VALUE) &&
+      (packet->dts > m_iCurrentPts || m_iCurrentPts == DVD_NOPTS_VALUE))
+    m_iCurrentPts = packet->dts;
 
   // check if stream has passed full duration, needed for live streams
   if (avPacket.dts != (int64_t)AV_NOPTS_VALUE) {
@@ -886,14 +886,15 @@ OMXPacket* cOmxReader::readPacket() {
     }
   mAvCodec.av_free_packet (&avPacket);
 
-  return omxPkt;
+  return packet;
   }
 //}}}
 //{{{
-bool cOmxReader::seek (int time, bool backwords, double* startpts) {
+bool cOmxReader::seek (int time, double& startPts) {
 
-  if (time < 0)
-    time = 0;
+  bool backwards = (time < 0);
+  if (backwards)
+    time = -time;
 
   if (!mAvFormatContext)
     return false;
@@ -913,13 +914,13 @@ bool cOmxReader::seek (int time, bool backwords, double* startpts) {
     seek_pts += mAvFormatContext->start_time;
 
   RESET_TIMEOUT(1);
-  int ret = mAvFormat.av_seek_frame (mAvFormatContext, -1, seek_pts, backwords ? AVSEEK_FLAG_BACKWARD : 0);
+  int ret = mAvFormat.av_seek_frame (mAvFormatContext, -1, seek_pts, backwards ? AVSEEK_FLAG_BACKWARD : 0);
   if (ret >= 0)
     updateCurrentPTS();
 
   // in this case the start time is requested time
-  if (startpts)
-    *startpts = DVD_MSEC_TO_TIME(time);
+  if (startPts)
+    startPts = DVD_MSEC_TO_TIME (time);
 
   // demuxer will return failure, if you seek to eof
   m_eof = false;
@@ -929,7 +930,7 @@ bool cOmxReader::seek (int time, bool backwords, double* startpts) {
    }
 
   cLog::log (LOGINFO1, "cOmxReader::SeekTime %d seek ended up on time %d",
-             time,(int)(m_iCurrentPts / DVD_TIME_BASE * 1000));
+             time, (int)(m_iCurrentPts / DVD_TIME_BASE * 1000));
 
   return (ret >= 0);
   }
@@ -938,6 +939,7 @@ bool cOmxReader::seek (int time, bool backwords, double* startpts) {
 void cOmxReader::updateCurrentPTS() {
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
+
   for (unsigned int i = 0; i < mAvFormatContext->nb_streams; i++) {
     auto stream = mAvFormatContext->streams[i];
     if (stream && stream->cur_dts != (int64_t)AV_NOPTS_VALUE) {
@@ -1205,24 +1207,24 @@ bool cOmxReader::setActiveStreamInternal (OMXStreamType type, unsigned int index
 //{{{
 OMXPacket* cOmxReader::allocPacket (int size) {
 
-  auto pkt = (OMXPacket*)malloc (sizeof(OMXPacket));
-  if (pkt) {
-    memset (pkt, 0, sizeof(OMXPacket));
-    pkt->data = (uint8_t*)malloc (size + FF_INPUT_BUFFER_PADDING_SIZE);
-    if (!pkt->data) {
-      free (pkt);
-      pkt = NULL;
+  auto packet = (OMXPacket*)malloc (sizeof(OMXPacket));
+  if (packet) {
+    memset (packet, 0, sizeof(OMXPacket));
+    packet->data = (uint8_t*)malloc (size + FF_INPUT_BUFFER_PADDING_SIZE);
+    if (!packet->data) {
+      free (packet);
+      packet = NULL;
       }
     else {
-      memset (pkt->data + size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-      pkt->size = size;
-      pkt->dts = DVD_NOPTS_VALUE;
-      pkt->pts = DVD_NOPTS_VALUE;
-      pkt->now = DVD_NOPTS_VALUE;
-      pkt->duration = DVD_NOPTS_VALUE;
+      memset (packet->data + size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+      packet->size = size;
+      packet->dts = DVD_NOPTS_VALUE;
+      packet->pts = DVD_NOPTS_VALUE;
+      packet->now = DVD_NOPTS_VALUE;
+      packet->duration = DVD_NOPTS_VALUE;
       }
     }
 
-  return pkt;
+  return packet;
   }
 //}}}

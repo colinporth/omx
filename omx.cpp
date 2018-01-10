@@ -364,7 +364,7 @@ private:
           lastSeekPosSec = seekPosSec;
 
           double seekPts = 0;
-          if (mReader.seek ((int)(seekPosSec * 1000.0), mSeekIncSec < 0.0, &seekPts)) {
+          if (mReader.seek ((int)(seekPosSec * 1000.0), seekPts)) {
             mClock.stop();
             mClock.pause();
 
