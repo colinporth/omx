@@ -110,7 +110,7 @@ public:
   bool isEOS();
 
   void setMute (bool mute);
-  void setVolume (float nVolume);
+  void setVolume (float volume);
   void setDynamicRangeCompression (long drc);
   void setCodingType (AVCodecID codec);
 
@@ -138,8 +138,8 @@ private:
   cCriticalSection mCrtiticalSection;
 
   cAvUtil mAvUtil;
-  cOmxAudioConfig m_config;
-  cOmxClock* m_av_clock = nullptr;
+  cOmxAudioConfig mConfig;
+  cOmxClock* mAvClock = nullptr;
   cOmxCoreComponent* m_omx_clock = nullptr;
 
   cOmxCoreComponent m_omx_render_analog;
@@ -210,35 +210,32 @@ public:
   double getCurrentPTS() { return m_iCurrentPts; };
   //{{{
   unsigned int getLevel() {
-    return m_config.queue_size ? (100.f * mCachedSize / (m_config.queue_size * 1024.f * 1024.f)) : 0;
+    return mConfig.queue_size ? (100.f * mCachedSize / (mConfig.queue_size * 1024.f * 1024.f)) : 0;
     };
   //}}}
   unsigned int getCached() { return mCachedSize; };
-  unsigned int getMaxCached() { return m_config.queue_size * 1024 * 1024; };
+  unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
   float getVolume() { return m_CurrentVolume; }
   bool getError() { return !mPlayerError; };
   bool isPassthrough (cOmxStreamInfo hints);
   bool isEOS();
 
   //{{{
-  void setVolume (float fVolume) {
-    m_CurrentVolume = fVolume;
-    if (mDecoder)
-      mDecoder->setVolume(fVolume);
+  void setVolume (float volume) {
+    m_CurrentVolume = volume;
+    mOmxAudio->setVolume (volume);
     }
   //}}}
   //{{{
   void setMute (bool mute) {
     mMute = mute;
-    if (mDecoder)
-      mDecoder->setMute (mute);
-      }
+    mOmxAudio->setMute (mute);
+    }
   //}}}
   //{{{
   void setDynamicRangeCompression (long drc) {
     m_amplification = drc;
-    if (mDecoder)
-      mDecoder->setDynamicRangeCompression(drc);
+    mOmxAudio->setDynamicRangeCompression(drc);
     }
   //}}}
 
@@ -254,13 +251,13 @@ private:
   void lockDecoder() { pthread_mutex_lock (&mLockDecoder); }
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
-  bool openSwDecoder();
-  bool openHwDecoder();
+  bool openSwAudio();
+  bool openOmxAudio();
 
   bool decode (OMXPacket *packet);
 
-  void closeSwDecoder();
-  void closeHwDecoder();
+  void closeSwAudio();
+  void closeOmxAudio();
   bool close();
 
   //{{{  vars
@@ -274,12 +271,12 @@ private:
   std::atomic<bool> mFlush_requested;
   bool            mPlayerError = false;
 
-  cOmxClock*      m_av_clock = nullptr;
+  cOmxClock*      mAvClock = nullptr;
   cOmxReader*     m_omx_reader = nullptr;
   cOmxStreamInfo  m_hints;
-  cOmxAudioConfig m_config;
-  cOmxAudio*      mDecoder = nullptr;
-  cSwAudio*       mAudioCodec = nullptr;
+  cOmxAudioConfig mConfig;
+  cOmxAudio*      mOmxAudio = nullptr;
+  cSwAudio*       mSwAudio = nullptr;
 
   cAvUtil         mAvUtil;
   cAvCodec        mAvCodec;
