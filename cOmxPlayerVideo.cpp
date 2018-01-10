@@ -34,20 +34,20 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
   }
 //}}}
 
-int cOmxPlayerVideo::getDecoderBufferSize() { return m_decoder ? m_decoder->GetInputBufferSize() : 0; }
-int cOmxPlayerVideo::getDecoderFreeSpace() { return m_decoder ? m_decoder->GetFreeSpace() : 0; }
+int cOmxPlayerVideo::getDecoderBufferSize() { return mDecoder->GetInputBufferSize(); }
+int cOmxPlayerVideo::getDecoderFreeSpace() { return mDecoder->GetFreeSpace(); }
 //{{{
 bool cOmxPlayerVideo::isEOS() {
 
-  if (!m_decoder)
+  if (!mDecoder)
     return false;
-  return mPackets.empty() && (!m_decoder || m_decoder->IsEOS());
+  return mPackets.empty() && (!mDecoder || mDecoder->IsEOS());
   }
 //}}}
 
-void cOmxPlayerVideo::setAlpha (int alpha) { m_decoder->SetAlpha (alpha); }
-void cOmxPlayerVideo::setVideoRect (int aspectMode) { m_decoder->SetVideoRect (aspectMode); }
-void cOmxPlayerVideo::setVideoRect (const CRect& SrcRect, const CRect& DestRect) { m_decoder->SetVideoRect (SrcRect, DestRect); }
+void cOmxPlayerVideo::setAlpha (int alpha) { mDecoder->SetAlpha (alpha); }
+void cOmxPlayerVideo::setVideoRect (int aspectMode) { mDecoder->SetVideoRect (aspectMode); }
+void cOmxPlayerVideo::setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->SetVideoRect (SrcRect, DestRect); }
 
 //{{{
 bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
@@ -80,10 +80,10 @@ bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
     }
   m_frametime = 1000000.0 / m_fps;
 
-  m_decoder = new cOmxVideo();
-  if (m_decoder->Open (m_av_clock, m_config)) {
+  mDecoder = new cOmxVideo();
+  if (mDecoder->Open (m_av_clock, m_config)) {
     cLog::log (LOGINFO, "cOmxPlayerVideo::OpenDecoder %s profile:%d %dx%d %ffps",
-               m_decoder->GetDecoderName().c_str(), m_config.hints.profile,
+               mDecoder->GetDecoderName().c_str(), m_config.hints.profile,
                m_config.hints.width, m_config.hints.height, m_fps);
     return true;
     }
@@ -158,8 +158,7 @@ bool cOmxPlayerVideo::addPacket (OMXPacket* pkt) {
 //{{{
 void cOmxPlayerVideo::submitEOS() {
 
-  if (m_decoder)
-    m_decoder->SubmitEOS();
+  mDecoder->SubmitEOS();
   }
 //}}}
 //{{{
@@ -181,8 +180,7 @@ void cOmxPlayerVideo::flush() {
   m_iCurrentPts = DVD_NOPTS_VALUE;
   mCachedSize = 0;
 
-  if (m_decoder)
-    m_decoder->Reset();
+  mDecoder->Reset();
 
   unLockDecoder();
   unLock();
@@ -219,9 +217,8 @@ bool cOmxPlayerVideo::close() {
   pthread_cond_broadcast (&m_packet_cond);
   unLock();
 
-  if (m_decoder)
-    delete m_decoder;
-  m_decoder = NULL;
+  delete mDecoder;
+  mDecoder = NULL;
 
   m_stream_id = -1;
   m_iCurrentPts = DVD_NOPTS_VALUE;
@@ -249,12 +246,12 @@ bool cOmxPlayerVideo::decode (OMXPacket* pkt) {
   cLog::log (LOGINFO1, "Decode pts:%6.2f curPts:%6.2f size:%d",
                        pkt->pts / 1000000.f, m_iCurrentPts / 1000000.f, pkt->size);
 
-  while ((int)m_decoder->GetFreeSpace() < pkt->size) {
+  while ((int)mDecoder->GetFreeSpace() < pkt->size) {
     cOmxClock::sleep (10);
     if (mFlush_requested)
       return true;
     }
 
-  return m_decoder->Decode (pkt->data, pkt->size, dts, pts);
+  return mDecoder->Decode (pkt->data, pkt->size, dts, pts);
   }
 //}}}

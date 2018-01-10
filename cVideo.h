@@ -333,7 +333,7 @@ private:
   std::atomic<bool>  mFlush_requested;
 
   cOmxClock* m_av_clock = nullptr;
-  cOmxVideo* m_decoder = nullptr;
+  cOmxVideo* mDecoder = nullptr;
   cOmxVideoConfig m_config;
 
   cAvUtil mAvUtil;

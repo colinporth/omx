@@ -70,8 +70,6 @@ public:
     thread ([=]() { player (fileName); } ).detach();
 
     cRaspWindow::run();
-
-    cLog::log (LOGNOTICE, "cAppWindow::run - exit");
     }
   //}}}
 
@@ -271,14 +269,14 @@ private:
   float getAspectRatio (HDMI_ASPECT_T aspect) {
 
     switch (aspect) {
-      case HDMI_ASPECT_4_3:   return  4.0 / 3.0;  break;
-      case HDMI_ASPECT_14_9:  return 14.0 / 9.0;  break;
-      case HDMI_ASPECT_5_4:   return  5.0 / 4.0;  break;
-      case HDMI_ASPECT_16_10: return 16.0 / 10.0; break;
-      case HDMI_ASPECT_15_9:  return 15.0 / 9.0;  break;
-      case HDMI_ASPECT_64_27: return 64.0 / 27.0; break;
+      case HDMI_ASPECT_4_3:   return  4.f / 3.f;  break;
+      case HDMI_ASPECT_14_9:  return 14.f / 9.f;  break;
+      case HDMI_ASPECT_5_4:   return  5.f / 4.f;  break;
+      case HDMI_ASPECT_16_10: return 16.f / 10.f; break;
+      case HDMI_ASPECT_15_9:  return 15.f / 9.f;  break;
+      case HDMI_ASPECT_64_27: return 64.f / 27.f; break;
       case HDMI_ASPECT_16_9:
-      default:                return 16.0 / 9.0;  break;
+      default:                return 16.f / 9.f;  break;
       }
     }
   //}}}

@@ -217,29 +217,29 @@ public:
   unsigned int getCached() { return mCachedSize; };
   unsigned int getMaxCached() { return m_config.queue_size * 1024 * 1024; };
   float getVolume() { return m_CurrentVolume; }
-  bool getError() { return !m_player_error; };
+  bool getError() { return !mPlayerError; };
   bool isPassthrough (cOmxStreamInfo hints);
   bool isEOS();
 
   //{{{
   void setVolume (float fVolume) {
     m_CurrentVolume = fVolume;
-    if (m_decoder)
-      m_decoder->setVolume(fVolume);
+    if (mDecoder)
+      mDecoder->setVolume(fVolume);
     }
   //}}}
   //{{{
   void setMute (bool mute) {
     m_mute = mute;
-    if (m_decoder)
-      m_decoder->setMute (mute);
+    if (mDecoder)
+      mDecoder->setMute (mute);
       }
   //}}}
   //{{{
   void setDynamicRangeCompression (long drc) {
     m_amplification = drc;
-    if (m_decoder)
-      m_decoder->setDynamicRangeCompression(drc);
+    if (mDecoder)
+      mDecoder->setDynamicRangeCompression(drc);
     }
   //}}}
 
@@ -274,13 +274,13 @@ private:
   bool            mAbort;
   bool            mFlush = false;
   std::atomic<bool> mFlush_requested;
-  bool            m_player_error = false;
+  bool            mPlayerError = false;
 
   cOmxClock*      m_av_clock = nullptr;
   cOmxReader*     m_omx_reader = nullptr;
   cOmxStreamInfo  m_hints;
   cOmxAudioConfig m_config;
-  cOmxAudio*      m_decoder = nullptr;
+  cOmxAudio*      mDecoder = nullptr;
   cSwAudio*       mAudioCodec = nullptr;
 
   cAvUtil         mAvUtil;
