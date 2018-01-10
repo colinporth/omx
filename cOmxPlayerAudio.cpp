@@ -106,7 +106,7 @@ void cOmxPlayerAudio::run() {
       }
 
     if (mFlush && omx_pkt) {
-      cOmxReader::FreePacket (omx_pkt);
+      cOmxReader::freePacket (omx_pkt);
       mFlush = false;
       }
     else if (!omx_pkt && !mPackets.empty()) {
@@ -118,16 +118,15 @@ void cOmxPlayerAudio::run() {
 
     lockDecoder();
     if (mFlush && omx_pkt) {
-      cOmxReader::FreePacket (omx_pkt);
+      cOmxReader::freePacket (omx_pkt);
       mFlush = false;
       }
     else if (omx_pkt && decode (omx_pkt))
-      cOmxReader::FreePacket (omx_pkt);
+      cOmxReader::freePacket (omx_pkt);
     unLockDecoder();
     }
 
-  if (omx_pkt)
-    cOmxReader::FreePacket (omx_pkt);
+  cOmxReader::freePacket (omx_pkt);
 
   cLog::log (LOGNOTICE, "exit");
   }
@@ -171,7 +170,7 @@ void cOmxPlayerAudio::flush() {
   while (!mPackets.empty()) {
     auto pkt = mPackets.front();
     mPackets.pop_front();
-    cOmxReader::FreePacket (pkt);
+    cOmxReader::freePacket (pkt);
     }
 
   m_iCurrentPts = DVD_NOPTS_VALUE;
@@ -221,7 +220,7 @@ bool cOmxPlayerAudio::openHwDecoder() {
 
   bool audioRenderOpen = m_decoder->initialize (
     m_av_clock, m_config, mAudioCodec->getChannelMap(), mAudioCodec->getBitsPerSample());
-  m_codec_name = m_omx_reader->GetCodecName (OMXSTREAM_AUDIO);
+  m_codec_name = m_omx_reader->getCodecName (OMXSTREAM_AUDIO);
 
   if (!audioRenderOpen) {
     delete m_decoder;
@@ -261,7 +260,7 @@ bool cOmxPlayerAudio::decode (OMXPacket *pkt) {
   if (!m_decoder || !mAudioCodec)
     return true;
 
-  if (!m_omx_reader->IsActive (OMXSTREAM_AUDIO, pkt->stream_index))
+  if (!m_omx_reader->isActive (OMXSTREAM_AUDIO, pkt->stream_index))
     return true;
 
   int channels = pkt->hints.channels;

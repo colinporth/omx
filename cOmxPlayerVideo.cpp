@@ -70,7 +70,7 @@ bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
   // open decoder
   if (m_config.hints.fpsrate && m_config.hints.fpsscale)
     m_fps = 1000000.f /
-            cOmxReader::NormalizeFrameDuration (1000000.0 * m_config.hints.fpsscale / m_config.hints.fpsrate);
+            cOmxReader::normalizeFrameDuration (1000000.0 * m_config.hints.fpsscale / m_config.hints.fpsrate);
   else
     m_fps = 25.f;
 
@@ -110,7 +110,7 @@ void cOmxPlayerVideo::run() {
       }
 
     if (mFlush && omx_pkt) {
-      cOmxReader::FreePacket (omx_pkt);
+      cOmxReader::freePacket (omx_pkt);
       mFlush = false;
       }
     else if (!omx_pkt && !mPackets.empty()) {
@@ -123,17 +123,16 @@ void cOmxPlayerVideo::run() {
     lockDecoder();
     if (omx_pkt) {
       if (mFlush) {
-        cOmxReader::FreePacket (omx_pkt);
+        cOmxReader::freePacket (omx_pkt);
         mFlush = false;
         }
       else if (decode (omx_pkt))
-        cOmxReader::FreePacket (omx_pkt);
+        cOmxReader::freePacket (omx_pkt);
       }
     unLockDecoder();
     }
 
-  if (omx_pkt)
-    cOmxReader::FreePacket (omx_pkt);
+  cOmxReader::freePacket (omx_pkt);
 
   cLog::log (LOGNOTICE, "exit");
   }
@@ -174,9 +173,9 @@ void cOmxPlayerVideo::flush() {
   mFlush_requested = false;
   mFlush = true;
   while (!mPackets.empty()) {
-    OMXPacket *pkt = mPackets.front();
+    auto pkt = mPackets.front();
     mPackets.pop_front();
-    cOmxReader::FreePacket (pkt);
+    cOmxReader::freePacket (pkt);
     }
 
   m_iCurrentPts = DVD_NOPTS_VALUE;

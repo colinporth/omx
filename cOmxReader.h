@@ -64,49 +64,50 @@ public:
   cOmxReader();
   ~cOmxReader();
 
-  static void FreePacket (OMXPacket*& pkt);
-  static double NormalizeFrameDuration (double frameduration);
+  static void freePacket (OMXPacket*& pkt);
+  static double normalizeFrameDuration (double frameduration);
 
-  bool Open (std::string filename, bool dump_format, bool live, float timeout,
-             std::string cookie, std::string user_agent, std::string lavfdopts, std::string avdict);
-  bool Close();
-  void ClearStreams();
-
-  bool IsEof();
-  bool IsActive (int stream_index);
-  bool IsActive (OMXStreamType type, int stream_index);
-  bool CanSeek();
+  // gets
+  bool isEof();
+  bool isActive (int stream_index);
+  bool isActive (OMXStreamType type, int stream_index);
+  bool canSeek();
 
   std::string getFilename() const { return m_filename; }
-  int GetWidth() { return m_width; };
-  int GetHeight() { return m_height; };
-  double GetAspectRatio() { return m_aspect; };
+  int getWidth() { return m_width; };
+  int getHeight() { return m_height; };
+  double getAspectRatio() { return m_aspect; };
+  int getAudioStreamCount() { return m_audio_count; };
+  int getVideoStreamCount() { return m_video_count; };
+  int getAudioIndex() { return (m_audio_index >= 0) ? m_streams[m_audio_index].index : -1; };
+  int getVideoIndex() { return (m_video_index >= 0) ? m_streams[m_video_index].index : -1; };
+  int getRelativeIndex (size_t index) { return m_streams[index].index; }
+  int getStreamLength();
 
-  int GetAudioStreamCount() { return m_audio_count; };
-  int GetVideoStreamCount() { return m_video_count; };
-  int GetAudioIndex() { return (m_audio_index >= 0) ? m_streams[m_audio_index].index : -1; };
-  int GetVideoIndex() { return (m_video_index >= 0) ? m_streams[m_video_index].index : -1; };
-  int GetRelativeIndex (size_t index) { return m_streams[index].index; }
+  std::string getCodecName (OMXStreamType type);
+  std::string getCodecName (OMXStreamType type, unsigned int index);
+  std::string getStreamCodecName (AVStream *stream);
+  std::string getStreamLanguage (OMXStreamType type, unsigned int index);
+  std::string getStreamName (OMXStreamType type, unsigned int index);
+  std::string getStreamType (OMXStreamType type, unsigned int index);
+  bool getHints (AVStream *stream, cOmxStreamInfo *hints);
+  bool getHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
+  bool getHints (OMXStreamType type, cOmxStreamInfo &hints);
+  AVMediaType getPacketType (OMXPacket *pkt);
 
-  int GetStreamLength();
-  std::string GetCodecName (OMXStreamType type);
-  std::string GetCodecName (OMXStreamType type, unsigned int index);
-  std::string GetStreamCodecName (AVStream *stream);
-  std::string GetStreamLanguage (OMXStreamType type, unsigned int index);
-  std::string GetStreamName (OMXStreamType type, unsigned int index);
-  std::string GetStreamType (OMXStreamType type, unsigned int index);
-  bool GetHints (AVStream *stream, cOmxStreamInfo *hints);
-  bool GetHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
-  bool GetHints (OMXStreamType type, cOmxStreamInfo &hints);
-  AVMediaType PacketType (OMXPacket *pkt);
+  // sets
+  bool setActiveStream (OMXStreamType type, unsigned int index);
+  double selectAspect (AVStream* st, bool& forced);
+  void setSpeed (int iSpeed);
 
-  bool SetActiveStream (OMXStreamType type, unsigned int index);
-  double SelectAspect (AVStream* st, bool& forced);
-  void SetSpeed (int iSpeed);
-
-  OMXPacket* Read();
-  bool SeekTime (int time, bool backwords, double *startpts);
-  void UpdateCurrentPTS();
+  // actions
+  bool open (std::string filename, bool dump_format, bool live, float timeout,
+             std::string cookie, std::string user_agent, std::string lavfdopts, std::string avdict);
+  OMXPacket* readPacket();
+  bool seek (int time, bool backwords, double *startpts);
+  void updateCurrentPTS();
+  void clearStreams();
+  bool close();
 
 private:
   bool getStreams();

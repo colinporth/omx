@@ -104,25 +104,25 @@ protected:
 
       //{{{
       case cKeyConfig::ACTION_PREVIOUS_AUDIO:
-        if (mReader.GetAudioIndex() > 0)
-          mReader.SetActiveStream (OMXSTREAM_AUDIO, mReader.GetAudioIndex()-1);
+        if (mReader.getAudioIndex() > 0)
+          mReader.setActiveStream (OMXSTREAM_AUDIO, mReader.getAudioIndex()-1);
         break;
       //}}}
       //{{{
       case cKeyConfig::ACTION_NEXT_AUDIO:
-        mReader.SetActiveStream (OMXSTREAM_AUDIO, mReader.GetAudioIndex()+1);
+        mReader.setActiveStream (OMXSTREAM_AUDIO, mReader.getAudioIndex()+1);
         break;
       //}}}
 
       //{{{
       case cKeyConfig::ACTION_PREVIOUS_VIDEO:
-        if (mReader.GetVideoIndex() > 0)
-          mReader.SetActiveStream (OMXSTREAM_VIDEO, mReader.GetVideoIndex()-1);
+        if (mReader.getVideoIndex() > 0)
+          mReader.setActiveStream (OMXSTREAM_VIDEO, mReader.getVideoIndex()-1);
         break;
       //}}}
       //{{{
       case cKeyConfig::ACTION_NEXT_VIDEO:
-        mReader.SetActiveStream (OMXSTREAM_VIDEO, mReader.GetVideoIndex()+1);
+        mReader.setActiveStream (OMXSTREAM_VIDEO, mReader.getVideoIndex()+1);
         break;
       //}}}
 
@@ -328,16 +328,15 @@ private:
     //audioConfig.is_live = true;
     bool dump = false;
     if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.Open (fileName.c_str(), dump, audioConfig.is_live, 5.f,
-                      "", "", "probesize:400000", "")) {
+        mReader.open (fileName.c_str(), dump, audioConfig.is_live, 5.f, "","","probesize:400000","")) {
       mClock.stateIdle();
       mClock.stop();
       mClock.pause();
 
-      bool hasAudio = mReader.GetAudioStreamCount();
-      bool hasVideo = mReader.GetVideoStreamCount();
-      mReader.GetHints (OMXSTREAM_AUDIO, audioConfig.hints);
-      mReader.GetHints (OMXSTREAM_VIDEO, videoConfig.hints);
+      bool hasAudio = mReader.getAudioStreamCount();
+      bool hasVideo = mReader.getVideoStreamCount();
+      mReader.getHints (OMXSTREAM_AUDIO, audioConfig.hints);
+      mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
 
       if (hasVideo && mPlayerVideo.open (&mClock, videoConfig))
         thread ([=]() { mPlayerVideo.run(); } ).detach();
@@ -365,7 +364,7 @@ private:
           lastSeekPosSec = seekPosSec;
 
           double seekPts = 0;
-          if (mReader.SeekTime ((int)(seekPosSec * 1000.0), mSeekIncSec < 0.0, &seekPts)) {
+          if (mReader.seek ((int)(seekPosSec * 1000.0), mSeekIncSec < 0.0, &seekPts)) {
             mClock.stop();
             mClock.pause();
 
@@ -373,7 +372,7 @@ private:
               mPlayerVideo.flush();
             if (hasAudio)
               mPlayerAudio.flush();
-            mReader.FreePacket (omxPacket);
+            mReader.freePacket (omxPacket);
 
             if (pts != DVD_NOPTS_VALUE)
               mClock.setMediaTime (seekPts);
@@ -438,7 +437,7 @@ private:
                 cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                            audio_fifo, video_fifo,
                            audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                           mReader.IsEof(), omxPacket);
+                           mReader.isEof(), omxPacket);
                 mClock.resume();
                 loadLatency = latency;
                 }
@@ -464,7 +463,7 @@ private:
             }
           }
           //}}}
-        else if (!mPause && (mReader.IsEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
+        else if (!mPause && (mReader.isEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
           //{{{  resume
           if (mClock.isPaused()) {
             cLog::log (LOGINFO, "resume aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
@@ -473,7 +472,7 @@ private:
                        video_fifo_low ? "vFifoLo ":"",
                        audio_fifo_high ? "aFifoHi ":"",
                        video_fifo_high ? "vFifoHi ":"",
-                       mReader.IsEof() ? "eof " : "",
+                       mReader.isEof() ? "eof " : "",
                        omxPacket ? "" : "emptyPkt");
 
             mClock.resume();
@@ -501,12 +500,12 @@ private:
 
         //{{{  packet reader
         if (!omxPacket)
-          omxPacket = mReader.Read();
+          omxPacket = mReader.readPacket();
 
         if (omxPacket) {
           sendEos = false;
 
-          if (hasVideo && mReader.IsActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
+          if (hasVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
             if (mPlayerVideo.addPacket (omxPacket))
               omxPacket = NULL;
             else
@@ -519,11 +518,11 @@ private:
               cOmxClock::sleep (10);
             }
           else
-            mReader.FreePacket (omxPacket);
+            mReader.freePacket (omxPacket);
           }
 
         else {
-          if (mReader.IsEof()) {
+          if (mReader.isEof()) {
             // demuxer EOF, but may have not played out data yet
             if ( (hasVideo && mPlayerVideo.getCached()) || (hasAudio && mPlayerAudio.getCached()) ) {
               cOmxClock::sleep (10);
@@ -549,7 +548,7 @@ private:
 
       mClock.stop();
       mClock.stateIdle();
-      mReader.FreePacket (omxPacket);
+      mReader.freePacket (omxPacket);
       }
 
     cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.getError:%d",
