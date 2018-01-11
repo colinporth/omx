@@ -68,12 +68,12 @@ public:
     if (nftw (root.c_str(), displayInfo, 20, 0) == -1)
       cLog::log (LOGERROR, "nftw");
 
-    mDebugStr = mFileNames[fileNum];
+    mDebugStr = mFileNames[0];
 
     initialise (1.f, 0);
     add (new cTextBox (mDebugStr, 0.f));
 
-    thread ([=]() { player (mFileNames[fileNum]); } ).detach();
+    thread ([=]() { player (mFileNames[0]); } ).detach();
 
     cRaspWindow::run();
     }
@@ -249,9 +249,11 @@ private:
     // ftw->level - depth
     // ftw->base - offset of base in path
     // (intmax_t)statBuf->st_size,
-    if (tflag == FTW_F)
+    if (tflag == FTW_F) {
       cLog::log (LOGINFO, path);
-    mFileNames.push_back (path);
+      string fileName = path;
+      mFileNames.push_back (fileName);
+      }
     return 0;  
     }
   //}}}
@@ -582,9 +584,11 @@ private:
   bool mPause = false;
   double mSeekIncSec = 0.0;
   string mDebugStr;
+
   static vector<string> mFileNames;
   //}}}
   };
+vector<string> cAppWindow::mFileNames;
 
 //{{{
 int main (int argc, char* argv[]) {
