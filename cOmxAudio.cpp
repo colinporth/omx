@@ -186,7 +186,7 @@ void cOmxAudio::setMute (bool mute) {
   cSingleLock lock (mCrtiticalSection);
 
   mMute = mute;
-  if (m_settings_changed)
+  if (mSettingsChanged)
     updateAttenuation();
   }
 //}}}
@@ -196,17 +196,17 @@ void cOmxAudio::setVolume (float volume) {
   cSingleLock lock (mCrtiticalSection);
 
   m_CurrentVolume = volume;
-  if (m_settings_changed)
+  if (mSettingsChanged)
     updateAttenuation();
   }
 //}}}
 //{{{
-void cOmxAudio::setDynamicRangeCompression (long drc) {
+void cOmxAudio::setDynamicRangeCompression (float drc) {
 
   cSingleLock lock (mCrtiticalSection);
 
-  m_amplification = powf (10.f, (float)drc / 2000.f);
-  if (m_settings_changed)
+  mDrc = powf (10.f, drc);
+  if (mSettingsChanged)
     updateAttenuation();
   }
 //}}}
@@ -253,7 +253,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
     setCodingType (AV_CODEC_ID_PCM_S16LE);
 
   m_omx_clock = mAvClock->getOmxClock();
-  m_drc = 0;
+  mDrc = 0;
 
   m_InputChannels = countBits (channelMap);
   memset (m_input_channels, 0x0, sizeof(m_input_channels));
@@ -443,7 +443,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   m_pcm_input.nChannels = m_InputChannels;
   m_pcm_input.nSamplingRate = mConfig.hints.samplerate;
 
-  m_settings_changed = false;
+  mSettingsChanged = false;
   m_setStartTime  = true;
   m_submitted_eos = false;
   m_failed_eos = false;
@@ -551,7 +551,7 @@ bool cOmxAudio::portSettingsChanged() {
 
   cSingleLock lock (mCrtiticalSection);
 
-  if (m_settings_changed) {
+  if (mSettingsChanged) {
     m_omx_decoder.DisablePort (m_omx_decoder.GetOutputPort(), true);
     m_omx_decoder.EnablePort (m_omx_decoder.GetOutputPort(), true);
     return true;
@@ -813,7 +813,7 @@ bool cOmxAudio::portSettingsChanged() {
       }
       //}}}
 
-  m_settings_changed = true;
+  mSettingsChanged = true;
   return true;
   }
 //}}}
@@ -1099,7 +1099,7 @@ bool cOmxAudio::applyVolume() {
   OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
   OMX_INIT_STRUCTURE(mix);
   assert (sizeof(mix.coeff) / sizeof(mix.coeff[0]) == 64);
-  if (m_amplification != 1.0) {
+  if (mDrc != 1.0) {
     // reduce scaling so overflow can be seen
     for (size_t i = 0; i < 8*8; ++i)
       mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * 0.01f));
@@ -1111,7 +1111,7 @@ bool cOmxAudio::applyVolume() {
     }
 
   for (size_t i = 0; i < 8*8; ++i)
-    mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * volume * m_amplification * m_attenuation));
+    mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * volume * mDrc * m_attenuation));
 
   mix.nPortIndex = m_omx_mixer.GetInputPort();
   if (m_omx_mixer.SetConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix) != OMX_ErrorNone) {
@@ -1119,15 +1119,15 @@ bool cOmxAudio::applyVolume() {
     return false;
     }
 
-  cLog::log (LOGINFO2, "cOmxAudio::applyVolume vol:%.2f amp:%.2f att:%.2f",
-                       volume, m_amplification, m_attenuation);
+  cLog::log (LOGINFO2, "cOmxAudio::applyVolume vol:%.2f drc:%.2f att:%.2f",
+                       volume, mDrc, m_attenuation);
   return true;
   }
 //}}}
 //{{{
 void cOmxAudio::updateAttenuation() {
 
-  if (m_amplification == 1.0) {
+  if (mDrc == 1.f) {
     applyVolume();
     return;
     }
@@ -1178,16 +1178,16 @@ void cOmxAudio::updateAttenuation() {
     else
       m_maxLevel = decay  * m_maxLevel + (1.f - decay ) * maxlevel;
 
-    // want m_maxLevel * amp -> 1.0
-    float amp = m_amplification * m_attenuation;
+    // want m_maxLevel * drc -> 1.0
+    float amp = mDrc * m_attenuation;
 
     // We fade in the attenuation over first couple of seconds
     float start = min (max ((m_submitted-1.f), 0.f), 1.f);
-    float attenuation = min( 1.f, max(m_attenuation / (amp * m_maxLevel), 1.f / m_amplification));
-    m_attenuation = (1.f - start) * 1.f / m_amplification + start * attenuation;
+    float attenuation = min( 1.f, max(m_attenuation / (amp * m_maxLevel), 1.f / mDrc));
+    m_attenuation = (1.f - start) * 1.f / mDrc + start * attenuation;
     }
   else
-    m_attenuation = 1.f / m_amplification;
+    m_attenuation = 1.f / mDrc;
 
   applyVolume();
   }

@@ -550,6 +550,7 @@ private:
 
     cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.getError:%d",
                           mExit, gAbort, mPlayerAudio.getError());
+    mExit = true;
     }
   //}}}
 

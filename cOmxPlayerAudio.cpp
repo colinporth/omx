@@ -226,7 +226,7 @@ bool cOmxPlayerAudio::openOmxAudio() {
   // setup current volume settings
   mOmxAudio->setVolume (m_CurrentVolume);
   mOmxAudio->setMute (mMute);
-  mOmxAudio->setDynamicRangeCompression (m_amplification);
+  mOmxAudio->setDynamicRangeCompression (mDrc);
 
   return true;
   }

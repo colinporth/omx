@@ -110,7 +110,7 @@ public:
 
   void setMute (bool mute);
   void setVolume (float volume);
-  void setDynamicRangeCompression (long drc);
+  void setDynamicRangeCompression (float drc);
   void setCodingType (AVCodecID codec);
 
   bool initialize (cOmxClock *clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
@@ -171,13 +171,12 @@ private:
 
   float m_CurrentVolume = 0.f;
   bool mMute = false;
-  long m_drc = 0;
   float m_maxLevel = 0.f;
-  float m_amplification = 1.f;
   float m_attenuation = 1.f;
+  float mDrc = 1.f;
 
   float m_submitted = 0.f;
-  bool m_settings_changed = false;
+  bool mSettingsChanged = false;
   bool  m_setStartTime = false;
   double m_last_pts = DVD_NOPTS_VALUE;
   bool m_submitted_eos = false;
@@ -232,9 +231,9 @@ public:
     }
   //}}}
   //{{{
-  void setDynamicRangeCompression (long drc) {
-    m_amplification = drc;
-    mOmxAudio->setDynamicRangeCompression(drc);
+  void setDynamicRangeCompression (float drc) {
+    mDrc = drc;
+    mOmxAudio->setDynamicRangeCompression (drc);
     }
   //}}}
 
@@ -296,7 +295,7 @@ private:
   bool            m_boost_on_downmix;
 
   float           m_CurrentVolume = 0.f;
-  long            m_amplification = 0;
+  float           mDrc = 0.f;
   bool            mMute = false;
   //}}}
   };
