@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ftw.h>
 
 #include <string>
 #include <chrono>
@@ -50,6 +53,21 @@ void sigHandler (int s) {
   abort();
   }
 //}}}
+
+#include <stdio.h>
+
+int display_info (const char* fpath, const struct stat* sb, int tflag, struct FTW* ftwbuf) {
+
+  printf ("%-3s %2d %7jd   %-40s %d %s\n",
+          (tflag == FTW_D) ?   "d"   : (tflag == FTW_DNR) ? "dnr" :
+          (tflag == FTW_DP) ?  "dp"  : (tflag == FTW_F) ?   "f" :
+          (tflag == FTW_NS) ?  "ns"  : (tflag == FTW_SL) ?  "sl" :
+          (tflag == FTW_SLN) ? "sln" : "???",
+          ftwbuf->level, (intmax_t) sb->st_size,
+          fpath, ftwbuf->base, fpath + ftwbuf->base);
+  // To tell nftw() to continue
+  return 0;  
+  }
 
 class cAppWindow : public cRaspWindow {
 public:
@@ -581,6 +599,12 @@ int main (int argc, char* argv[]) {
 
   cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
+
+  int flags = 0;
+  // flags |= FTW_DEPTH;
+  // flags |= FTW_PHYS;
+  if (nftw (root.c_str(), display_info, 20, flags) == -1)
+    cLog::log (LOGERROR, "nftw");
 
   cAppWindow appWindow;
   appWindow.run (root + "/" + fileName);
