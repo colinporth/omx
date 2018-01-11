@@ -68,12 +68,12 @@ public:
     if (nftw (root.c_str(), displayInfo, 20, 0) == -1)
       cLog::log (LOGERROR, "nftw");
 
-    mDebugStr = mFileNames[0];
+    mDebugStr = mFileNames[fileNum];
 
     initialise (1.f, 0);
     add (new cTextBox (mDebugStr, 0.f));
 
-    thread ([=]() { player (mFileNames[0]); } ).detach();
+    thread ([=]() { player (mFileNames[fileNum]); } ).detach();
 
     cRaspWindow::run();
     }
@@ -254,7 +254,7 @@ private:
       string fileName = path;
       mFileNames.push_back (fileName);
       }
-    return 0;  
+    return 0;
     }
   //}}}
   //{{{
