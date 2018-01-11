@@ -7,7 +7,7 @@
 #include <assert.h>
 
 #include "../shared/utils/cLog.h"
-#include "omxAlsa.h"
+//#include "omxAlsa.h"
 #include "cOmxClock.h"
 
 using namespace std;
@@ -143,10 +143,7 @@ bool cOmxCoreComponent::Initialize (const string &component_name,
   // Get video component handle setting up callbacks, component is in loaded state on return.
   if (!m_handle) {
     OMX_ERRORTYPE omx_err;
-    if (strncmp ("OMX.alsa.", component_name.c_str(), 9) == 0)
-      omx_err = OMXALSA_GetHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
-    else
-      omx_err = mOmx->getHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
+    omx_err = mOmx->getHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
 
     if (!m_handle || omx_err != OMX_ErrorNone) {
       cLog::log (LOGERROR, "omxCoreComp::Initialize no component handle %s 0x%08x",
@@ -200,10 +197,7 @@ bool cOmxCoreComponent::Deinitialize() {
     cLog::log (LOGINFO1, "omxCoreComp::Deinitialize() %s h:%p", m_componentName.c_str(), m_handle);
 
     OMX_ERRORTYPE omx_err;
-    if (strncmp ("OMX.alsa.", m_componentName.c_str(), 9) == 0)
-      omx_err = OMXALSA_FreeHandle (m_handle);
-    else
-      omx_err = mOmx->freeHandle (m_handle);
+    omx_err = mOmx->freeHandle (m_handle);
     if (omx_err != OMX_ErrorNone)
       cLog::log (LOGERROR, "omxCoreComp::Deinitialize() no free handle %s 0x%08x",
                  m_componentName.c_str(), omx_err);
@@ -247,7 +241,7 @@ OMX_ERRORTYPE cOmxCoreComponent::AllocInputBuffers (bool use_buffers /* = false 
   m_input_buffer_count = portFormat.nBufferCountActual;
   m_input_buffer_size= portFormat.nBufferSize;
   cLog::log (LOGINFO1, "%s %s port:%d, min:%u, act:%u, size:%u, a:%u",
-             __func__, m_componentName.c_str(), 
+             __func__, m_componentName.c_str(),
              GetInputPort(), portFormat.nBufferCountMin,
              portFormat.nBufferCountActual, portFormat.nBufferSize, portFormat.nBufferAlignment);
 

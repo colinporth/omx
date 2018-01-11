@@ -7,7 +7,6 @@ SRC=       cOmxCoreComponent.cpp \
 	   cOmxPlayerAudio.cpp \
 	   cOmxAudio.cpp \
 	   cSwAudio.cpp \
-	   omxAlsa.cpp \
 	   cPcmRemap.cpp \
 	   ../shared/utils/cLog.cpp \
 	   ../shared/utils/cKeyboard.cpp \
