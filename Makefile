@@ -52,9 +52,6 @@ LDFLAGS+=  -L ./ \
 	   -l brcmGLESv2 \
 	   -l brcmEGL \
 	   -l bcm_host \
-	   -l WFC \
-	   -l EGL \
-	   -l GLESv2 \
 	   -l vcos \
 	   -l vchostif \
 	   -l vchiq_arm \
