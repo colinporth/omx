@@ -570,18 +570,20 @@ int main (int argc, char* argv[]) {
   signal (SIGFPE, sigHandler);
   signal (SIGINT, sigHandler);
   //}}}
+  string root = "/home/pi/tv";
   bool logInfo = false;
   string fileName;
 
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logInfo = true;
+    else if (!strcmp(argv[arg], "r")) root = argv[++arg];
     else fileName = argv[arg];
 
   cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
   cAppWindow appWindow;
-  appWindow.run (fileName);
+  appWindow.run (root + "/" + fileName);
 
   return EXIT_SUCCESS;
   }
