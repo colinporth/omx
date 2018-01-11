@@ -54,22 +54,6 @@ void sigHandler (int s) {
   }
 //}}}
 
-int displayInfo (const char* path, const struct stat* statBuf, int tflag, struct FTW* ftw) {
-
-  // tflag == FTW_D
-  // tflag == FTW_DNR
-  // tflag == FTW_DP
-  // tflag == FTW_F
-  // tflag == FTW_NS
-  // tflag == FTW_SL
-  // tflag == FTW_SLN
-  // ftw->level,
-  // (intmax_t)statBuf->st_size,
-  if (tflag == FTW_F)
-    cLog::log (LOGINFO, path + ftw->base);
-  return 0;  
-  }
-
 class cAppWindow : public cRaspWindow {
 public:
   //{{{
@@ -79,14 +63,17 @@ public:
     }
   //}}}
   //{{{
-  void run (const string& fileName) {
+  void run (const string& root, int fileNum) {
 
-    mDebugStr = fileName;
+    if (nftw (root.c_str(), displayInfo, 20, 0) == -1)
+      cLog::log (LOGERROR, "nftw");
+
+    mDebugStr = mFileNames[fileNum];
 
     initialise (1.f, 0);
     add (new cTextBox (mDebugStr, 0.f));
 
-    thread ([=]() { player (fileName); } ).detach();
+    thread ([=]() { player (mFileNames[fileNum]); } ).detach();
 
     cRaspWindow::run();
     }
@@ -248,6 +235,25 @@ private:
       }
     //}}}
     };
+  //}}}
+  //{{{
+  static int displayInfo (const char* path, const struct stat* statBuf, int tflag, struct FTW* ftw) {
+
+    // tflag == FTW_D
+    // tflag == FTW_DNR
+    // tflag == FTW_DP
+    // tflag == FTW_F
+    // tflag == FTW_NS
+    // tflag == FTW_SL
+    // tflag == FTW_SLN
+    // ftw->level - depth
+    // ftw->base - offset of base in path
+    // (intmax_t)statBuf->st_size,
+    if (tflag == FTW_F)
+      cLog::log (LOGINFO, path);
+    mFileNames.push_back (path);
+    return 0;  
+    }
   //}}}
   //{{{
   bool exists (const string& path) {
@@ -576,6 +582,7 @@ private:
   bool mPause = false;
   double mSeekIncSec = 0.0;
   string mDebugStr;
+  static vector<string> mFileNames;
   //}}}
   };
 
@@ -591,21 +598,19 @@ int main (int argc, char* argv[]) {
   string root = "/home/pi/tv";
   bool logInfo = false;
   string fileName;
+  int fileNum = 0;
 
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logInfo = true;
     else if (!strcmp(argv[arg], "r")) root = argv[++arg];
+    else if (!strcmp(argv[arg], "n")) fileNum = atoi (argv[++arg]);
     else fileName = argv[arg];
 
   cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
-  //int flags = 0; // | FTW_DEPTH | FTW_PHYS;
-  if (nftw (root.c_str(), displayInfo, 20, 0) == -1)
-    cLog::log (LOGERROR, "nftw");
-
   cAppWindow appWindow;
-  appWindow.run (root + "/" + fileName);
+  appWindow.run (root, fileNum);
 
   return EXIT_SUCCESS;
   }
