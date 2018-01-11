@@ -1,13 +1,12 @@
 // cOmxCoreComponent.cpp
 //{{{  includes
-#include "cOmxCoreComponent.h"
-
 #include <stdio.h>
 #include <string>
 #include <assert.h>
 
+#include "cOmxCoreComponent.h"
+
 #include "../shared/utils/cLog.h"
-//#include "omxAlsa.h"
 #include "cOmxClock.h"
 
 using namespace std;
@@ -952,85 +951,6 @@ OMX_ERRORTYPE cOmxCoreComponent::GetConfig (OMX_INDEXTYPE configIndex, OMX_PTR c
     cLog::log(LOGERROR, "%s %s 0x%x", __func__, m_componentName.c_str(), omx_err);
 
   return omx_err;
-  }
-//}}}
-
-//{{{
-OMX_ERRORTYPE cOmxCoreComponent::UseEGLImage (OMX_BUFFERHEADERTYPE** ppBufferHdr,
-                                              OMX_U32 nPortIndex, OMX_PTR pAppPrivate, void* eglImage) {
-
-  if (m_callbacks.FillBufferDone == &cOmxCoreComponent::DecoderFillBufferDoneCallback) {
-    if (!m_handle)
-      return OMX_ErrorUndefined;
-
-    m_omx_output_use_buffers = false;
-
-    OMX_PARAM_PORTDEFINITIONTYPE portFormat;
-    OMX_INIT_STRUCTURE(portFormat);
-    portFormat.nPortIndex = m_output_port;
-    OMX_ERRORTYPE omx_err = OMX_GetParameter(m_handle, OMX_IndexParamPortDefinition, &portFormat);
-    if (omx_err != OMX_ErrorNone)
-      return omx_err;
-
-    if (GetState() != OMX_StateIdle) {
-      if (GetState() != OMX_StateLoaded)
-        SetStateForComponent(OMX_StateLoaded);
-      SetStateForComponent(OMX_StateIdle);
-      }
-
-    omx_err = EnablePort(m_output_port, false);
-    if (omx_err != OMX_ErrorNone) {
-      cLog::log (LOGERROR, "%s %s EnablePort 0x%x", __func__, m_componentName.c_str(), omx_err);
-      return omx_err;
-      }
-
-    m_output_alignment = portFormat.nBufferAlignment;
-    m_output_buffer_count = portFormat.nBufferCountActual;
-    m_output_buffer_size = portFormat.nBufferSize;
-
-    if (portFormat.nBufferCountActual != 1) {
-      cLog::log (LOGERROR, "%s %s nBufferCountActual unexpected %d", __func__,
-                 m_componentName.c_str(), portFormat.nBufferCountActual);
-      return omx_err;
-      }
-
-    cLog::log (LOGINFO1, "%s %s ) - port(%d), nBufferCountMin(%u), nBufferCountActual(%u), nBufferSize(%u) nBufferAlignmen(%u)",
-               __func__, m_componentName.c_str(), m_output_port, portFormat.nBufferCountMin,
-               portFormat.nBufferCountActual, portFormat.nBufferSize, portFormat.nBufferAlignment);
-
-    for (size_t i = 0; i < portFormat.nBufferCountActual; i++) {
-      omx_err = OMX_UseEGLImage(m_handle, ppBufferHdr, nPortIndex, pAppPrivate, eglImage);
-      if(omx_err != OMX_ErrorNone) {
-        cLog::log (LOGERROR, "%s %s 0x%x", __func__, m_componentName.c_str(), omx_err);
-        return omx_err;
-        }
-
-      OMX_BUFFERHEADERTYPE *buffer = *ppBufferHdr;
-      buffer->nOutputPortIndex = m_output_port;
-      buffer->nFilledLen = 0;
-      buffer->nOffset = 0;
-      buffer->pAppPrivate = (void*)i;
-      m_omx_output_buffers.push_back (buffer);
-      m_omx_output_available.push (buffer);
-      }
-
-    omx_err = WaitForCommand (OMX_CommandPortEnable, m_output_port);
-    if (omx_err != OMX_ErrorNone) {
-      cLog::log (LOGERROR, "%s %s EnablePort 0x%x", __func__, m_componentName.c_str(), omx_err);
-        return omx_err;
-        }
-    m_flush_output = false;
-    return omx_err;
-    }
-
-  else {
-    OMX_ERRORTYPE omx_err = OMX_UseEGLImage (m_handle, ppBufferHdr, nPortIndex, pAppPrivate, eglImage);
-    if (omx_err != OMX_ErrorNone) {
-      cLog::log (LOGERROR, "%s %s 0x%x", __func__, m_componentName.c_str(), omx_err);
-      return omx_err;
-      }
-    return omx_err;
-    }
   }
 //}}}
 

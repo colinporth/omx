@@ -76,9 +76,6 @@ public:
   OMX_ERRORTYPE SetConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct);
   OMX_ERRORTYPE GetConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) const;
 
-  OMX_ERRORTYPE UseEGLImage (OMX_BUFFERHEADERTYPE** ppBufferHdr, OMX_U32 nPortIndex,
-                             OMX_PTR pAppPrivate, void* eglImage);
-
   // OMXCore Decoder delegate callback routines.
   static OMX_ERRORTYPE DecoderEventHandlerCallback (OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent,
                                                     OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData);
