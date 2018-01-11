@@ -79,70 +79,70 @@ protected:
 
     auto event = mKeyboard.getEvent();
     switch (event) {
-      case cKeyConfig::ACTION_PLAYPAUSE: mPause = !mPause; break;
+      case cKeyConfig::ACT_PLAYPAUSE: mPause = !mPause; break;
 
-      case cKeyConfig::ACTION_STEP: mClock.step(); break;
-      case cKeyConfig::ACTION_SEEK_BACK_SMALL:    mSeekIncSec = -10.0; break;
-      case cKeyConfig::ACTION_SEEK_FORWARD_SMALL: mSeekIncSec = +10.0; break;
-      case cKeyConfig::ACTION_SEEK_BACK_LARGE :   mSeekIncSec = -60.0; break;
-      case cKeyConfig::ACTION_SEEK_FORWARD_LARGE: mSeekIncSec = +60.0; break;
+      case cKeyConfig::ACT_STEP: mClock.step(); break;
+      case cKeyConfig::ACT_SEEK_BACK_SMALL:    mSeekIncSec = -10.0; break;
+      case cKeyConfig::ACT_SEEK_FORWARD_SMALL: mSeekIncSec = +10.0; break;
+      case cKeyConfig::ACT_SEEK_BACK_LARGE :   mSeekIncSec = -60.0; break;
+      case cKeyConfig::ACT_SEEK_FORWARD_LARGE: mSeekIncSec = +60.0; break;
 
       //{{{
-      case cKeyConfig::ACTION_DECREASE_VOLUME:
+      case cKeyConfig::ACT_DECREASE_VOLUME:
         mVolume -= 300;
         mPlayerAudio.setVolume (pow (10, mVolume / 2000.0));
         break;
       //}}}
       //{{{
-      case cKeyConfig::ACTION_INCREASE_VOLUME:
+      case cKeyConfig::ACT_INCREASE_VOLUME:
         mVolume += 300;
         mPlayerAudio.setVolume (pow (10, mVolume / 2000.0));
         break;
       //}}}
 
       //{{{
-      case cKeyConfig::ACTION_PREVIOUS_AUDIO:
+      case cKeyConfig::ACT_PREVIOUS_AUDIO:
         if (mReader.getAudioIndex() > 0)
           mReader.setActiveStream (OMXSTREAM_AUDIO, mReader.getAudioIndex()-1);
         break;
       //}}}
       //{{{
-      case cKeyConfig::ACTION_NEXT_AUDIO:
+      case cKeyConfig::ACT_NEXT_AUDIO:
         mReader.setActiveStream (OMXSTREAM_AUDIO, mReader.getAudioIndex()+1);
         break;
       //}}}
 
       //{{{
-      case cKeyConfig::ACTION_PREVIOUS_VIDEO:
+      case cKeyConfig::ACT_PREVIOUS_VIDEO:
         if (mReader.getVideoIndex() > 0)
           mReader.setActiveStream (OMXSTREAM_VIDEO, mReader.getVideoIndex()-1);
         break;
       //}}}
       //{{{
-      case cKeyConfig::ACTION_NEXT_VIDEO:
+      case cKeyConfig::ACT_NEXT_VIDEO:
         mReader.setActiveStream (OMXSTREAM_VIDEO, mReader.getVideoIndex()+1);
         break;
       //}}}
 
-      case cKeyConfig::KEY_TOGGLE_VSYNC: toggleVsync(); break; // v
-      case cKeyConfig::KEY_TOGGLE_PERF:  togglePerf();  break; // p
-      case cKeyConfig::KEY_TOGGLE_STATS: toggleStats(); break; // s
-      case cKeyConfig::KEY_TOGGLE_TESTS: toggleTests(); break; // y
+      case cKeyConfig::ACT_TOGGLE_VSYNC: toggleVsync(); break; // v
+      case cKeyConfig::ACT_TOGGLE_PERF:  togglePerf();  break; // p
+      case cKeyConfig::ACT_TOGGLE_STATS: toggleStats(); break; // s
+      case cKeyConfig::ACT_TOGGLE_TESTS: toggleTests(); break; // y
 
-      case cKeyConfig::KEY_TOGGLE_SOLID: toggleSolid(); break; // i
-      case cKeyConfig::KEY_TOGGLE_EDGES: toggleEdges(); break; // a
-      case cKeyConfig::KEY_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
-      case cKeyConfig::KEY_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
+      case cKeyConfig::ACT_TOGGLE_SOLID: toggleSolid(); break; // i
+      case cKeyConfig::ACT_TOGGLE_EDGES: toggleEdges(); break; // a
+      case cKeyConfig::ACT_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
+      case cKeyConfig::ACT_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
 
-      case cKeyConfig::KEY_LOG1: cLog::setLogLevel (LOGNOTICE); break;
-      case cKeyConfig::KEY_LOG2: cLog::setLogLevel (LOGERROR); break;
-      case cKeyConfig::KEY_LOG3: cLog::setLogLevel (LOGINFO); break;
-      case cKeyConfig::KEY_LOG4: cLog::setLogLevel (LOGINFO1); break;
-      case cKeyConfig::KEY_LOG5: cLog::setLogLevel (LOGINFO2); break;
-      case cKeyConfig::KEY_LOG6: cLog::setLogLevel (LOGINFO3); break;
+      case cKeyConfig::ACT_LOG1: cLog::setLogLevel (LOGNOTICE); break;
+      case cKeyConfig::ACT_LOG2: cLog::setLogLevel (LOGERROR); break;
+      case cKeyConfig::ACT_LOG3: cLog::setLogLevel (LOGINFO); break;
+      case cKeyConfig::ACT_LOG4: cLog::setLogLevel (LOGINFO1); break;
+      case cKeyConfig::ACT_LOG5: cLog::setLogLevel (LOGINFO2); break;
+      case cKeyConfig::ACT_LOG6: cLog::setLogLevel (LOGINFO3); break;
 
-      case cKeyConfig::ACTION_NONE: break;
-      case cKeyConfig::ACTION_EXIT: gAbort = true; mExit = true; break;
+      case cKeyConfig::ACT_NONE: break;
+      case cKeyConfig::ACT_EXIT: gAbort = true; mExit = true; break;
       default: cLog::log (LOGNOTICE, "pollKeyboard - unused event %d", event); break;
       }
     }
@@ -160,74 +160,73 @@ private:
     #define KEY_RIGHT 0x5b43
     //}}}
     //{{{  enum eKeyAction
-    enum eKeyAction { ACTION_NONE,
-                      ACTION_EXIT,
-                      ACTION_PLAYPAUSE, ACTION_STEP,
-                      ACTION_SEEK_BACK_SMALL, ACTION_SEEK_FORWARD_SMALL,
-                      ACTION_SEEK_BACK_LARGE, ACTION_SEEK_FORWARD_LARGE,
-                      ACTION_PREVIOUS_VIDEO, ACTION_NEXT_VIDEO,
-                      ACTION_PREVIOUS_AUDIO, ACTION_NEXT_AUDIO,
-                      ACTION_DECREASE_VOLUME, ACTION_INCREASE_VOLUME,
-                      KEY_TOGGLE_VSYNC, KEY_TOGGLE_PERF, KEY_TOGGLE_STATS, KEY_TOGGLE_TESTS,
-                      KEY_TOGGLE_SOLID, KEY_TOGGLE_EDGES,
-                      KEY_LESS_FRINGE, KEY_MORE_FRINGE,
-                      KEY_LOG1, KEY_LOG2,KEY_LOG3, KEY_LOG4, KEY_LOG5, KEY_LOG6,
+    enum eKeyAction { ACT_NONE, ACT_EXIT,
+                      ACT_PLAYPAUSE, ACT_STEP,
+                      ACT_SEEK_BACK_SMALL, ACT_SEEK_FORWARD_SMALL,
+                      ACT_SEEK_BACK_LARGE, ACT_SEEK_FORWARD_LARGE,
+                      ACT_PREVIOUS_VIDEO, ACT_NEXT_VIDEO,
+                      ACT_PREVIOUS_AUDIO, ACT_NEXT_AUDIO,
+                      ACT_DECREASE_VOLUME, ACT_INCREASE_VOLUME,
+                      ACT_TOGGLE_VSYNC, ACT_TOGGLE_PERF, ACT_TOGGLE_STATS, ACT_TOGGLE_TESTS,
+                      ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES,
+                      ACT_LESS_FRINGE, ACT_MORE_FRINGE,
+                      ACT_LOG1, ACT_LOG2,ACT_LOG3, ACT_LOG4, ACT_LOG5, ACT_LOG6,
                       };
     //}}}
 
     //{{{
     static map<int,int> buildDefaultKeymap() {
       map<int,int> keymap;
-      keymap['q'] = ACTION_EXIT;
-      keymap['Q'] = ACTION_EXIT;
-      keymap[KEY_ESC] = ACTION_EXIT;
+      keymap['q'] = ACT_EXIT;
+      keymap['Q'] = ACT_EXIT;
+      keymap[KEY_ESC] = ACT_EXIT;
 
-      keymap[' '] = ACTION_PLAYPAUSE;
-      keymap['>'] = ACTION_STEP;
-      keymap['.'] = ACTION_STEP;
+      keymap[' '] = ACT_PLAYPAUSE;
+      keymap['>'] = ACT_STEP;
+      keymap['.'] = ACT_STEP;
 
-      keymap[KEY_LEFT] = ACTION_SEEK_BACK_SMALL;
-      keymap[KEY_RIGHT] = ACTION_SEEK_FORWARD_SMALL;
-      keymap[KEY_DOWN] = ACTION_SEEK_BACK_LARGE;
-      keymap[KEY_UP] = ACTION_SEEK_FORWARD_LARGE;
+      keymap[KEY_LEFT] = ACT_SEEK_BACK_SMALL;
+      keymap[KEY_RIGHT] = ACT_SEEK_FORWARD_SMALL;
+      keymap[KEY_DOWN] = ACT_SEEK_BACK_LARGE;
+      keymap[KEY_UP] = ACT_SEEK_FORWARD_LARGE;
 
-      keymap['n'] = ACTION_PREVIOUS_VIDEO;
-      keymap['N'] = ACTION_PREVIOUS_VIDEO;
-      keymap['m'] = ACTION_NEXT_VIDEO;
-      keymap['M'] = ACTION_NEXT_VIDEO;
+      keymap['n'] = ACT_PREVIOUS_VIDEO;
+      keymap['N'] = ACT_PREVIOUS_VIDEO;
+      keymap['m'] = ACT_NEXT_VIDEO;
+      keymap['M'] = ACT_NEXT_VIDEO;
 
-      keymap['j'] = ACTION_PREVIOUS_AUDIO;
-      keymap['J'] = ACTION_PREVIOUS_AUDIO;
-      keymap['k'] = ACTION_NEXT_AUDIO;
-      keymap['K'] = ACTION_NEXT_AUDIO;
+      keymap['j'] = ACT_PREVIOUS_AUDIO;
+      keymap['J'] = ACT_PREVIOUS_AUDIO;
+      keymap['k'] = ACT_NEXT_AUDIO;
+      keymap['K'] = ACT_NEXT_AUDIO;
 
-      keymap['-'] = ACTION_DECREASE_VOLUME;
-      keymap['+'] = ACTION_INCREASE_VOLUME;
-      keymap['='] = ACTION_INCREASE_VOLUME;
+      keymap['-'] = ACT_DECREASE_VOLUME;
+      keymap['+'] = ACT_INCREASE_VOLUME;
+      keymap['='] = ACT_INCREASE_VOLUME;
 
-      keymap['v'] = KEY_TOGGLE_VSYNC;
-      keymap['V'] = KEY_TOGGLE_VSYNC;
-      keymap['p'] = KEY_TOGGLE_PERF;
-      keymap['P'] = KEY_TOGGLE_PERF;
-      keymap['s'] = KEY_TOGGLE_STATS;
-      keymap['S'] = KEY_TOGGLE_STATS;
-      keymap['t'] = KEY_TOGGLE_TESTS;
-      keymap['T'] = KEY_TOGGLE_TESTS;
-      keymap['i'] = KEY_TOGGLE_SOLID;
-      keymap['I'] = KEY_TOGGLE_SOLID;
-      keymap['a'] = KEY_TOGGLE_EDGES;
-      keymap['A'] = KEY_TOGGLE_EDGES;
-      keymap['q'] = KEY_LESS_FRINGE;
-      keymap['Q'] = KEY_LESS_FRINGE;
-      keymap['w'] = KEY_MORE_FRINGE;
-      keymap['W'] = KEY_MORE_FRINGE;
+      keymap['v'] = ACT_TOGGLE_VSYNC;
+      keymap['V'] = ACT_TOGGLE_VSYNC;
+      keymap['p'] = ACT_TOGGLE_PERF;
+      keymap['P'] = ACT_TOGGLE_PERF;
+      keymap['s'] = ACT_TOGGLE_STATS;
+      keymap['S'] = ACT_TOGGLE_STATS;
+      keymap['t'] = ACT_TOGGLE_TESTS;
+      keymap['T'] = ACT_TOGGLE_TESTS;
+      keymap['i'] = ACT_TOGGLE_SOLID;
+      keymap['I'] = ACT_TOGGLE_SOLID;
+      keymap['a'] = ACT_TOGGLE_EDGES;
+      keymap['A'] = ACT_TOGGLE_EDGES;
+      keymap['q'] = ACT_LESS_FRINGE;
+      keymap['Q'] = ACT_LESS_FRINGE;
+      keymap['w'] = ACT_MORE_FRINGE;
+      keymap['W'] = ACT_MORE_FRINGE;
 
-      keymap['1'] = KEY_LOG1;
-      keymap['2'] = KEY_LOG2;
-      keymap['3'] = KEY_LOG3;
-      keymap['4'] = KEY_LOG4;
-      keymap['5'] = KEY_LOG5;
-      keymap['6'] = KEY_LOG6;
+      keymap['1'] = ACT_LOG1;
+      keymap['2'] = ACT_LOG2;
+      keymap['3'] = ACT_LOG3;
+      keymap['4'] = ACT_LOG4;
+      keymap['5'] = ACT_LOG5;
+      keymap['6'] = ACT_LOG6;
 
       return keymap;
       }
