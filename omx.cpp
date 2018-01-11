@@ -55,7 +55,7 @@ class cAppWindow : public cRaspWindow {
 public:
   //{{{
   cAppWindow() {
-    mKeyboard.setKeymap (cKeyConfig::buildDefaultKeymap());
+    mKeyboard.setKeymap (cKeyConfig::getKeymap());
     thread ([=]() { mKeyboard.run(); } ).detach();
     }
   //}}}
@@ -152,14 +152,12 @@ private:
   //{{{
   class cKeyConfig {
   public:
-    //{{{  key defines
     #define KEY_ESC   27
     #define KEY_UP    0x5b42
     #define KEY_DOWN  0x5b41
     #define KEY_LEFT  0x5b44
     #define KEY_RIGHT 0x5b43
-    //}}}
-    //{{{  enum eKeyAction
+
     enum eKeyAction { ACT_NONE, ACT_EXIT,
                       ACT_PLAYPAUSE, ACT_STEP,
                       ACT_SEEK_BACK_SMALL, ACT_SEEK_FORWARD_SMALL,
@@ -172,10 +170,9 @@ private:
                       ACT_LESS_FRINGE, ACT_MORE_FRINGE,
                       ACT_LOG1, ACT_LOG2,ACT_LOG3, ACT_LOG4, ACT_LOG5, ACT_LOG6,
                       };
-    //}}}
 
     //{{{
-    static map<int,int> buildDefaultKeymap() {
+    static map<int,int> getKeymap() {
       map<int,int> keymap;
       keymap['q'] = ACT_EXIT;
       keymap['Q'] = ACT_EXIT;
@@ -553,20 +550,15 @@ private:
     }
   //}}}
 
-  //{{{  vars
   cKeyboard mKeyboard;
-
   cOmxClock mClock;
   cOmxReader mReader;
   cOmxPlayerVideo mPlayerVideo;
   cOmxPlayerAudio mPlayerAudio;
-
   long mVolume = 0;
   bool mPause = false;
   double mSeekIncSec = 0.0;
-
   string mDebugStr;
-  //}}}
   };
 
 //{{{
