@@ -65,8 +65,7 @@ public:
   //{{{
   void run (const string& root, int fileNum) {
 
-    if (nftw (root.c_str(), displayInfo, 20, 0) == -1)
-      cLog::log (LOGERROR, "nftw");
+    nftw (root.c_str(), addFile, 20, 0);
 
     mDebugStr = mFileNames[fileNum];
 
@@ -237,23 +236,15 @@ private:
     };
   //}}}
   //{{{
-  static int displayInfo (const char* path, const struct stat* statBuf, int tflag, struct FTW* ftw) {
+  static int addFile (const char* fileName, const struct stat* statBuf, int flag, struct FTW* ftw) {
 
-    // tflag == FTW_D
-    // tflag == FTW_DNR
-    // tflag == FTW_DP
-    // tflag == FTW_F
-    // tflag == FTW_NS
-    // tflag == FTW_SL
-    // tflag == FTW_SLN
-    // ftw->level - depth
     // ftw->base - offset of base in path
     // (intmax_t)statBuf->st_size,
-    if (tflag == FTW_F) {
-      cLog::log (LOGINFO, path);
-      string fileName = path;
+    if (flag == FTW_F) {
+      cLog::log (LOGINFO, fileName);
       mFileNames.push_back (fileName);
       }
+
     return 0;
     }
   //}}}
@@ -346,7 +337,7 @@ private:
     //audioConfig.is_live = true;
     //audioConfig.hwdecode = true;
     if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:400000","")) {
+        mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:1000000","")) {
       mClock.stateIdle();
       mClock.stop();
       mClock.pause();
