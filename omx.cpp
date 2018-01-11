@@ -54,18 +54,19 @@ void sigHandler (int s) {
   }
 //}}}
 
-#include <stdio.h>
+int displayInfo (const char* path, const struct stat* statBuf, int tflag, struct FTW* ftw) {
 
-int display_info (const char* fpath, const struct stat* sb, int tflag, struct FTW* ftwbuf) {
-
-  printf ("%-3s %2d %7jd   %-40s %d %s\n",
-          (tflag == FTW_D) ?   "d"   : (tflag == FTW_DNR) ? "dnr" :
-          (tflag == FTW_DP) ?  "dp"  : (tflag == FTW_F) ?   "f" :
-          (tflag == FTW_NS) ?  "ns"  : (tflag == FTW_SL) ?  "sl" :
-          (tflag == FTW_SLN) ? "sln" : "???",
-          ftwbuf->level, (intmax_t) sb->st_size,
-          fpath, ftwbuf->base, fpath + ftwbuf->base);
-  // To tell nftw() to continue
+  // tflag == FTW_D
+  // tflag == FTW_DNR
+  // tflag == FTW_DP
+  // tflag == FTW_F
+  // tflag == FTW_NS
+  // tflag == FTW_SL
+  // tflag == FTW_SLN
+  // ftw->level,
+  // (intmax_t)statBuf->st_size,
+  if (tflag == FTW_F)
+    cLog::log (LOGINFO, path + ftw->base);
   return 0;  
   }
 
@@ -248,7 +249,6 @@ private:
     //}}}
     };
   //}}}
-
   //{{{
   bool exists (const string& path) {
 
@@ -294,7 +294,6 @@ private:
       }
     }
   //}}}
-
   //{{{
   void player (const string& fileName) {
 
@@ -567,7 +566,7 @@ private:
     mExit = true;
     }
   //}}}
-
+  //{{{  vars
   cKeyboard mKeyboard;
   cOmxClock mClock;
   cOmxReader mReader;
@@ -577,6 +576,7 @@ private:
   bool mPause = false;
   double mSeekIncSec = 0.0;
   string mDebugStr;
+  //}}}
   };
 
 //{{{
@@ -600,10 +600,8 @@ int main (int argc, char* argv[]) {
   cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
 
-  int flags = 0;
-  // flags |= FTW_DEPTH;
-  // flags |= FTW_PHYS;
-  if (nftw (root.c_str(), display_info, 20, flags) == -1)
+  //int flags = 0; // | FTW_DEPTH | FTW_PHYS;
+  if (nftw (root.c_str(), displayInfo, 20, 0) == -1)
     cLog::log (LOGERROR, "nftw");
 
   cAppWindow appWindow;
