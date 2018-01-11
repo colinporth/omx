@@ -598,8 +598,7 @@ int main (int argc, char* argv[]) {
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logInfo = true;
     else if (!strcmp(argv[arg], "r")) root = argv[++arg];
-    else if (!strcmp(argv[arg], "n")) fileNum = atoi (argv[++arg]);
-    else fileName = argv[arg];
+    else fileNum = atoi (argv[++arg]);
 
   cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
   cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
