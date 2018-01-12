@@ -40,9 +40,9 @@ using namespace std;
 
 volatile sig_atomic_t gAbort = false;
 //{{{
-void sigHandler (int s) {
+void sigHandler (int signal) {
 
-  if (s == SIGINT && !gAbort) {
+  if (signal == SIGINT && !gAbort) {
     signal (SIGINT, SIG_DFL);
     gAbort = true;
     return;
@@ -101,21 +101,24 @@ protected:
     #define KEY_LEFT     0x5b44
     //}}}
     //{{{  actions
-    enum eKeyAction { ACT_NONE, ACT_EXIT, ACT_ENTER,
-                      ACT_PLAYPAUSE, ACT_STEP,
-                      ACT_SEEK_DEC_SMALL, ACT_SEEK_INC_SMALL,
-                      ACT_SEEK_DEC_LARGE, ACT_SEEK_INC_LARGE,
-                      ACT_DEC_VOLUME, ACT_INC_VOLUME,
-                      ACT_PREV_FILE, ACT_NEXT_FILE,
-                      ACT_TOGGLE_VSYNC, ACT_TOGGLE_PERF, ACT_TOGGLE_STATS, ACT_TOGGLE_TESTS,
-                      ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES,
-                      ACT_LESS_FRINGE, ACT_MORE_FRINGE,
-                      ACT_LOG1, ACT_LOG2,ACT_LOG3, ACT_LOG4, ACT_LOG5, ACT_LOG6,
-                      };
+    enum eKeyAction {
+      ACT_NONE, ACT_EXIT,
+      ACT_PREV_FILE, ACT_NEXT_FILE, ACT_ENTER,
+      ACT_PLAYPAUSE, ACT_STEP,
+      ACT_SEEK_DEC_SMALL, ACT_SEEK_INC_SMALL,
+      ACT_SEEK_DEC_LARGE, ACT_SEEK_INC_LARGE,
+      ACT_DEC_VOLUME, ACT_INC_VOLUME,
+      ACT_TOGGLE_VSYNC, ACT_TOGGLE_PERF, ACT_TOGGLE_STATS, ACT_TOGGLE_TESTS,
+      ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES,
+      ACT_LESS_FRINGE, ACT_MORE_FRINGE,
+      ACT_LOG1, ACT_LOG2, ACT_LOG3, ACT_LOG4, ACT_LOG5, ACT_LOG6,
+      };
     //}}}
     //{{{
     static map<int,int> getKeymap() {
+
       map<int,int> keymap;
+
       keymap['q'] = ACT_EXIT;
       keymap['Q'] = ACT_EXIT;
       keymap[KEY_ESC] = ACT_EXIT;
@@ -378,7 +381,7 @@ private:
         double lastSeekPosSec = 0.0;
         OMXPacket* omxPacket = nullptr;
         while (!mEntered && !mExit && !gAbort && !mPlayerAudio->getError()) {
-          // play loop
+          //{{{  play loop
           if (mSeekIncSec != 0.0) {
             //{{{  seek
             double pts = mClock.getMediaTime();
@@ -405,6 +408,7 @@ private:
             mSeekIncSec = 0.0;
             }
             //}}}
+
           //{{{  pts, fifos
           auto clockPts = mClock.getMediaTime();
           auto threshold = min (0.1f, (float)mPlayerAudio->getCacheTotal() * 0.1f);
@@ -444,6 +448,7 @@ private:
                      " ac:" + dec(mPlayerAudio->getCacheTotal());
           mDebugStr = str;
           //}}}
+
           if (audioConfig.is_live) {
             //{{{  live latency controlled by adjusting clock
             float latency = DVD_NOPTS_VALUE;
@@ -521,10 +526,8 @@ private:
           //{{{  packet reader
           if (!omxPacket)
             omxPacket = mReader.readPacket();
-
           if (omxPacket) {
             sendEos = false;
-
             if (hasVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
               if (mPlayerVideo->addPacket (omxPacket))
                 omxPacket = NULL;
@@ -540,31 +543,29 @@ private:
             else
               mReader.freePacket (omxPacket);
             }
-
-          else {
-            if (mReader.isEof()) {
-              // demuxer EOF, but may have not played out data yet
-              if ( (hasVideo && mPlayerVideo->getCached()) || (hasAudio && mPlayerAudio->getCached()) ) {
-                cOmxClock::sleep (10);
-                return;
+          else if (mReader.isEof()) {
+            // reader EOF, but may have not played out yet
+            if (!(hasVideo && mPlayerVideo->getCached()) && !(hasAudio && mPlayerAudio->getCached())) {
+              if (!sendEos) {
+                sendEos = true;
+                if (hasVideo)
+                  mPlayerVideo->submitEOS();
+                if (hasAudio)
+                  mPlayerAudio->submitEOS();
                 }
-              if (!sendEos && hasVideo)
-                mPlayerVideo->submitEOS();
-              if (!sendEos && hasAudio)
-                mPlayerAudio->submitEOS();
-
-              sendEos = true;
-              if ((hasVideo && !mPlayerVideo->isEOS()) || (hasAudio && !mPlayerAudio->isEOS())) {
-                cOmxClock::sleep (10);
-                return;
-                }
-              return;
+              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS())) 
+                // finished
+                break;
               }
-
-            cOmxClock::sleep (10);
+            // wait for about another frame
+            cOmxClock::sleep (20);
             }
+          else // wait for more packets
+            cOmxClock::sleep (10);
           //}}}
           }
+          //}}}
+
         //{{{  stop play
         mClock.stop();
         mClock.stateIdle();
