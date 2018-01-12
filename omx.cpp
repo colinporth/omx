@@ -258,36 +258,6 @@ private:
     }
   //}}}
   //{{{
-  bool exists (const string& path) {
-
-    struct stat buf;
-    auto error = stat (path.c_str(), &buf);
-    return !error || errno != ENOENT;
-    }
-  //}}}
-  //{{{
-  bool isURL (const string& str) {
-
-    auto result = str.find ("://");
-    if (result == string::npos || result == 0)
-      return false;
-
-    for (size_t i = 0; i < result; ++i)
-      if (!isalpha (str[i]))
-        return false;
-
-    return true;
-    }
-  //}}}
-  //{{{
-  bool isPipe (const string& str) {
-
-    if (str.compare (0, 5, "pipe:") == 0)
-      return true;
-    return false;
-    }
-  //}}}
-  //{{{
   float getAspectRatio (HDMI_ASPECT_T aspect) {
 
     switch (aspect) {
@@ -343,14 +313,13 @@ private:
     vc_dispmanx_update_submit_sync (update);
     //}}}
 
-    mPlayerVideo = new cOmxPlayerVideo();
-    mPlayerAudio = new cOmxPlayerAudio();
+    cOmxPlayerVideo* mPlayerVideo = nullptr;
+    cOmxPlayerAudio* mPlayerAudio = nullptr;
 
     //audioConfig.is_live = true;
     //audioConfig.hwdecode = true;
     while (true) {
-      if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-          mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:1000000","")) {
+      if (mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:1000000","")) {
         //{{{  start play
         mClock.stateIdle();
         mClock.stop();
@@ -360,6 +329,11 @@ private:
         bool hasVideo = mReader.getVideoStreamCount();
         mReader.getHints (OMXSTREAM_AUDIO, audioConfig.hints);
         mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
+
+        if (hasVideo)
+          mPlayerVideo = new cOmxPlayerVideo();
+        if (hasAudio)
+          mPlayerAudio = new cOmxPlayerAudio();
 
         if (hasVideo && mPlayerVideo->open (&mClock, videoConfig))
           thread ([=]() { mPlayerVideo->run(); } ).detach();
@@ -579,11 +553,10 @@ private:
         mEntered = false;
         fileName = mFileNames[mFileNum];
 
-        delete (mPlayerVideo);
-        delete (mPlayerAudio);
-
-        mPlayerVideo = new cOmxPlayerVideo();
-        mPlayerAudio = new cOmxPlayerAudio();
+        if (mPlayerVideo)
+          delete (mPlayerVideo);
+        if (mPlayerAudio)
+          delete (mPlayerAudio);
         }
         //}}}
       else
@@ -592,8 +565,10 @@ private:
 
     cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio->getError:%d",
                           mExit, gAbort, mPlayerAudio->getError());
-    delete (mPlayerVideo);
-    delete (mPlayerAudio);
+    if (mPlayerVideo)
+      delete (mPlayerVideo);
+    if (mPlayerAudio)
+      delete (mPlayerAudio);
     mExit = true;
     }
   //}}}
