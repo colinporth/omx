@@ -377,7 +377,7 @@ private:
         mClock.stateExecute();
         //}}}
 
-        bool sendEos = false;
+        bool submitEos = false;
         double lastSeekPosSec = 0.0;
         OMXPacket* omxPacket = nullptr;
         while (!mEntered && !mExit && !gAbort && !mPlayerAudio->getError()) {
@@ -523,11 +523,12 @@ private:
               }
             }
             //}}}
+
           //{{{  packet reader
           if (!omxPacket)
             omxPacket = mReader.readPacket();
           if (omxPacket) {
-            sendEos = false;
+            submitEos = false;
             if (hasVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
               if (mPlayerVideo->addPacket (omxPacket))
                 omxPacket = NULL;
@@ -545,17 +546,22 @@ private:
             }
           else if (mReader.isEof()) {
             // reader EOF, but may have not played out yet
+            cLog::log (LOGINFO, "reader EOF");
+
             if (!(hasVideo && mPlayerVideo->getCached()) && !(hasAudio && mPlayerAudio->getCached())) {
-              if (!sendEos) {
-                sendEos = true;
+              if (!submitEos) {
+                cLog::log (LOGINFO, "reader send EOS");
+                submitEos = true;
                 if (hasVideo)
                   mPlayerVideo->submitEOS();
                 if (hasAudio)
                   mPlayerAudio->submitEOS();
                 }
-              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS()))
+              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS())) {
                 // finished
+                cLog::log (LOGINFO, "reader EOS");
                 break;
+                }
               }
             // wait for about another frame
             cOmxClock::sleep (20);
