@@ -40,9 +40,9 @@ using namespace std;
 
 volatile sig_atomic_t gAbort = false;
 //{{{
-void sigHandler (int signal) {
+void sigHandler (int sig) {
 
-  if (signal == SIGINT && !gAbort) {
+  if (sig == SIGINT && !gAbort) {
     signal (SIGINT, SIG_DFL);
     gAbort = true;
     return;
@@ -553,7 +553,7 @@ private:
                 if (hasAudio)
                   mPlayerAudio->submitEOS();
                 }
-              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS())) 
+              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS()))
                 // finished
                 break;
               }
