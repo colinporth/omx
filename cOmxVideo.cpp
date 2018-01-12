@@ -110,7 +110,7 @@ bool cOmxVideo::IsEOS() {
     return false;
 
   if (m_submitted_eos) {
-    cLog::log (LOGINFO, "cOmxVideo::IsEOS");
+    cLog::log (LOGINFO, "isEOS");
     m_submitted_eos = false;
     }
 
@@ -773,6 +773,7 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
 //{{{
 void cOmxVideo::SubmitEOS() {
 
+  cLog::log (LOGINFO, "submitEOS");
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   m_submitted_eos = true;
@@ -798,8 +799,6 @@ void cOmxVideo::SubmitEOS() {
     return;
     }
     //}}}
-
-  cLog::log (LOGINFO, "cOmxVideo::SubmitEOS");
   }
 //}}}
 //{{{

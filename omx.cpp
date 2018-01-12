@@ -527,6 +527,7 @@ private:
           //{{{  packet reader
           if (!omxPacket)
             omxPacket = mReader.readPacket();
+
           if (omxPacket) {
             submitEos = false;
             if (hasVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
@@ -545,23 +546,17 @@ private:
               mReader.freePacket (omxPacket);
             }
           else if (mReader.isEof()) {
-            // reader EOF, but may have not played out yet
-            cLog::log (LOGINFO, "reader EOF");
-
+            // reader EOF, may still be playing out
             if (!(hasVideo && mPlayerVideo->getCached()) && !(hasAudio && mPlayerAudio->getCached())) {
               if (!submitEos) {
-                cLog::log (LOGINFO, "reader send EOS");
                 submitEos = true;
                 if (hasVideo)
                   mPlayerVideo->submitEOS();
                 if (hasAudio)
                   mPlayerAudio->submitEOS();
                 }
-              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS())) {
-                // finished
-                cLog::log (LOGINFO, "reader EOS");
+              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS()))
                 break;
-                }
               }
             // wait for about another frame
             cOmxClock::sleep (20);

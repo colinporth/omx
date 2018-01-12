@@ -173,15 +173,15 @@ public:
   ~cOmxAudio();
 
   static bool hwDecode (AVCodecID codec);
-  unsigned int getSpace();
-  unsigned int getChunkLen();
+  unsigned int getSpace() { return m_omx_decoder.GetInputBufferSpace(); }
+  unsigned int getChunkLen() { return m_ChunkLen; }
   float getDelay();
-  float getCacheTime();
+  float getCacheTime() { return getDelay(); }
   float getCacheTotal();
   unsigned int getAudioRenderingLatency();
   float getMaxLevel (double &pts);
   uint64_t getChannelLayout (enum PCMLayout layout);
-  float getVolume();
+  float getVolume() { return mMute ? 0.f : m_CurrentVolume; }
   bool isEOS();
 
   void setMute (bool mute);

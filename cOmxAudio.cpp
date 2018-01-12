@@ -5,10 +5,6 @@
 #include <algorithm>
 #include "../shared/utils/cLog.h"
 
-#ifndef VOLUME_MINIMUM
-  #define VOLUME_MINIMUM 0
-#endif
-
 using namespace std;
 //}}}
 
@@ -58,10 +54,6 @@ bool cOmxAudio::hwDecode (AVCodecID codec) {
     }
   }
 //}}}
-unsigned int cOmxAudio::getSpace() { return m_omx_decoder.GetInputBufferSpace(); }
-unsigned int cOmxAudio::getChunkLen() { return m_ChunkLen; }
-float cOmxAudio::getCacheTime() { return getDelay(); }
-float cOmxAudio::getVolume() { return mMute ? VOLUME_MINIMUM : m_CurrentVolume; }
 //{{{
 float cOmxAudio::getDelay() {
 
@@ -171,7 +163,7 @@ bool cOmxAudio::isEOS() {
     return false;
 
   if (m_submitted_eos) {
-    cLog::log (LOGINFO, "cOmxAudio::isEOS");
+    cLog::log (LOGINFO, "isEOS");
     m_submitted_eos = false;
     }
 
@@ -923,6 +915,8 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
 //{{{
 void cOmxAudio::submitEOS() {
 
+  cLog::log (LOGINFO, "submitEOS");
+
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   m_submitted_eos = true;
@@ -943,8 +937,6 @@ void cOmxAudio::submitEOS() {
     m_omx_decoder.DecoderEmptyBufferDone (m_omx_decoder.GetComponent(), omx_buffer);
     return;
     }
-
-  cLog::log (LOGINFO, "cOmxAudio::SubmitEOS()");
   }
 //}}}
 //{{{
@@ -1093,7 +1085,7 @@ bool cOmxAudio::applyVolume() {
     return false;
 
   // the analogue volume is too quiet for some. Allow use of an advancedsetting to boost this (at risk of distortion) (deprecated)
-  float volume = mMute ? VOLUME_MINIMUM : m_CurrentVolume;
+  float volume = mMute ? 0.f : m_CurrentVolume;
   double gain = pow(10, (m_ac3Gain - 12.f) / 20.0);
   const float* coeff = m_downmix_matrix;
 
