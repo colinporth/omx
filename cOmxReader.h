@@ -69,7 +69,7 @@ public:
   static double normalizeFrameDuration (double frameduration);
 
   // gets
-  bool isEof();
+  bool cOmxReader::isEof() { return m_eof; }
   bool isActive (int stream_index);
   bool isActive (OMXStreamType type, int stream_index);
   bool canSeek();
@@ -83,7 +83,7 @@ public:
   int getAudioIndex() { return (m_audio_index >= 0) ? m_streams[m_audio_index].index : -1; };
   int getVideoIndex() { return (m_video_index >= 0) ? m_streams[m_video_index].index : -1; };
   int getRelativeIndex (size_t index) { return m_streams[index].index; }
-  int getStreamLength();
+  int getStreamLength() { return (int)(mAvFormatContext->duration / (AV_TIME_BASE / 1000)); }
 
   std::string getCodecName (OMXStreamType type);
   std::string getCodecName (OMXStreamType type, unsigned int index);

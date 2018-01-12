@@ -322,11 +322,6 @@ cOmxReader::~cOmxReader() {
 
 // gets
 //{{{
-bool cOmxReader::isEof() {
-  return m_eof;
-  }
-//}}}
-//{{{
 bool cOmxReader::isActive (int stream_index) {
 
   if ((m_audio_index != -1) && m_streams[m_audio_index].id == stream_index)
@@ -361,11 +356,6 @@ bool cOmxReader::canSeek() {
   if (mAvFormatContext->pb->seekable == AVIO_SEEKABLE_NORMAL)
     return true;
   return false;
-  }
-//}}}
-//{{{
-int cOmxReader::getStreamLength() {
-  return mAvFormatContext ? (int)(mAvFormatContext->duration / (AV_TIME_BASE / 1000)) : 0;
   }
 //}}}
 //{{{
@@ -518,7 +508,6 @@ string cOmxReader::getStreamType (OMXStreamType type, unsigned int index) {
   return strInfo;
   }
 //}}}
-
 //{{{
 bool cOmxReader::getHints (AVStream* stream, cOmxStreamInfo* hints) {
 
@@ -623,9 +612,6 @@ bool cOmxReader::setActiveStream (OMXStreamType type, unsigned int index) {
 //}}}
 //{{{
 void cOmxReader::setSpeed (int iSpeed) {
-
-  if (!mAvFormatContext)
-    return;
 
   if (m_speed != DVD_PLAYSPEED_PAUSE && iSpeed == DVD_PLAYSPEED_PAUSE)
     mAvFormat.av_read_pause (mAvFormatContext);
@@ -816,7 +802,7 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
 //{{{
 OMXPacket* cOmxReader::readPacket() {
 
-  if (!mAvFormatContext || m_eof)
+  if (m_eof)
     return NULL;
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -903,9 +889,6 @@ bool cOmxReader::seek (float time, double& startPts) {
   bool backwards = (time < 0);
   if (backwards)
     time = -time;
-
-  if (!mAvFormatContext)
-    return false;
 
   if (mFile && !mFile->IoControl (IOCTRL_SEEK_POSSIBLE, NULL)) {
     cLog::log (LOGERROR, "cOmxReader::seek - not seekable");
@@ -1027,9 +1010,6 @@ bool cOmxReader::close() {
 //{{{
 bool cOmxReader::getStreams() {
 
-  if (!mAvFormatContext)
-    return false;
-
   unsigned int m_program = UINT_MAX;
 
   clearStreams();
@@ -1063,7 +1043,7 @@ bool cOmxReader::getStreams() {
 //{{{
 void cOmxReader::addStream (int id) {
 
-  if (id > MAX_STREAMS || !mAvFormatContext)
+  if (id > MAX_STREAMS)
     return;
 
   // discard if it's a picture attachment (e.g. album art embedded in MP3 or AAC)
@@ -1118,9 +1098,6 @@ void cOmxReader::addStream (int id) {
 
 //{{{
 double cOmxReader::convertTimestamp (int64_t pts, int den, int num) {
-
-  if (mAvFormatContext == NULL)
-    return DVD_NOPTS_VALUE;
 
   if (pts == (int64_t)AV_NOPTS_VALUE)
     return DVD_NOPTS_VALUE;
