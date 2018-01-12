@@ -201,11 +201,11 @@ bool cOmxPlayerVideo::close() {
   unLock();
 
   delete mDecoder;
-  mDecoder = NULL;
+  mDecoder = nullptr;
 
   m_stream_id = -1;
   m_iCurrentPts = DVD_NOPTS_VALUE;
-  m_pStream = NULL;
+  m_pStream = nullptr;
 
   return true;
   }

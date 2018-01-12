@@ -102,7 +102,8 @@ protected:
     //}}}
     //{{{  actions
     enum eKeyAction {
-      ACT_NONE, ACT_EXIT,
+      ACT_NONE, 
+      ACT_EXIT,
       ACT_PREV_FILE, ACT_NEXT_FILE, ACT_ENTER,
       ACT_PLAYPAUSE, ACT_STEP,
       ACT_SEEK_DEC_SMALL, ACT_SEEK_INC_SMALL,
@@ -258,21 +259,6 @@ private:
     }
   //}}}
   //{{{
-  float getAspectRatio (HDMI_ASPECT_T aspect) {
-
-    switch (aspect) {
-      case HDMI_ASPECT_4_3:   return  4.f / 3.f;  break;
-      case HDMI_ASPECT_14_9:  return 14.f / 9.f;  break;
-      case HDMI_ASPECT_5_4:   return  5.f / 4.f;  break;
-      case HDMI_ASPECT_16_10: return 16.f / 10.f; break;
-      case HDMI_ASPECT_15_9:  return 15.f / 9.f;  break;
-      case HDMI_ASPECT_64_27: return 64.f / 27.f; break;
-      case HDMI_ASPECT_16_9:
-      default:                return 16.f / 9.f;  break;
-      }
-    }
-  //}}}
-  //{{{
   void player (string fileName) {
 
     cLog::setThreadName ("play");
@@ -280,14 +266,22 @@ private:
     cOmxVideoConfig videoConfig;
     cOmxAudioConfig audioConfig;
     //{{{  set videoConfig aspect
-    TV_DISPLAY_STATE_T tvDisplayState;
-    memset (&tvDisplayState, 0, sizeof(TV_DISPLAY_STATE_T));
-    vc_tv_get_display_state (&tvDisplayState);
+    TV_DISPLAY_STATE_T state;
+    memset (&state, 0, sizeof(TV_DISPLAY_STATE_T));
+    vc_tv_get_display_state (&state);
 
-    videoConfig.display_aspect =
-      getAspectRatio ((HDMI_ASPECT_T)tvDisplayState.display.hdmi.aspect_ratio);
-    videoConfig.display_aspect *=
-      (float)tvDisplayState.display.hdmi.height / (float)tvDisplayState.display.hdmi.width;
+    switch ((HDMI_ASPECT_T)state.display.hdmi.aspect_ratio) {
+      case HDMI_ASPECT_4_3:   videoConfig.display_aspect =  4.f / 3.f;  break;
+      case HDMI_ASPECT_14_9:  videoConfig.display_aspect = 14.f / 9.f;  break;
+      case HDMI_ASPECT_5_4:   videoConfig.display_aspect =  5.f / 4.f;  break;
+      case HDMI_ASPECT_16_10: videoConfig.display_aspect = 16.f / 10.f; break;
+      case HDMI_ASPECT_15_9:  videoConfig.display_aspect = 15.f /  9.f; break;
+      case HDMI_ASPECT_64_27: videoConfig.display_aspect = 64.f / 27.f; break;
+      case HDMI_ASPECT_16_9:
+      default:                videoConfig.display_aspect = 16.f /  9.f; break;
+      }
+
+    videoConfig.display_aspect *= (float)state.display.hdmi.height / (float)state.display.hdmi.width;
     //}}}
     //{{{  create 1x1 black pixel, added to display just behind video
     auto display = vc_dispmanx_display_open (videoConfig.display);
@@ -564,10 +558,8 @@ private:
         //}}}
         }
 
-      if (mPlayerVideo)
-        delete (mPlayerVideo);
-      if (mPlayerAudio)
-        delete (mPlayerAudio);
+      delete (mPlayerVideo);
+      delete (mPlayerAudio);
       if (mEntered) {
         //{{{  remake video,audio players, select file
         mEntered = false;

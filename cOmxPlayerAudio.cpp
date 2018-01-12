@@ -197,7 +197,7 @@ bool cOmxPlayerAudio::openSwAudio() {
   mSwAudio = new cSwAudio();
   if (!mSwAudio->open (mConfig.hints, mConfig.layout)) {
     delete mSwAudio;
-    mSwAudio = NULL;
+    mSwAudio = nullptr;
     return false;
     }
 
@@ -221,7 +221,7 @@ bool cOmxPlayerAudio::openOmxAudio() {
 
   if (!render) {
     delete mOmxAudio;
-    mOmxAudio = NULL;
+    mOmxAudio = nullptr;
     return false;
     }
   else if (mPassthrough)
@@ -338,8 +338,7 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
 //{{{
 void cOmxPlayerAudio::closeSwAudio() {
 
-  if (mSwAudio)
-    delete mSwAudio;
+  delete mSwAudio;
   mSwAudio = NULL;
   }
 //}}}

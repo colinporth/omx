@@ -1004,10 +1004,8 @@ bool cOmxReader::close() {
   m_ioContext = NULL;
   mAvFormatContext = NULL;
 
-  if (mFile) {
-    delete mFile;
-    mFile = NULL;
-    }
+  delete mFile;
+  mFile = NULL;
 
   mAvFormat.avformat_network_deinit();
 
