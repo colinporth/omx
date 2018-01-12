@@ -349,7 +349,7 @@ private:
 
         bool submitEos = false;
         double lastSeekPosSec = 0.0;
-        OMXPacket* omxPacket = nullptr;
+        OMXPacket* packet = nullptr;
         while (!mEntered && !mExit && !gAbort && !mPlayerAudio->getError()) {
           //{{{  play loop
           if (mSeekIncSec != 0.0) {
@@ -367,7 +367,7 @@ private:
                 mPlayerVideo->flush();
               if (mPlayerAudio)
                 mPlayerAudio->flush();
-              mReader.freePacket (omxPacket);
+              mReader.freePacket (packet);
 
               if (pts != DVD_NOPTS_VALUE)
                 mClock.setMediaTime (seekPts);
@@ -433,7 +433,7 @@ private:
                   cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
                              audio_fifo, video_fifo,
                              audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                             mReader.isEof(), omxPacket);
+                             mReader.isEof(), packet);
                   mClock.resume();
                   loadLatency = latency;
                   }
@@ -459,7 +459,7 @@ private:
               }
             }
             //}}}
-          else if (!mPause && (mReader.isEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
+          else if (!mPause && (mReader.isEof() || packet || (audio_fifo_high && video_fifo_high))) {
             //{{{  resume
             if (mClock.isPaused()) {
               cLog::log (LOGINFO, "resume aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
@@ -469,7 +469,7 @@ private:
                          audio_fifo_high ? "aFifoHi ":"",
                          video_fifo_high ? "vFifoHi ":"",
                          mReader.isEof() ? "eof " : "",
-                         omxPacket ? "" : "emptyPkt");
+                         packet ? "" : "emptyPkt");
 
               mClock.resume();
               }
@@ -494,29 +494,33 @@ private:
             }
             //}}}
 
-          //{{{  packet reader
-          if (!omxPacket)
-            omxPacket = mReader.readPacket();
+          // packet reader
+          if (!packet)
+            packet = mReader.readPacket();
 
-          if (omxPacket) {
+          if (packet) {
+            //{{{  got packet
             submitEos = false;
-            if (mPlayerVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
-              if (mPlayerVideo->addPacket (omxPacket))
-                omxPacket = NULL;
+            if (mPlayerVideo && mReader.isActive (OMXSTREAM_VIDEO, packet->stream_index)) {
+              if (mPlayerVideo->addPacket (packet))
+                packet = NULL;
               else
                 cOmxClock::sleep (10);
               }
-            else if (mPlayerAudio && (omxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
-              if (mPlayerAudio->addPacket (omxPacket))
-                omxPacket = NULL;
+
+            else if (mPlayerAudio && (packet->codec_type == AVMEDIA_TYPE_AUDIO)) {
+              if (mPlayerAudio->addPacket (packet))
+                packet = NULL;
               else
                 cOmxClock::sleep (10);
               }
+
             else
-              mReader.freePacket (omxPacket);
+              mReader.freePacket (packet);
             }
+            //}}}
           else if (mReader.isEof()) {
-            // reader EOF, may still be playing out
+            //{{{  EOF, may still be playing out
             if (!(mPlayerVideo && mPlayerVideo->getCached()) && !(mPlayerAudio && mPlayerAudio->getCached())) {
               if (!submitEos) {
                 submitEos = true;
@@ -528,19 +532,20 @@ private:
               if ((!mPlayerVideo || mPlayerVideo->isEOS()) && (!mPlayerAudio || mPlayerAudio->isEOS()))
                 break;
               }
-            // wait for about another frame
+
+            // wait about another frame
             cOmxClock::sleep (20);
             }
-          else // wait for more packets
+            //}}}
+          else // wait for another packet
             cOmxClock::sleep (10);
-          //}}}
           }
           //}}}
 
         //{{{  stop play
         mClock.stop();
         mClock.stateIdle();
-        mReader.freePacket (omxPacket);
+        mReader.freePacket (packet);
         //}}}
         }
 
