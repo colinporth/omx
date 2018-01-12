@@ -328,6 +328,7 @@ private:
           mPlayerAudio = new cOmxPlayerAudio();
         if (mReader.getVideoStreamCount())
           mPlayerVideo = new cOmxPlayerVideo();
+
         mReader.getHints (OMXSTREAM_AUDIO, audioConfig.hints);
         mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
 
@@ -347,6 +348,7 @@ private:
         mClock.stateExecute();
         //}}}
 
+        bool sentStarted = true;
         bool submitEos = false;
         double lastSeekPosSec = 0.0;
         OMXPacket* packet = nullptr;
@@ -371,8 +373,13 @@ private:
 
               if (pts != DVD_NOPTS_VALUE)
                 mClock.setMediaTime (seekPts);
-              mClock.reset (mPlayerVideo, mPlayerAudio);
               }
+
+            sentStarted = false;
+
+            if (mPlayerVideo)
+              mPlayerVideo->reset();
+            mClock.pause();
 
             cLog::log (LOGINFO, "seekPos:"  + decFrac(seekPosSec,6,5,' '));
             mSeekIncSec = 0.0;
@@ -494,6 +501,13 @@ private:
             }
             //}}}
 
+          if (!sentStarted) {
+            //{{{  omx reset
+            mClock.reset (mPlayerVideo, mPlayerAudio);
+            sentStarted = true;
+            }
+            //}}}
+
           // packet reader
           if (!packet)
             packet = mReader.readPacket();
@@ -563,7 +577,7 @@ private:
         break;
       }
 
-    cLog::log (LOGNOTICE, "player - exit " + string(mExit ? "mExit" : "") + 
+    cLog::log (LOGNOTICE, "player - exit " + string(mExit ? "mExit" : "") +
                           " " + string(gAbort ? "gAbort" : ""));
     mExit = true;
     }
