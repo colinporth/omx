@@ -21,11 +21,11 @@ INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
 	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
 
 CFLAGS=    -std=c++0x \
-	   -g \
 	   -O3 \
 	   -fPIC \
 	   -ftree-vectorize \
 	   -fomit-frame-pointer \
+	   -g \
 	   -Wall \
 	   -Wno-psabi \
 	   -Wno-deprecated-declarations \

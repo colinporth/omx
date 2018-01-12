@@ -31,6 +31,7 @@
 
 #include "../shared/nanoVg/cRaspWindow.h"
 #include "../shared/widgets/cTextBox.h"
+#include "../shared/widgets/cListWidget.h"
 
 #include "version.h"
 
@@ -63,119 +64,53 @@ public:
     }
   //}}}
   //{{{
-  void run (const string& root, int fileNum) {
+  void run (const string& root) {
 
     nftw (root.c_str(), addFile, 20, 0);
+    if (!mFileNames.empty()) {
+      initialise (1.f, 0);
+      add (new cTextBox (mDebugStr, 0.f));
+      addBelow (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,0.f));
 
-    mDebugStr = mFileNames[fileNum];
-
-    initialise (1.f, 0);
-    add (new cTextBox (mDebugStr, 0.f));
-
-    thread ([=]() { player (mFileNames[fileNum]); } ).detach();
-
-    cRaspWindow::run();
+      thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
+      cRaspWindow::run();
+      }
     }
   //}}}
 
 protected:
   //{{{
-  void pollKeyboard() {
-
-    auto event = mKeyboard.getEvent();
-    switch (event) {
-      case cKeyConfig::ACT_PLAYPAUSE: mPause = !mPause; break;
-
-      case cKeyConfig::ACT_STEP: mClock.step(); break;
-      case cKeyConfig::ACT_SEEK_BACK_SMALL:    mSeekIncSec = -10.0; break;
-      case cKeyConfig::ACT_SEEK_FORWARD_SMALL: mSeekIncSec = +10.0; break;
-      case cKeyConfig::ACT_SEEK_BACK_LARGE :   mSeekIncSec = -60.0; break;
-      case cKeyConfig::ACT_SEEK_FORWARD_LARGE: mSeekIncSec = +60.0; break;
-
-      //{{{
-      case cKeyConfig::ACT_DECREASE_VOLUME:
-        mVolume -= 300;
-        mPlayerAudio.setVolume (pow (10, mVolume / 2000.0));
-        break;
-      //}}}
-      //{{{
-      case cKeyConfig::ACT_INCREASE_VOLUME:
-        mVolume += 300;
-        mPlayerAudio.setVolume (pow (10, mVolume / 2000.0));
-        break;
-      //}}}
-
-      //{{{
-      case cKeyConfig::ACT_PREVIOUS_AUDIO:
-        if (mReader.getAudioIndex() > 0)
-          mReader.setActiveStream (OMXSTREAM_AUDIO, mReader.getAudioIndex()-1);
-        break;
-      //}}}
-      //{{{
-      case cKeyConfig::ACT_NEXT_AUDIO:
-        mReader.setActiveStream (OMXSTREAM_AUDIO, mReader.getAudioIndex()+1);
-        break;
-      //}}}
-
-      //{{{
-      case cKeyConfig::ACT_PREVIOUS_VIDEO:
-        if (mReader.getVideoIndex() > 0)
-          mReader.setActiveStream (OMXSTREAM_VIDEO, mReader.getVideoIndex()-1);
-        break;
-      //}}}
-      //{{{
-      case cKeyConfig::ACT_NEXT_VIDEO:
-        mReader.setActiveStream (OMXSTREAM_VIDEO, mReader.getVideoIndex()+1);
-        break;
-      //}}}
-
-      case cKeyConfig::ACT_TOGGLE_VSYNC: toggleVsync(); break; // v
-      case cKeyConfig::ACT_TOGGLE_PERF:  togglePerf();  break; // p
-      case cKeyConfig::ACT_TOGGLE_STATS: toggleStats(); break; // s
-      case cKeyConfig::ACT_TOGGLE_TESTS: toggleTests(); break; // y
-
-      case cKeyConfig::ACT_TOGGLE_SOLID: toggleSolid(); break; // i
-      case cKeyConfig::ACT_TOGGLE_EDGES: toggleEdges(); break; // a
-      case cKeyConfig::ACT_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
-      case cKeyConfig::ACT_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
-
-      case cKeyConfig::ACT_LOG1: cLog::setLogLevel (LOGNOTICE); break;
-      case cKeyConfig::ACT_LOG2: cLog::setLogLevel (LOGERROR); break;
-      case cKeyConfig::ACT_LOG3: cLog::setLogLevel (LOGINFO); break;
-      case cKeyConfig::ACT_LOG4: cLog::setLogLevel (LOGINFO1); break;
-      case cKeyConfig::ACT_LOG5: cLog::setLogLevel (LOGINFO2); break;
-      case cKeyConfig::ACT_LOG6: cLog::setLogLevel (LOGINFO3); break;
-
-      case cKeyConfig::ACT_NONE: break;
-      case cKeyConfig::ACT_EXIT: gAbort = true; mExit = true; break;
-      default: cLog::log (LOGNOTICE, "pollKeyboard - unused event %d", event); break;
-      }
-    }
-  //}}}
-
-private:
-  //{{{
   class cKeyConfig {
   public:
-    #define KEY_ESC   27
-    #define KEY_UP    0x5b42
-    #define KEY_DOWN  0x5b41
-    #define KEY_LEFT  0x5b44
-    #define KEY_RIGHT 0x5b43
+    //{{{  keys
+    #define KEY_ENTER    0x0a
+    #define KEY_ESC      0x1b
 
-    enum eKeyAction { ACT_NONE, ACT_EXIT,
+    #define KEY_HOME     0x317e
+    #define KEY_INSERT   0x327e
+    #define KEY_DELETE   0x337e
+    #define KEY_END      0x347e
+    #define KEY_PAGEUP   0x357e
+    #define KEY_PAGEDOWN 0x367e
+
+    #define KEY_DOWN     0x5b41
+    #define KEY_UP       0x5b42
+    #define KEY_RIGHT    0x5b43
+    #define KEY_LEFT     0x5b44
+    //}}}
+    //{{{  actions
+    enum eKeyAction { ACT_NONE, ACT_EXIT, ACT_ENTER,
                       ACT_PLAYPAUSE, ACT_STEP,
-                      ACT_SEEK_BACK_SMALL, ACT_SEEK_FORWARD_SMALL,
-                      ACT_SEEK_BACK_LARGE, ACT_SEEK_FORWARD_LARGE,
-                      ACT_PREVIOUS_VIDEO, ACT_NEXT_VIDEO,
-                      ACT_PREVIOUS_AUDIO, ACT_NEXT_AUDIO,
-                      ACT_DECREASE_VOLUME, ACT_INCREASE_VOLUME,
+                      ACT_SEEK_DEC_SMALL, ACT_SEEK_INC_SMALL,
+                      ACT_SEEK_DEC_LARGE, ACT_SEEK_INC_LARGE,
+                      ACT_DEC_VOLUME, ACT_INC_VOLUME,
+                      ACT_PREV_FILE, ACT_NEXT_FILE,
                       ACT_TOGGLE_VSYNC, ACT_TOGGLE_PERF, ACT_TOGGLE_STATS, ACT_TOGGLE_TESTS,
                       ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES,
                       ACT_LESS_FRINGE, ACT_MORE_FRINGE,
                       ACT_LOG1, ACT_LOG2,ACT_LOG3, ACT_LOG4, ACT_LOG5, ACT_LOG6,
                       };
-
+    //}}}
     //{{{
     static map<int,int> getKeymap() {
       map<int,int> keymap;
@@ -187,24 +122,18 @@ private:
       keymap['>'] = ACT_STEP;
       keymap['.'] = ACT_STEP;
 
-      keymap[KEY_LEFT] = ACT_SEEK_BACK_SMALL;
-      keymap[KEY_RIGHT] = ACT_SEEK_FORWARD_SMALL;
-      keymap[KEY_DOWN] = ACT_SEEK_BACK_LARGE;
-      keymap[KEY_UP] = ACT_SEEK_FORWARD_LARGE;
+      keymap[KEY_LEFT]  = ACT_SEEK_DEC_SMALL;
+      keymap[KEY_RIGHT] = ACT_SEEK_INC_SMALL;
+      keymap[KEY_DOWN]  = ACT_SEEK_DEC_LARGE;
+      keymap[KEY_UP]    = ACT_SEEK_INC_LARGE;
 
-      keymap['n'] = ACT_PREVIOUS_VIDEO;
-      keymap['N'] = ACT_PREVIOUS_VIDEO;
-      keymap['m'] = ACT_NEXT_VIDEO;
-      keymap['M'] = ACT_NEXT_VIDEO;
+      keymap[KEY_PAGEUP]   = ACT_PREV_FILE;
+      keymap[KEY_PAGEDOWN] = ACT_NEXT_FILE;
+      keymap[KEY_ENTER]    = ACT_ENTER;
 
-      keymap['j'] = ACT_PREVIOUS_AUDIO;
-      keymap['J'] = ACT_PREVIOUS_AUDIO;
-      keymap['k'] = ACT_NEXT_AUDIO;
-      keymap['K'] = ACT_NEXT_AUDIO;
-
-      keymap['-'] = ACT_DECREASE_VOLUME;
-      keymap['+'] = ACT_INCREASE_VOLUME;
-      keymap['='] = ACT_INCREASE_VOLUME;
+      keymap['-'] = ACT_DEC_VOLUME;
+      keymap['+'] = ACT_INC_VOLUME;
+      keymap['='] = ACT_INC_VOLUME;
 
       keymap['v'] = ACT_TOGGLE_VSYNC;
       keymap['V'] = ACT_TOGGLE_VSYNC;
@@ -235,6 +164,81 @@ private:
     //}}}
     };
   //}}}
+  //{{{
+  void pollKeyboard() {
+
+    auto event = mKeyboard.getEvent();
+    switch (event) {
+      //{{{
+      case cKeyConfig::ACT_PREV_FILE:
+        if (mFileNum > 0) {
+          mFileNum--;
+          mFileChanged = true;
+          mEntered = true;
+          }
+        break;
+      //}}}
+      //{{{
+      case cKeyConfig::ACT_NEXT_FILE:
+        if (mFileNum < mFileNames.size()-1) {
+          mFileNum++;
+          mFileChanged = true;
+          mEntered = true;
+          }
+        break;
+      //}}}
+      //{{{
+      case cKeyConfig::ACT_ENTER:
+        cLog::log (LOGNOTICE, "enter");
+        mEntered = true;
+        break;
+      //}}}
+
+      case cKeyConfig::ACT_PLAYPAUSE: mPause = !mPause; break;
+      case cKeyConfig::ACT_STEP: mClock.step(); break;
+      case cKeyConfig::ACT_SEEK_DEC_SMALL: mSeekIncSec = -10.0; break;
+      case cKeyConfig::ACT_SEEK_INC_SMALL: mSeekIncSec = +10.0; break;
+      case cKeyConfig::ACT_SEEK_DEC_LARGE: mSeekIncSec = -60.0; break;
+      case cKeyConfig::ACT_SEEK_INC_LARGE: mSeekIncSec = +60.0; break;
+
+      //{{{
+      case cKeyConfig::ACT_DEC_VOLUME:
+        mVolume -= 300;
+        mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
+        break;
+      //}}}
+      //{{{
+      case cKeyConfig::ACT_INC_VOLUME:
+        mVolume += 300;
+        mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
+        break;
+      //}}}
+
+      case cKeyConfig::ACT_TOGGLE_VSYNC: toggleVsync(); break; // v
+      case cKeyConfig::ACT_TOGGLE_PERF:  togglePerf();  break; // p
+      case cKeyConfig::ACT_TOGGLE_STATS: toggleStats(); break; // s
+      case cKeyConfig::ACT_TOGGLE_TESTS: toggleTests(); break; // y
+
+      case cKeyConfig::ACT_TOGGLE_SOLID: toggleSolid(); break; // i
+      case cKeyConfig::ACT_TOGGLE_EDGES: toggleEdges(); break; // a
+      case cKeyConfig::ACT_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
+      case cKeyConfig::ACT_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
+
+      case cKeyConfig::ACT_LOG1: cLog::setLogLevel (LOGNOTICE); break;
+      case cKeyConfig::ACT_LOG2: cLog::setLogLevel (LOGERROR); break;
+      case cKeyConfig::ACT_LOG3: cLog::setLogLevel (LOGINFO); break;
+      case cKeyConfig::ACT_LOG4: cLog::setLogLevel (LOGINFO1); break;
+      case cKeyConfig::ACT_LOG5: cLog::setLogLevel (LOGINFO2); break;
+      case cKeyConfig::ACT_LOG6: cLog::setLogLevel (LOGINFO3); break;
+
+      case cKeyConfig::ACT_NONE: break;
+      case cKeyConfig::ACT_EXIT: gAbort = true; mExit = true; break;
+      default: cLog::log (LOGNOTICE, "pollKeyboard - unused event %d", event); break;
+      }
+    }
+  //}}}
+
+private:
   //{{{
   static int addFile (const char* fileName, const struct stat* statBuf, int flag, struct FTW* ftw) {
 
@@ -294,7 +298,7 @@ private:
     }
   //}}}
   //{{{
-  void player (const string& fileName) {
+  void player (string fileName) {
 
     cLog::setThreadName ("play");
 
@@ -334,234 +338,258 @@ private:
     vc_dispmanx_update_submit_sync (update);
     //}}}
 
+    mPlayerVideo = new cOmxPlayerVideo();
+    mPlayerAudio = new cOmxPlayerAudio();
+
     //audioConfig.is_live = true;
     //audioConfig.hwdecode = true;
-    if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
-        mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:1000000","")) {
-      mClock.stateIdle();
-      mClock.stop();
-      mClock.pause();
+    while (true) {
+      if ((isURL (fileName) || isPipe (fileName) || exists (fileName)) &&
+          mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:1000000","")) {
+        //{{{  start play
+        mClock.stateIdle();
+        mClock.stop();
+        mClock.pause();
 
-      bool hasAudio = mReader.getAudioStreamCount();
-      bool hasVideo = mReader.getVideoStreamCount();
-      mReader.getHints (OMXSTREAM_AUDIO, audioConfig.hints);
-      mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
+        bool hasAudio = mReader.getAudioStreamCount();
+        bool hasVideo = mReader.getVideoStreamCount();
+        mReader.getHints (OMXSTREAM_AUDIO, audioConfig.hints);
+        mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
 
-      if (hasVideo && mPlayerVideo.open (&mClock, videoConfig))
-        thread ([=]() { mPlayerVideo.run(); } ).detach();
+        if (hasVideo && mPlayerVideo->open (&mClock, videoConfig))
+          thread ([=]() { mPlayerVideo->run(); } ).detach();
 
-      audioConfig.device = "omx:local";
-      if (hasAudio && mPlayerAudio.open (&mClock, audioConfig, &mReader)) {
-        thread ([=]() { mPlayerAudio.run(); } ).detach();
-        mPlayerAudio.setVolume (pow (10, mVolume / 2000.0));
-        }
+        audioConfig.device = "omx:local";
+        if (hasAudio && mPlayerAudio->open (&mClock, audioConfig, &mReader)) {
+          thread ([=]() { mPlayerAudio->run(); } ).detach();
+          mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
+          }
 
-      auto loadThreshold = audioConfig.is_live ? 0.7f : 0.2f;
-      float loadLatency = 0.f;
+        auto loadThreshold = audioConfig.is_live ? 0.7f : 0.2f;
+        float loadLatency = 0.f;
 
-      mClock.reset (hasVideo, hasAudio);
-      mClock.stateExecute();
+        mClock.reset (hasVideo, hasAudio);
+        mClock.stateExecute();
+        //}}}
 
-      bool sendEos = false;
-      double lastSeekPosSec = 0.0;
-      OMXPacket* omxPacket = nullptr;
-      while (!mExit && !gAbort && !mPlayerAudio.getError()) {
-        if (mSeekIncSec != 0.0) {
-          //{{{  seek
-          double pts = mClock.getMediaTime();
-          double seekPosSec = (pts ? (pts / 1000000.0) : lastSeekPosSec) + mSeekIncSec;
-          lastSeekPosSec = seekPosSec;
+        bool sendEos = false;
+        double lastSeekPosSec = 0.0;
+        OMXPacket* omxPacket = nullptr;
+        while (!mEntered && !mExit && !gAbort && !mPlayerAudio->getError()) {
+          // play loop
+          if (mSeekIncSec != 0.0) {
+            //{{{  seek
+            double pts = mClock.getMediaTime();
+            double seekPosSec = (pts ? (pts / 1000000.0) : lastSeekPosSec) + mSeekIncSec;
+            lastSeekPosSec = seekPosSec;
 
-          double seekPts = 0;
-          if (mReader.seek (seekPosSec, seekPts)) {
-            mClock.stop();
-            mClock.pause();
+            double seekPts = 0;
+            if (mReader.seek (seekPosSec, seekPts)) {
+              mClock.stop();
+              mClock.pause();
 
-            if (hasVideo)
-              mPlayerVideo.flush();
-            if (hasAudio)
-              mPlayerAudio.flush();
-            mReader.freePacket (omxPacket);
+              if (hasVideo)
+                mPlayerVideo->flush();
+              if (hasAudio)
+                mPlayerAudio->flush();
+              mReader.freePacket (omxPacket);
 
-            if (pts != DVD_NOPTS_VALUE)
-              mClock.setMediaTime (seekPts);
-            mClock.reset (hasVideo, hasAudio);
+              if (pts != DVD_NOPTS_VALUE)
+                mClock.setMediaTime (seekPts);
+              mClock.reset (hasVideo, hasAudio);
+              }
+
+            cLog::log (LOGINFO, "seekPos:"  + decFrac(seekPosSec,6,5,' '));
+            mSeekIncSec = 0.0;
+            }
+            //}}}
+          //{{{  pts, fifos
+          auto clockPts = mClock.getMediaTime();
+          auto threshold = min (0.1f, (float)mPlayerAudio->getCacheTotal() * 0.1f);
+
+          // audio
+          auto audio_fifo = 0.f;
+          auto audio_fifo_low = false;
+          auto audio_fifo_high = false;
+          auto audio_pts = mPlayerAudio->getCurrentPTS();
+          if (audio_pts != DVD_NOPTS_VALUE) {
+            audio_fifo = (audio_pts - clockPts) / 1000000.0;
+            audio_fifo_low = hasAudio && (audio_fifo < threshold);
+            audio_fifo_high = !hasAudio ||
+                              ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > loadThreshold));
             }
 
-          cLog::log (LOGINFO, "seekPos:"  + decFrac(seekPosSec,6,5,' '));
-          mSeekIncSec = 0.0;
-          }
+          // video
+          auto video_fifo = 0.f;
+          auto video_fifo_low = false;
+          auto video_fifo_high = false;
+          auto video_pts = mPlayerVideo->getCurrentPTS();
+          if (video_pts != DVD_NOPTS_VALUE) {
+            video_fifo = (video_pts - clockPts) / 1000000.0;
+            video_fifo_low = hasVideo && (video_fifo < threshold);
+            video_fifo_high = !hasVideo ||
+                              ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
+            }
+          // debug
+          auto str = decFrac(clockPts/1000000.0,6,5,' ') +
+                     " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
+                     " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
+                     " af:" + decFrac(audio_fifo,6,5,' ') +
+                     " vf:" + decFrac(video_fifo,6,5,' ') +
+                     " al:" + dec(mPlayerAudio->getLevel()) +
+                     " vl:" + dec(mPlayerVideo->getLevel()) +
+                     " ad:" + dec(mPlayerAudio->getDelay()) +
+                     " ac:" + dec(mPlayerAudio->getCacheTotal());
+          mDebugStr = str;
           //}}}
+          if (audioConfig.is_live) {
+            //{{{  live latency controlled by adjusting clock
+            float latency = DVD_NOPTS_VALUE;
+            if (hasAudio && (audio_pts != DVD_NOPTS_VALUE))
+              latency = audio_fifo;
+            else if (!hasAudio && hasVideo && video_pts != DVD_NOPTS_VALUE)
+              latency = video_fifo;
 
-        //{{{  pts, fifos
-        auto clockPts = mClock.getMediaTime();
-        auto threshold = min (0.1f, (float)mPlayerAudio.getCacheTotal() * 0.1f);
+            if (!mPause && (latency != DVD_NOPTS_VALUE)) {
+              if (mClock.isPaused()) {
+                if (latency > loadThreshold) {
+                  cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
+                             audio_fifo, video_fifo,
+                             audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
+                             mReader.isEof(), omxPacket);
+                  mClock.resume();
+                  loadLatency = latency;
+                  }
+                }
 
-        // audio
-        auto audio_fifo = 0.f;
-        auto audio_fifo_low = false;
-        auto audio_fifo_high = false;
-        auto audio_pts = mPlayerAudio.getCurrentPTS();
-        if (audio_pts != DVD_NOPTS_VALUE) {
-          audio_fifo = (audio_pts - clockPts) / 1000000.0;
-          audio_fifo_low = hasAudio && (audio_fifo < threshold);
-          audio_fifo_high = !hasAudio ||
-                            ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > loadThreshold));
-          }
+              else {
+                loadLatency = loadLatency * 0.99f + latency * 0.01f;
+                float speed = 1.f;
+                if (loadLatency < 0.5f * loadThreshold)
+                  speed = 0.990f;
+                else if (loadLatency < 0.9f*loadThreshold)
+                  speed = 0.999f;
+                else if (loadLatency > 2.f*loadThreshold)
+                  speed = 1.010f;
+                else if (loadLatency > 1.1f*loadThreshold)
+                  speed = 1.001f;
 
-        // video
-        auto video_fifo = 0.f;
-        auto video_fifo_low = false;
-        auto video_fifo_high = false;
-        auto video_pts = mPlayerVideo.getCurrentPTS();
-        if (video_pts != DVD_NOPTS_VALUE) {
-          video_fifo = (video_pts - clockPts) / 1000000.0;
-          video_fifo_low = hasVideo && (video_fifo < threshold);
-          video_fifo_high = !hasVideo ||
-                            ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
-          }
-        // debug
-        auto str = decFrac(clockPts/1000000.0,6,5,' ') +
-                   " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
-                   " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
-                   " af:" + decFrac(audio_fifo,6,5,' ') +
-                   " vf:" + decFrac(video_fifo,6,5,' ') +
-                   " al:" + dec(mPlayerAudio.getLevel()) +
-                   " vl:" + dec(mPlayerVideo.getLevel()) +
-                   " ad:" + dec(mPlayerAudio.getDelay()) +
-                   " ac:" + dec(mPlayerAudio.getCacheTotal());
-        mDebugStr = str;
-        //}}}
-        if (audioConfig.is_live) {
-          //{{{  live latency controlled by adjusting clock
-          float latency = DVD_NOPTS_VALUE;
-          if (hasAudio && (audio_pts != DVD_NOPTS_VALUE))
-            latency = audio_fifo;
-          else if (!hasAudio && hasVideo && video_pts != DVD_NOPTS_VALUE)
-            latency = video_fifo;
-
-          if (!mPause && (latency != DVD_NOPTS_VALUE)) {
-            if (mClock.isPaused()) {
-              if (latency > loadThreshold) {
-                cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
-                           audio_fifo, video_fifo,
-                           audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                           mReader.isEof(), omxPacket);
-                mClock.resume();
-                loadLatency = latency;
+                mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
+                mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
+                cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
+                           loadLatency, latency, speed, loadThreshold);
                 }
               }
+            }
+            //}}}
+          else if (!mPause && (mReader.isEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
+            //{{{  resume
+            if (mClock.isPaused()) {
+              cLog::log (LOGINFO, "resume aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
+                         audio_fifo, video_fifo,
+                         audio_fifo_low ? "aFifoLo ":"",
+                         video_fifo_low ? "vFifoLo ":"",
+                         audio_fifo_high ? "aFifoHi ":"",
+                         video_fifo_high ? "vFifoHi ":"",
+                         mReader.isEof() ? "eof " : "",
+                         omxPacket ? "" : "emptyPkt");
 
-            else {
-              loadLatency = loadLatency * 0.99f + latency * 0.01f;
-              float speed = 1.f;
-              if (loadLatency < 0.5f * loadThreshold)
-                speed = 0.990f;
-              else if (loadLatency < 0.9f*loadThreshold)
-                speed = 0.999f;
-              else if (loadLatency > 2.f*loadThreshold)
-                speed = 1.010f;
-              else if (loadLatency > 1.1f*loadThreshold)
-                speed = 1.001f;
-
-              mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
-              mClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
-              cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
-                         loadLatency, latency, speed, loadThreshold);
+              mClock.resume();
               }
             }
-          }
-          //}}}
-        else if (!mPause && (mReader.isEof() || omxPacket || (audio_fifo_high && video_fifo_high))) {
-          //{{{  resume
-          if (mClock.isPaused()) {
-            cLog::log (LOGINFO, "resume aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
-                       audio_fifo, video_fifo,
-                       audio_fifo_low ? "aFifoLo ":"",
-                       video_fifo_low ? "vFifoLo ":"",
-                       audio_fifo_high ? "aFifoHi ":"",
-                       video_fifo_high ? "vFifoHi ":"",
-                       mReader.isEof() ? "eof " : "",
-                       omxPacket ? "" : "emptyPkt");
+            //}}}
+          else if (mPause || audio_fifo_low || video_fifo_low) {
+            //{{{  pause
+            if (!mClock.isPaused()) {
+              if (!mPause)
+                loadThreshold = min(2.f*loadThreshold, 16.f);
 
-            mClock.resume();
+              cLog::log (LOGINFO, "pause aFifo:%.2f vFifo:%.2f %s%s%s%s thresh:%.2f",
+                         audio_fifo, video_fifo,
+                         audio_fifo_low ? "aFifoLo ":"",
+                         video_fifo_low ? "vFifoLo ":"",
+                         audio_fifo_high ? "aFifoHi ":"",
+                         video_fifo_high ? "vFifoHi ":"",
+                         loadThreshold);
+
+              mClock.pause();
+              }
             }
-          }
-          //}}}
-        else if (mPause || audio_fifo_low || video_fifo_low) {
-          //{{{  pause
-          if (!mClock.isPaused()) {
-            if (!mPause)
-              loadThreshold = min(2.f*loadThreshold, 16.f);
+            //}}}
+          //{{{  packet reader
+          if (!omxPacket)
+            omxPacket = mReader.readPacket();
 
-            cLog::log (LOGINFO, "pause aFifo:%.2f vFifo:%.2f %s%s%s%s thresh:%.2f",
-                       audio_fifo, video_fifo,
-                       audio_fifo_low ? "aFifoLo ":"",
-                       video_fifo_low ? "vFifoLo ":"",
-                       audio_fifo_high ? "aFifoHi ":"",
-                       video_fifo_high ? "vFifoHi ":"",
-                       loadThreshold);
+          if (omxPacket) {
+            sendEos = false;
 
-            mClock.pause();
-            }
-          }
-          //}}}
-
-        //{{{  packet reader
-        if (!omxPacket)
-          omxPacket = mReader.readPacket();
-
-        if (omxPacket) {
-          sendEos = false;
-
-          if (hasVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
-            if (mPlayerVideo.addPacket (omxPacket))
-              omxPacket = NULL;
+            if (hasVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
+              if (mPlayerVideo->addPacket (omxPacket))
+                omxPacket = NULL;
+              else
+                cOmxClock::sleep (10);
+              }
+            else if (hasAudio && (omxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
+              if (mPlayerAudio->addPacket (omxPacket))
+                omxPacket = NULL;
+              else
+                cOmxClock::sleep (10);
+              }
             else
-              cOmxClock::sleep (10);
+              mReader.freePacket (omxPacket);
             }
-          else if (hasAudio && (omxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
-            if (mPlayerAudio.addPacket (omxPacket))
-              omxPacket = NULL;
-            else
-              cOmxClock::sleep (10);
-            }
-          else
-            mReader.freePacket (omxPacket);
-          }
 
-        else {
-          if (mReader.isEof()) {
-            // demuxer EOF, but may have not played out data yet
-            if ( (hasVideo && mPlayerVideo.getCached()) || (hasAudio && mPlayerAudio.getCached()) ) {
-              cOmxClock::sleep (10);
+          else {
+            if (mReader.isEof()) {
+              // demuxer EOF, but may have not played out data yet
+              if ( (hasVideo && mPlayerVideo->getCached()) || (hasAudio && mPlayerAudio->getCached()) ) {
+                cOmxClock::sleep (10);
+                return;
+                }
+              if (!sendEos && hasVideo)
+                mPlayerVideo->submitEOS();
+              if (!sendEos && hasAudio)
+                mPlayerAudio->submitEOS();
+
+              sendEos = true;
+              if ((hasVideo && !mPlayerVideo->isEOS()) || (hasAudio && !mPlayerAudio->isEOS())) {
+                cOmxClock::sleep (10);
+                return;
+                }
               return;
               }
-            if (!sendEos && hasVideo)
-              mPlayerVideo.submitEOS();
-            if (!sendEos && hasAudio)
-              mPlayerAudio.submitEOS();
 
-            sendEos = true;
-            if ((hasVideo && !mPlayerVideo.isEOS()) || (hasAudio && !mPlayerAudio.isEOS())) {
-              cOmxClock::sleep (10);
-              return;
-              }
-            return;
+            cOmxClock::sleep (10);
             }
-
-          cOmxClock::sleep (10);
+          //}}}
           }
+        //{{{  stop play
+        mClock.stop();
+        mClock.stateIdle();
+        mReader.freePacket (omxPacket);
         //}}}
         }
 
-      mClock.stop();
-      mClock.stateIdle();
-      mReader.freePacket (omxPacket);
+      if (mEntered) {
+        //{{{  remake video,audio players, select file
+        mEntered = false;
+        fileName = mFileNames[mFileNum];
+
+        delete (mPlayerVideo);
+        delete (mPlayerAudio);
+
+        mPlayerVideo = new cOmxPlayerVideo();
+        mPlayerAudio = new cOmxPlayerAudio();
+        }
+        //}}}
+      else
+        break;
       }
 
-    cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio.getError:%d",
-                          mExit, gAbort, mPlayerAudio.getError());
+    cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio->getError:%d",
+                          mExit, gAbort, mPlayerAudio->getError());
+    delete (mPlayerVideo);
+    delete (mPlayerAudio);
     mExit = true;
     }
   //}}}
@@ -569,14 +597,19 @@ private:
   cKeyboard mKeyboard;
   cOmxClock mClock;
   cOmxReader mReader;
-  cOmxPlayerVideo mPlayerVideo;
-  cOmxPlayerAudio mPlayerAudio;
+
+  cOmxPlayerVideo* mPlayerVideo = nullptr;
+  cOmxPlayerAudio* mPlayerAudio = nullptr;
+
   long mVolume = 0;
   bool mPause = false;
   double mSeekIncSec = 0.0;
   string mDebugStr;
 
   static vector<string> mFileNames;
+  unsigned int mFileNum = 0;
+  bool mFileChanged = false;
+  bool mEntered = false;
   //}}}
   };
 vector<string> cAppWindow::mFileNames;
@@ -590,21 +623,18 @@ int main (int argc, char* argv[]) {
   signal (SIGFPE, sigHandler);
   signal (SIGINT, sigHandler);
   //}}}
-  string root = "/home/pi/tv";
-  bool logInfo = false;
-  string fileName;
-  int fileNum = 0;
 
+  bool logInfo = false;
+  string root = "/home/pi/tv";
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logInfo = true;
     else if (!strcmp(argv[arg], "r")) root = argv[++arg];
-    else fileNum = atoi (argv[arg]);
 
   cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
-  cLog::log (LOGNOTICE, "omx " + string(VERSION_DATE) + " " + fileName);
+  cLog::log (LOGNOTICE, "omx " + root + string(VERSION_DATE));
 
   cAppWindow appWindow;
-  appWindow.run (root, fileNum);
+  appWindow.run (root);
 
   return EXIT_SUCCESS;
   }

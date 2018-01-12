@@ -81,6 +81,118 @@ bool cOmxVideo::NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradat
 //}}}
 
 //{{{
+unsigned int cOmxVideo::GetSize() {
+
+  cSingleLock lock (mCriticalSection);
+  return m_omx_decoder.GetInputBufferSize();
+  }
+//}}}
+//{{{
+int cOmxVideo::GetInputBufferSize() {
+
+  cSingleLock lock (mCriticalSection);
+  return m_omx_decoder.GetInputBufferSize();
+  }
+//}}}
+//{{{
+unsigned int cOmxVideo::GetFreeSpace() {
+
+  cSingleLock lock (mCriticalSection);
+  return m_omx_decoder.GetInputBufferSpace();
+  }
+//}}}
+//{{{
+bool cOmxVideo::IsEOS() {
+
+  cSingleLock lock (mCriticalSection);
+
+  if (!m_failed_eos && !m_omx_render.IsEOS())
+    return false;
+
+  if (m_submitted_eos) {
+    cLog::log (LOGINFO, "cOmxVideo::IsEOS");
+    m_submitted_eos = false;
+    }
+
+  return true;
+  }
+//}}}
+
+//{{{
+void cOmxVideo::SetAlpha (int alpha) {
+
+  cSingleLock lock (mCriticalSection);
+
+  OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
+  OMX_INIT_STRUCTURE(configDisplay);
+  configDisplay.nPortIndex = m_omx_render.GetInputPort();
+  configDisplay.set = OMX_DISPLAY_SET_ALPHA;
+  configDisplay.alpha = alpha;
+  if (m_omx_render.SetConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
+    cLog::log (LOGERROR, "cOmxVideo::SetAlpha");
+  }
+//}}}
+//{{{
+void cOmxVideo::SetVideoRect() {
+
+  cSingleLock lock (mCriticalSection);
+
+  OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
+  OMX_INIT_STRUCTURE(configDisplay);
+  configDisplay.nPortIndex = m_omx_render.GetInputPort();
+  configDisplay.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT | OMX_DISPLAY_SET_MODE | OMX_DISPLAY_SET_SRC_RECT | OMX_DISPLAY_SET_FULLSCREEN | OMX_DISPLAY_SET_PIXEL);
+  configDisplay.noaspect = m_config.aspectMode == 3 ? OMX_TRUE : OMX_FALSE;
+  configDisplay.mode = m_config.aspectMode == 2 ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
+
+  configDisplay.src_rect.x_offset = (int)(m_config.src_rect.x1 + 0.5f);
+  configDisplay.src_rect.y_offset = (int)(m_config.src_rect.y1 + 0.5f);
+  configDisplay.src_rect.width = (int)(m_config.src_rect.Width() + 0.5f);
+  configDisplay.src_rect.height = (int)(m_config.src_rect.Height() + 0.5f);
+
+  if (m_config.dst_rect.x2 > m_config.dst_rect.x1 && m_config.dst_rect.y2 > m_config.dst_rect.y1) {
+    configDisplay.set = (OMX_DISPLAYSETTYPE)(configDisplay.set | OMX_DISPLAY_SET_DEST_RECT);
+    configDisplay.fullscreen = OMX_FALSE;
+    if (m_config.aspectMode != 1 && m_config.aspectMode != 2 && m_config.aspectMode != 3)
+      configDisplay.noaspect = OMX_TRUE;
+    configDisplay.dest_rect.x_offset = (int)(m_config.dst_rect.x1 + 0.5f);
+    configDisplay.dest_rect.y_offset = (int)(m_config.dst_rect.y1 + 0.5f);
+    configDisplay.dest_rect.width = (int)(m_config.dst_rect.Width() + 0.5f);
+    configDisplay.dest_rect.height = (int)(m_config.dst_rect.Height() + 0.5f);
+    }
+  else
+    configDisplay.fullscreen = OMX_TRUE;
+
+  if (configDisplay.noaspect == OMX_FALSE && m_pixel_aspect != 0.0f) {
+    AVRational aspect = av_d2q (m_pixel_aspect, 100);
+    configDisplay.pixel_x = aspect.num;
+    configDisplay.pixel_y = aspect.den;
+    }
+  else {
+    configDisplay.pixel_x = 0;
+    configDisplay.pixel_y = 0;
+    }
+
+  if (m_omx_render.SetConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
+    cLog::log (LOGERROR, "cOmxVideo::Open OMX_IndexConfigDisplayRegion");
+  }
+//}}}
+//{{{
+void cOmxVideo::SetVideoRect (int aspectMode) {
+
+  m_config.aspectMode = aspectMode;
+  SetVideoRect();
+  }
+//}}}
+//{{{
+void cOmxVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) {
+
+  m_config.src_rect = SrcRect;
+  m_config.dst_rect = DestRect;
+  SetVideoRect();
+  }
+//}}}
+
+//{{{
 bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   cSingleLock lock (mCriticalSection);
@@ -401,17 +513,6 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
   return true;
   }
 //}}}
-
-//{{{
-void cOmxVideo::PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
-
-  cLog::log (LOGINFO, "portSettings %dx%d@%.2f int:%d deint:%d par:%.2f disp:%d lay:%d alpha:%d aspect:%d",
-             port_image.format.video.nFrameWidth, port_image.format.video.nFrameHeight,
-             port_image.format.video.xFramerate / (float)(1<<16),
-             interlaceEMode, m_deinterlace,  m_pixel_aspect, m_config.display,
-             m_config.layer, m_config.alpha, m_config.aspectMode);
-  }
-//}}}
 //{{{
 bool cOmxVideo::PortSettingsChanged() {
 
@@ -606,99 +707,6 @@ bool cOmxVideo::PortSettingsChanged() {
   return true;
   }
 //}}}
-
-//{{{
-unsigned int cOmxVideo::GetSize() {
-  cSingleLock lock (mCriticalSection);
-  return m_omx_decoder.GetInputBufferSize();
-  }
-//}}}
-//{{{
-int cOmxVideo::GetInputBufferSize() {
-  cSingleLock lock (mCriticalSection);
-  return m_omx_decoder.GetInputBufferSize();
-  }
-//}}}
-//{{{
-unsigned int cOmxVideo::GetFreeSpace() {
-  cSingleLock lock (mCriticalSection);
-  return m_omx_decoder.GetInputBufferSpace();
-  }
-//}}}
-
-void cOmxVideo::SetDropState (bool bDrop) { m_drop_state = bDrop; }
-//{{{
-void cOmxVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) {
-  m_config.src_rect = SrcRect;
-  m_config.dst_rect = DestRect;
-  SetVideoRect();
-  }
-//}}}
-//{{{
-void cOmxVideo::SetVideoRect (int aspectMode) {
-  m_config.aspectMode = aspectMode;
-  SetVideoRect();
-  }
-//}}}
-//{{{
-void cOmxVideo::SetVideoRect() {
-
-  cSingleLock lock (mCriticalSection);
-
-  OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
-  OMX_INIT_STRUCTURE(configDisplay);
-  configDisplay.nPortIndex = m_omx_render.GetInputPort();
-  configDisplay.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT | OMX_DISPLAY_SET_MODE | OMX_DISPLAY_SET_SRC_RECT | OMX_DISPLAY_SET_FULLSCREEN | OMX_DISPLAY_SET_PIXEL);
-  configDisplay.noaspect = m_config.aspectMode == 3 ? OMX_TRUE : OMX_FALSE;
-  configDisplay.mode = m_config.aspectMode == 2 ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
-
-  configDisplay.src_rect.x_offset = (int)(m_config.src_rect.x1 + 0.5f);
-  configDisplay.src_rect.y_offset = (int)(m_config.src_rect.y1 + 0.5f);
-  configDisplay.src_rect.width = (int)(m_config.src_rect.Width() + 0.5f);
-  configDisplay.src_rect.height = (int)(m_config.src_rect.Height() + 0.5f);
-
-  if (m_config.dst_rect.x2 > m_config.dst_rect.x1 && m_config.dst_rect.y2 > m_config.dst_rect.y1) {
-    configDisplay.set = (OMX_DISPLAYSETTYPE)(configDisplay.set | OMX_DISPLAY_SET_DEST_RECT);
-    configDisplay.fullscreen = OMX_FALSE;
-    if (m_config.aspectMode != 1 && m_config.aspectMode != 2 && m_config.aspectMode != 3)
-      configDisplay.noaspect = OMX_TRUE;
-    configDisplay.dest_rect.x_offset = (int)(m_config.dst_rect.x1 + 0.5f);
-    configDisplay.dest_rect.y_offset = (int)(m_config.dst_rect.y1 + 0.5f);
-    configDisplay.dest_rect.width = (int)(m_config.dst_rect.Width() + 0.5f);
-    configDisplay.dest_rect.height = (int)(m_config.dst_rect.Height() + 0.5f);
-    }
-  else
-    configDisplay.fullscreen = OMX_TRUE;
-
-  if (configDisplay.noaspect == OMX_FALSE && m_pixel_aspect != 0.0f) {
-    AVRational aspect = av_d2q (m_pixel_aspect, 100);
-    configDisplay.pixel_x = aspect.num;
-    configDisplay.pixel_y = aspect.den;
-    }
-  else {
-    configDisplay.pixel_x = 0;
-    configDisplay.pixel_y = 0;
-    }
-
-  if (m_omx_render.SetConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-    cLog::log (LOGERROR, "cOmxVideo::Open OMX_IndexConfigDisplayRegion");
-  }
-//}}}
-//{{{
-void cOmxVideo::SetAlpha (int alpha) {
-
-  cSingleLock lock (mCriticalSection);
-
-  OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
-  OMX_INIT_STRUCTURE(configDisplay);
-  configDisplay.nPortIndex = m_omx_render.GetInputPort();
-  configDisplay.set = OMX_DISPLAY_SET_ALPHA;
-  configDisplay.alpha = alpha;
-  if (m_omx_render.SetConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-    cLog::log (LOGERROR, "cOmxVideo::SetAlpha");
-  }
-//}}}
-
 //{{{
 bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
 
@@ -763,36 +771,6 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
   }
 //}}}
 //{{{
-void cOmxVideo::Reset() {
-
-  cSingleLock lock (mCriticalSection);
-
-  m_setStartTime = true;
-  m_omx_decoder.FlushInput();
-  if (m_deinterlace)
-    m_omx_image_fx.FlushInput();
-
-  m_omx_render.ResetEos();
-  }
-//}}}
-
-//{{{
-bool cOmxVideo::IsEOS() {
-
-  cSingleLock lock (mCriticalSection);
-
-  if (!m_failed_eos && !m_omx_render.IsEOS())
-    return false;
-
-  if (m_submitted_eos) {
-    cLog::log (LOGINFO, "cOmxVideo::IsEOS");
-    m_submitted_eos = false;
-    }
-
-  return true;
-  }
-//}}}
-//{{{
 void cOmxVideo::SubmitEOS() {
 
   cSingleLock lock (mCriticalSection);
@@ -824,8 +802,19 @@ void cOmxVideo::SubmitEOS() {
   cLog::log (LOGINFO, "cOmxVideo::SubmitEOS");
   }
 //}}}
+//{{{
+void cOmxVideo::Reset() {
 
-// private
+  cSingleLock lock (mCriticalSection);
+
+  m_setStartTime = true;
+  m_omx_decoder.FlushInput();
+  if (m_deinterlace)
+    m_omx_image_fx.FlushInput();
+
+  m_omx_render.ResetEos();
+  }
+//}}}
 //{{{
 void cOmxVideo::Close() {
 
@@ -848,5 +837,17 @@ void cOmxVideo::Close() {
   m_video_codec_name = "";
   m_deinterlace = false;
   m_av_clock = NULL;
+  }
+//}}}
+
+// private
+//{{{
+void cOmxVideo::PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
+
+  cLog::log (LOGINFO, "portSettings %dx%d@%.2f int:%d deint:%d par:%.2f disp:%d lay:%d alpha:%d aspect:%d",
+             port_image.format.video.nFrameWidth, port_image.format.video.nFrameHeight,
+             port_image.format.video.xFramerate / (float)(1<<16),
+             interlaceEMode, m_deinterlace,  m_pixel_aspect, m_config.display,
+             m_config.layer, m_config.alpha, m_config.aspectMode);
   }
 //}}}

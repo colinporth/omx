@@ -218,32 +218,29 @@ public:
   bool SendDecoderConfig();
   bool NaluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
 
-  bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
-  bool PortSettingsChanged();
-  void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
-
   unsigned int GetSize();
   int GetInputBufferSize();
   unsigned int GetFreeSpace();
   std::string GetDecoderName() { return m_video_codec_name; };
   bool BadState() { return m_omx_decoder.BadState(); };
   bool IsEOS();
-
-  void SetDropState (bool bDrop);
-  void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
-  void SetVideoRect (int aspectMode);
-  void SetVideoRect();
-  void SetAlpha (int alpha);
-
-  bool Decode (uint8_t* data, int size, double dts, double pts);
-  void Reset();
-
-  void SubmitEOS();
   bool SubmittedEOS() { return m_submitted_eos; }
 
-private:
+  void SetAlpha (int alpha);
+  void SetVideoRect();
+  void SetVideoRect (int aspectMode);
+  void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
+  void SetDropState (bool drop) { m_drop_state = drop; }
+
+  bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
+  bool PortSettingsChanged();
+  bool Decode (uint8_t* data, int size, double dts, double pts);
+  void SubmitEOS();
+  void Reset();
   void Close();
 
+private:
+  void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
   //{{{  vars
   cCriticalSection mCriticalSection;
 
@@ -311,10 +308,9 @@ public:
   void submitEOS();
   void flush();
   void reset();
-
-private:
   bool close();
 
+private:
   void lock() { pthread_mutex_lock (&mLock); }
   void unLock() { pthread_mutex_unlock (&mLock); }
   void lockDecoder() { pthread_mutex_lock  (&mLockDecoder); }

@@ -52,22 +52,22 @@ public:
 
   bool open (cOmxStreamInfo &hints, enum PCMLayout layout);
   int decode (BYTE* pData, int iSize, double dts, double pts);
-  void dispose();
   void reset();
+  void dispose();
 
 protected:
   cAvUtil mAvUtil;
   cAvCodec mAvCodec;
   cSwResample mSwResample;
 
-  SwrContext* mConvert = NULL;
-  AVCodecContext* mCodecContext = NULL;
-  AVFrame* mFrame1 = NULL;
+  SwrContext* mConvert = nullptr;
+  AVCodecContext* mCodecContext = nullptr;
+  AVFrame* mFrame1 = nullptr;
 
   enum AVSampleFormat m_iSampleFormat = AV_SAMPLE_FMT_NONE;
   enum AVSampleFormat m_desiredSampleFormat = AV_SAMPLE_FMT_NONE;
 
-  BYTE* mBufferOutput = NULL;
+  BYTE* mBufferOutput = nullptr;
   int m_iBufferOutputUsed = 0;
   int m_iBufferOutputAlloced = 0;
 
@@ -242,6 +242,7 @@ public:
   bool addPacket (OMXPacket* packet);
   void submitEOS();
   void flush();
+  bool close();
 
 private:
   void lock() { pthread_mutex_lock (&mLock); }
@@ -256,7 +257,6 @@ private:
 
   void closeSwAudio();
   void closeOmxAudio();
-  bool close();
 
   //{{{  vars
   pthread_mutex_t mLock;

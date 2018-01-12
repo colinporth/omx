@@ -204,8 +204,6 @@ void cOmxPlayerVideo::reset() {
   m_iVideoDelay = 0;
   }
 //}}}
-
-// private
 //{{{
 bool cOmxPlayerVideo::close() {
 
@@ -228,6 +226,7 @@ bool cOmxPlayerVideo::close() {
   }
 //}}}
 
+// private
 //{{{
 bool cOmxPlayerVideo::decode (OMXPacket* pkt) {
 

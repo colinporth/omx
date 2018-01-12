@@ -33,9 +33,9 @@ cSwAudio::~cSwAudio() {
   }
 //}}}
 
-int cSwAudio::getChannels() { return mCodecContext ? mCodecContext->channels : 0; }
-int cSwAudio::getSampleRate() { return mCodecContext ? mCodecContext->sample_rate : 0; }
-int cSwAudio::getBitRate() { return mCodecContext ? mCodecContext->bit_rate : 0; }
+int cSwAudio::getChannels() { return mCodecContext->channels; }
+int cSwAudio::getSampleRate() { return mCodecContext->sample_rate; }
+int cSwAudio::getBitRate() { return mCodecContext->bit_rate; }
 int cSwAudio::getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
 //{{{
 uint64_t cSwAudio::getChannelMap() {
@@ -132,7 +132,7 @@ int cSwAudio::getData (BYTE** dst, double& dts, double& pts) {
     }
   mGotFrame = false;
 
-  if (mFirstFrame) 
+  if (mFirstFrame)
     cLog::log (LOGINFO1, "cSwAudio::getData size:%d/%d line:%d/%d buf:%p, desired:%d",
                inputSize, outputSize, inLineSize, outLineSize, mBufferOutput, desired_size);
   mFirstFrame = false;
@@ -211,7 +211,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
 
   mFrame1 = mAvCodec.av_frame_alloc();
   m_iSampleFormat = AV_SAMPLE_FMT_NONE;
-  m_desiredSampleFormat = 
+  m_desiredSampleFormat =
     (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
 
   return true;
@@ -257,6 +257,14 @@ int cSwAudio::decode (BYTE* pData, int iSize, double dts, double pts) {
   }
 //}}}
 //{{{
+void cSwAudio::reset() {
+
+  mAvCodec.avcodec_flush_buffers (mCodecContext);
+  mGotFrame = false;
+  m_iBufferOutputUsed = 0;
+  }
+//}}}
+//{{{
 void cSwAudio::dispose() {
 
   if (mFrame1)
@@ -277,13 +285,5 @@ void cSwAudio::dispose() {
     }
 
   mGotFrame = false;
-  }
-//}}}
-//{{{
-void cSwAudio::reset() {
-
-  mAvCodec.avcodec_flush_buffers (mCodecContext);
-  mGotFrame = false;
-  m_iBufferOutputUsed = 0;
   }
 //}}}

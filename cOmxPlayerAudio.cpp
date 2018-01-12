@@ -177,6 +177,26 @@ void cOmxPlayerAudio::flush() {
   unLock();
   }
 //}}}
+//{{{
+bool cOmxPlayerAudio::close() {
+
+  mAbort = true;
+  flush();
+
+  lock();
+  pthread_cond_broadcast (&m_packet_cond);
+  unLock();
+
+  closeSwAudio();
+  closeOmxAudio();
+
+  m_stream_id = -1;
+  m_iCurrentPts = DVD_NOPTS_VALUE;
+  mStream = NULL;
+
+  return true;
+  }
+//}}}
 
 /// private
 //{{{
@@ -336,25 +356,5 @@ void cOmxPlayerAudio::closeOmxAudio() {
 
   delete mOmxAudio;
   mOmxAudio = NULL;
-  }
-//}}}
-//{{{
-bool cOmxPlayerAudio::close() {
-
-  mAbort = true;
-  flush();
-
-  lock();
-  pthread_cond_broadcast (&m_packet_cond);
-  unLock();
-
-  closeSwAudio();
-  closeOmxAudio();
-
-  m_stream_id = -1;
-  m_iCurrentPts = DVD_NOPTS_VALUE;
-  mStream = NULL;
-
-  return true;
   }
 //}}}
