@@ -339,6 +339,7 @@ private:
         if (mPlayerAudio && mPlayerAudio->open (&mClock, audioConfig, &mReader)) {
           thread ([=]() { mPlayerAudio->run(); } ).detach();
           mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
+          //mPlayerAudio.SetDynamicRangeCompression (m_Amplification);
           }
 
         auto loadThreshold = audioConfig.is_live ? 0.7f : 0.2f;
