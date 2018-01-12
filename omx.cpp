@@ -389,13 +389,13 @@ private:
 
           //{{{  pts, fifos
           auto clockPts = mClock.getMediaTime();
-          auto threshold = min (0.1f, (float)mPlayerAudio->getCacheTotal() * 0.1f);
+          auto threshold = mPlayerAudio ? min (0.1f, (float)mPlayerAudio->getCacheTotal() * 0.1f) : 0.1f;
 
           // audio
           auto audio_fifo = 0.f;
           auto audio_fifo_low = false;
           auto audio_fifo_high = false;
-          auto audio_pts = mPlayerAudio->getCurrentPTS();
+          auto audio_pts = mPlayerAudio ? mPlayerAudio->getCurrentPTS() : DVD_NOPTS_VALUE;
           if (audio_pts != DVD_NOPTS_VALUE) {
             audio_fifo = (audio_pts - clockPts) / 1000000.0;
             audio_fifo_low = mPlayerAudio && (audio_fifo < threshold);
@@ -407,7 +407,7 @@ private:
           auto video_fifo = 0.f;
           auto video_fifo_low = false;
           auto video_fifo_high = false;
-          auto video_pts = mPlayerVideo->getCurrentPTS();
+          auto video_pts = mPlayerVideo ? mPlayerVideo->getCurrentPTS() : DVD_NOPTS_VALUE;
           if (video_pts != DVD_NOPTS_VALUE) {
             video_fifo = (video_pts - clockPts) / 1000000.0;
             video_fifo_low = mPlayerVideo && (video_fifo < threshold);
