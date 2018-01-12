@@ -34,21 +34,6 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
   }
 //}}}
 
-int cOmxPlayerVideo::getDecoderBufferSize() { return mDecoder->GetInputBufferSize(); }
-int cOmxPlayerVideo::getDecoderFreeSpace() { return mDecoder->GetFreeSpace(); }
-//{{{
-bool cOmxPlayerVideo::isEOS() {
-
-  if (!mDecoder)
-    return false;
-  return mPackets.empty() && (!mDecoder || mDecoder->IsEOS());
-  }
-//}}}
-
-void cOmxPlayerVideo::setAlpha (int alpha) { mDecoder->SetAlpha (alpha); }
-void cOmxPlayerVideo::setVideoRect (int aspectMode) { mDecoder->SetVideoRect (aspectMode); }
-void cOmxPlayerVideo::setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->SetVideoRect (SrcRect, DestRect); }
-
 //{{{
 bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
 

@@ -278,8 +278,8 @@ public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
 
-  int getDecoderBufferSize();
-  int getDecoderFreeSpace();
+  int getDecoderBufferSize() { return mDecoder->GetInputBufferSize(); }
+  int getDecoderFreeSpace() { return mDecoder->GetFreeSpace(); }
   double getCurrentPTS() { return m_iCurrentPts; };
   double getFPS() { return m_fps; };
   //{{{
@@ -288,18 +288,14 @@ public:
     };
   //}}}
   unsigned int getCached() { return mCachedSize; };
-  //{{{
-  unsigned int getMaxCached() {
-    return m_config.queue_size * 1024 * 1024;
-    };
-  //}}}
+  unsigned int getMaxCached() { return m_config.queue_size * 1024 * 1024; };
   double getDelay() { return m_iVideoDelay; }
-  bool isEOS();
+  bool isEOS() { return mPackets.empty() && mDecoder->IsEOS(); }
 
   void setDelay (double delay) { m_iVideoDelay = delay; }
-  void setAlpha (int alpha);
-  void setVideoRect (const CRect& SrcRect, const CRect& DestRect);
-  void setVideoRect (int aspectMode);
+  void setAlpha (int alpha) { mDecoder->SetAlpha (alpha); }
+  void setVideoRect (int aspectMode) { mDecoder->SetVideoRect (aspectMode); }
+  void setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->SetVideoRect (SrcRect, DestRect); }
 
   bool open (cOmxClock* av_clock, const cOmxVideoConfig& config);
   void run();
