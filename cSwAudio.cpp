@@ -13,7 +13,8 @@ using namespace std;
 // local
 const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
-unsigned count_bits (int64_t value) {
+unsigned countBits (int64_t value) {
+
   unsigned bits = 0;
   for (; value; ++bits)
     value &= value - 1;
@@ -33,14 +34,10 @@ cSwAudio::~cSwAudio() {
   }
 //}}}
 
-int cSwAudio::getChannels() { return mCodecContext->channels; }
-int cSwAudio::getSampleRate() { return mCodecContext->sample_rate; }
-int cSwAudio::getBitRate() { return mCodecContext->bit_rate; }
-int cSwAudio::getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
 //{{{
 uint64_t cSwAudio::getChannelMap() {
 
-  int bits = count_bits (mCodecContext->channel_layout);
+  int bits = countBits (mCodecContext->channel_layout);
 
   uint64_t layout;
   if (bits == mCodecContext->channels)
@@ -79,8 +76,8 @@ int cSwAudio::getData (BYTE** dst, double& dts, double& pts) {
     int ret = m_iBufferOutputUsed;
     m_iBufferOutputUsed = 0;
     mNoConcatenate = false;
-    dts = m_dts;
-    pts = m_pts;
+    dts = mDts;
+    pts = mPts;
     *dst = mBufferOutput;
     return ret;
     }
@@ -224,8 +221,8 @@ int cSwAudio::decode (BYTE* pData, int iSize, double dts, double pts) {
 
   AVPacket avpkt;
   if (!m_iBufferOutputUsed) {
-    m_dts = dts;
-    m_pts = pts;
+    mDts = dts;
+    mPts = pts;
     }
 
   if (mGotFrame)

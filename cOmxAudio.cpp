@@ -65,7 +65,7 @@ float cOmxAudio::getVolume() { return mMute ? VOLUME_MINIMUM : m_CurrentVolume; 
 //{{{
 float cOmxAudio::getDelay() {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   double stamp = DVD_NOPTS_VALUE;
   if (m_last_pts != DVD_NOPTS_VALUE && mAvClock)
@@ -93,7 +93,7 @@ float cOmxAudio::getCacheTotal() {
 //{{{
 unsigned int cOmxAudio::getAudioRenderingLatency() {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   OMX_PARAM_U32TYPE param;
   OMX_INIT_STRUCTURE(param);
@@ -121,7 +121,7 @@ unsigned int cOmxAudio::getAudioRenderingLatency() {
 //{{{
 float cOmxAudio::getMaxLevel (double& pts) {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   OMX_CONFIG_BRCMAUDIOMAXSAMPLE param;
   OMX_INIT_STRUCTURE(param);
@@ -165,7 +165,7 @@ bool cOmxAudio::isEOS() {
 
   unsigned int latency = getAudioRenderingLatency();
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   if (!m_failed_eos && !(m_omx_decoder.IsEOS() && latency == 0))
     return false;
@@ -183,7 +183,7 @@ bool cOmxAudio::isEOS() {
 //{{{
 void cOmxAudio::setMute (bool mute) {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   mMute = mute;
   if (mSettingsChanged)
@@ -193,7 +193,7 @@ void cOmxAudio::setMute (bool mute) {
 //{{{
 void cOmxAudio::setVolume (float volume) {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   m_CurrentVolume = volume;
   if (mSettingsChanged)
@@ -203,7 +203,7 @@ void cOmxAudio::setVolume (float volume) {
 //{{{
 void cOmxAudio::setDynamicRangeCompression (float drc) {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   mDrc = powf (10.f, drc);
   if (mSettingsChanged)
@@ -238,7 +238,7 @@ void cOmxAudio::setCodingType (AVCodecID codec) {
 bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
                             uint64_t channelMap, unsigned int uiBitsPerSample) {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
   deinitialize();
 
   mAvClock = clock;
@@ -549,7 +549,7 @@ void cOmxAudio::buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE* channelMap, uint
 //{{{
 bool cOmxAudio::portSettingsChanged() {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   if (mSettingsChanged) {
     m_omx_decoder.DisablePort (m_omx_decoder.GetOutputPort(), true);
@@ -822,7 +822,7 @@ bool cOmxAudio::portSettingsChanged() {
 unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
                                     double dts, double pts, unsigned int frame_size) {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   unsigned pitch = (mConfig.passthrough || mConfig.hwdecode) ? 1:(m_BitsPerSample >> 3) * m_InputChannels;
   unsigned int demuxer_samples = len / pitch;
@@ -922,7 +922,7 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
 //{{{
 void cOmxAudio::submitEOS() {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   m_submitted_eos = true;
   m_failed_eos = false;
@@ -949,7 +949,7 @@ void cOmxAudio::submitEOS() {
 //{{{
 void cOmxAudio::flush() {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   m_omx_decoder.FlushAll();
   if (m_omx_mixer.IsInitialized() )
@@ -979,7 +979,7 @@ void cOmxAudio::flush() {
 //{{{
 bool cOmxAudio::deinitialize() {
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   if (m_omx_tunnel_clock_analog.IsInitialized() )
     m_omx_tunnel_clock_analog.Deestablish();
@@ -1086,7 +1086,7 @@ bool cOmxAudio::applyVolume() {
 
   float m_ac3Gain = 12.f;
 
-  cSingleLock lock (mCrtiticalSection);
+  cSingleLock lock (mCriticalSection);
 
   if (mConfig.passthrough)
     return false;

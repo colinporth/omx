@@ -4,6 +4,7 @@
 #include <deque>
 #include <string>
 #include <atomic>
+#include <mutex>
 
 #include <IL/OMX_Video.h>
 
@@ -241,6 +242,7 @@ public:
 
 private:
   void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
+
   //{{{  vars
   cCriticalSection mCriticalSection;
 

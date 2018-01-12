@@ -33,9 +33,6 @@ cOmxPlayerAudio::~cOmxPlayerAudio() {
   }
 //}}}
 
-double cOmxPlayerAudio::getDelay() { return mOmxAudio->getDelay(); }
-double cOmxPlayerAudio::getCacheTime() { return mOmxAudio->getCacheTime(); }
-double cOmxPlayerAudio::getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
 //{{{
 bool cOmxPlayerAudio::isPassthrough (cOmxStreamInfo hints) {
 
@@ -49,11 +46,6 @@ bool cOmxPlayerAudio::isPassthrough (cOmxStreamInfo hints) {
     return true;
 
   return false;
-  }
-//}}}
-//{{{
-bool cOmxPlayerAudio::isEOS() {
-  return mPackets.empty() && mOmxAudio->isEOS();
   }
 //}}}
 

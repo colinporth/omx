@@ -41,14 +41,13 @@ class cSwAudio {
 public:
   ~cSwAudio();
 
-  int getChannels();
   uint64_t getChannelMap();
-  int getSampleRate();
-  int getBitsPerSample();
-  int getBitRate();
-  static const char* getName() { return "FFmpeg"; }
   unsigned int getFrameSize() { return m_frameSize; }
   int getData (BYTE** dst, double &dts, double &pts);
+  int getChannels() { return mCodecContext->channels; }
+  int getSampleRate() { return mCodecContext->sample_rate; }
+  int getBitRate() { return mCodecContext->bit_rate; }
+  int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
 
   bool open (cOmxStreamInfo &hints, enum PCMLayout layout);
   int decode (BYTE* pData, int iSize, double dts, double pts);
@@ -77,8 +76,8 @@ protected:
   bool mGotFrame = false;
   bool mNoConcatenate = false;
   unsigned int m_frameSize = 0;
-  double m_dts = 0.0;
-  double m_pts = 0.0;
+  double mPts = 0.0;
+  double mDts = 0.0;
   };
 //}}}
 //{{{
@@ -134,7 +133,7 @@ private:
   void printPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, const std::string& direction);
 
   //{{{  vars
-  cCriticalSection mCrtiticalSection;
+  cCriticalSection mCriticalSection;
 
   cAvUtil mAvUtil;
   cOmxAudioConfig mConfig;
@@ -202,21 +201,21 @@ public:
   cOmxPlayerAudio();
   ~cOmxPlayerAudio();
 
-  double getDelay();
-  double getCacheTime();
-  double getCacheTotal();
+  double getDelay() { return mOmxAudio->getDelay(); }
+  double getCacheTime() { return mOmxAudio->getCacheTime(); }
+  double getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
   double getCurrentPTS() { return m_iCurrentPts; };
+  unsigned int getCached() { return mCachedSize; };
+  unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
   //{{{
   unsigned int getLevel() {
     return mConfig.queue_size ? (100.f * mCachedSize / (mConfig.queue_size * 1024.f * 1024.f)) : 0;
     };
   //}}}
-  unsigned int getCached() { return mCachedSize; };
-  unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
   float getVolume() { return m_CurrentVolume; }
   bool getError() { return !mPlayerError; };
   bool isPassthrough (cOmxStreamInfo hints);
-  bool isEOS();
+  bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
 
   //{{{
   void setVolume (float volume) {

@@ -64,9 +64,11 @@ public:
     }
   //}}}
   //{{{
-  void run (const string& root) {
+  void run (const string& root, unsigned int fileNum) {
 
+    mFileNum = fileNum;
     nftw (root.c_str(), addFile, 20, 0);
+
     if (!mFileNames.empty()) {
       initialise (1.f, 0);
       add (new cTextBox (mDebugStr, 0.f));
@@ -93,8 +95,8 @@ protected:
     #define KEY_PAGEUP   0x357e
     #define KEY_PAGEDOWN 0x367e
 
-    #define KEY_DOWN     0x5b41
-    #define KEY_UP       0x5b42
+    #define KEY_UP       0x5b41
+    #define KEY_DOWN     0x5b42
     #define KEY_RIGHT    0x5b43
     #define KEY_LEFT     0x5b44
     //}}}
@@ -118,18 +120,18 @@ protected:
       keymap['Q'] = ACT_EXIT;
       keymap[KEY_ESC] = ACT_EXIT;
 
+      keymap[KEY_UP]    = ACT_PREV_FILE;
+      keymap[KEY_DOWN]  = ACT_NEXT_FILE;
+      keymap[KEY_ENTER] = ACT_ENTER;
+
       keymap[' '] = ACT_PLAYPAUSE;
       keymap['>'] = ACT_STEP;
       keymap['.'] = ACT_STEP;
 
       keymap[KEY_LEFT]  = ACT_SEEK_DEC_SMALL;
       keymap[KEY_RIGHT] = ACT_SEEK_INC_SMALL;
-      keymap[KEY_DOWN]  = ACT_SEEK_DEC_LARGE;
-      keymap[KEY_UP]    = ACT_SEEK_INC_LARGE;
-
-      keymap[KEY_PAGEUP]   = ACT_PREV_FILE;
-      keymap[KEY_PAGEDOWN] = ACT_NEXT_FILE;
-      keymap[KEY_ENTER]    = ACT_ENTER;
+      keymap[KEY_PAGEUP]   = ACT_SEEK_DEC_LARGE;
+      keymap[KEY_PAGEDOWN] = ACT_SEEK_INC_LARGE;
 
       keymap['-'] = ACT_DEC_VOLUME;
       keymap['+'] = ACT_INC_VOLUME;
@@ -174,7 +176,7 @@ protected:
         if (mFileNum > 0) {
           mFileNum--;
           mFileChanged = true;
-          mEntered = true;
+          //mEntered = true;
           }
         break;
       //}}}
@@ -183,7 +185,7 @@ protected:
         if (mFileNum < mFileNames.size()-1) {
           mFileNum++;
           mFileChanged = true;
-          mEntered = true;
+          //mEntered = true;
           }
         break;
       //}}}
@@ -624,17 +626,23 @@ int main (int argc, char* argv[]) {
   signal (SIGINT, sigHandler);
   //}}}
 
-  bool logInfo = false;
+  eLogLevel logLevel = LOGINFO;
   string root = "/home/pi/tv";
+  int fileNum = 0;
   for (auto arg = 1; arg < argc; arg++)
-    if (!strcmp(argv[arg], "l")) logInfo = true;
+    if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
+    else if (!strcmp(argv[arg], "e")) logLevel = LOGERROR;
+    else if (!strcmp(argv[arg], "i1")) logLevel = LOGINFO1;
+    else if (!strcmp(argv[arg], "i2")) logLevel = LOGINFO2;
+    else if (!strcmp(argv[arg], "i3")) logLevel = LOGINFO3;
     else if (!strcmp(argv[arg], "r")) root = argv[++arg];
+    else fileNum = atoi (argv[arg]);
 
-  cLog::init (logInfo ? LOGINFO1 : LOGINFO, false, "");
+  cLog::init (logLevel, false, "");
   cLog::log (LOGNOTICE, "omx " + root + string(VERSION_DATE));
 
   cAppWindow appWindow;
-  appWindow.run (root);
+  appWindow.run (root, fileNum);
 
   return EXIT_SUCCESS;
   }
