@@ -1,7 +1,7 @@
 #pragma once
 //{{{  includes
+#include <mutex>
 #include "avLibs.h"
-#include "cSingleLock.h"
 #include "cOmxCoreComponent.h"
 //}}}
 //{{{  defines
@@ -66,7 +66,7 @@ public:
   static void sleep (unsigned int dwMilliSeconds);
 
 private:
-  cCriticalSection  mCriticalSection;
+  std::recursive_mutex mMutex;
 
   cAvFormat mAvFormat;
   cOmxCoreComponent m_omx_clock;

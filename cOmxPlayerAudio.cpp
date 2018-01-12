@@ -297,8 +297,8 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
     auto dts = packet->dts;
     auto pts = packet->pts;
     while (data_len > 0) {
-      int len = mSwAudio->decode((BYTE*)data_dec, data_len, dts, pts);
-      if ((len < 0) || (len >  data_len)) {
+      int len = mSwAudio->decode((unsigned char*)data_dec, data_len, dts, pts);
+      if ((len < 0) || (len > data_len)) {
         mSwAudio->reset();
         break;
         }

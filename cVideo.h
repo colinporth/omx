@@ -1,14 +1,10 @@
 #pragma once
 //{{{  includes
 #include <sys/types.h>
-#include <deque>
-#include <string>
 #include <atomic>
+#include <string>
 #include <mutex>
-
-#include <IL/OMX_Video.h>
-
-#include "cSingleLock.h"
+#include <deque>
 
 #include "avLibs.h"
 #include "cOmxCoreComponent.h"
@@ -244,7 +240,7 @@ private:
   void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
 
   //{{{  vars
-  cCriticalSection mCriticalSection;
+  std::recursive_mutex mMutex;
 
   OMX_VIDEO_CODINGTYPE m_codingType;
 

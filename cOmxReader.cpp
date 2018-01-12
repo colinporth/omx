@@ -2,12 +2,17 @@
 //{{{  includes
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/sysinfo.h>
+#include <sys/time.h>
+
 #include <iostream>
 #include <string>
 
 #include "cOmxReader.h"
 
-#include "platformDefs.h"
 #include "../shared/utils/cLog.h"
 
 #include "cOmxClock.h"
@@ -368,7 +373,7 @@ string cOmxReader::getCodecName (OMXStreamType type) {
 
   string strStreamName;
 
-  cSingleLock lock (m_critSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   switch (type) {
     case OMXSTREAM_AUDIO:
@@ -612,7 +617,7 @@ AVMediaType cOmxReader::getPacketType (OMXPacket* packet) {
 //{{{
 bool cOmxReader::setActiveStream (OMXStreamType type, unsigned int index) {
 
-  cSingleLock lock (m_critSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
   return setActiveStreamInternal (type, index);
   }
 //}}}
@@ -814,7 +819,7 @@ OMXPacket* cOmxReader::readPacket() {
   if (!mAvFormatContext || m_eof)
     return NULL;
 
-  cSingleLock lock (m_critSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   // assume we are not eof
   if (mAvFormatContext->pb)
@@ -907,7 +912,7 @@ bool cOmxReader::seek (float time, double& startPts) {
     return false;
     }
 
-  cSingleLock lock (m_critSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if (m_ioContext)
     m_ioContext->buf_ptr = m_ioContext->buf_end;

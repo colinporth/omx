@@ -22,7 +22,7 @@ cOmxClock::~cOmxClock() {
 //{{{
 void cOmxClock::stateIdle() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if (m_omx_clock.GetState() != OMX_StateIdle)
     m_omx_clock.SetStateForComponent (OMX_StateIdle);
@@ -32,7 +32,7 @@ void cOmxClock::stateIdle() {
 //{{{
 bool cOmxClock::stateExecute() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if (m_omx_clock.GetState() != OMX_StateExecuting) {
     stateIdle();
@@ -51,7 +51,7 @@ bool cOmxClock::stateExecute() {
 //{{{
 bool cOmxClock::hdmiClockSync() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   OMX_CONFIG_LATENCYTARGETTYPE latencyTarget;
   OMX_INIT_STRUCTURE(latencyTarget);
@@ -89,7 +89,7 @@ double cOmxClock::getMediaTime() {
   double pts = 0.0;
   double now = getAbsoluteClock();
   if (now - m_last_media_time_read > DVD_MSEC_TO_TIME(100) || m_last_media_time == 0.0) {
-    cSingleLock lock (mCriticalSection);
+    lock_guard<recursive_mutex> lockGuard (mMutex);
 
     OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
     OMX_INIT_STRUCTURE(timeStamp);
@@ -117,7 +117,7 @@ double cOmxClock::getMediaTime() {
 //{{{
 double cOmxClock::getClockAdjustment() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
   OMX_INIT_STRUCTURE(timeStamp);
@@ -137,7 +137,7 @@ double cOmxClock::getClockAdjustment() {
 //{{{
 void cOmxClock::setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool has_video, bool has_audio) {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   clock->nWaitMask = 0;
   if (has_audio)
@@ -149,7 +149,7 @@ void cOmxClock::setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool has_v
 //{{{
 bool cOmxClock::setReferenceClock (bool has_audio) {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   bool ret = true;
 
@@ -182,7 +182,7 @@ bool cOmxClock::setMediaTime (double pts) {
 // Set the media time, so calls to get media time use the updated value,
 // useful after a seek so mediatime is updated immediately (rather than waiting for first decoded packet)
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   OMX_INDEXTYPE index;
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
@@ -213,7 +213,7 @@ bool cOmxClock::setMediaTime (double pts) {
 //{{{
 bool cOmxClock::setSpeed (int speed, bool pause_resume) {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   cLog::log (LOGINFO1, "cOmxClock::setSpeed %.2f pause_resume:%d",
                        (float)speed / (float)DVD_PLAYSPEED_NORMAL, pause_resume);
@@ -246,7 +246,7 @@ bool cOmxClock::stop() {
 
   cLog::log (LOGINFO1, "cOmxClock::stop");
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   OMX_TIME_CONFIG_CLOCKSTATETYPE clock;
   OMX_INIT_STRUCTURE(clock);
@@ -269,7 +269,7 @@ bool cOmxClock::step (int steps /* = 1 */) {
 
   cLog::log (LOGINFO1, "cOmxClock::step");
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   OMX_PARAM_U32TYPE param;
   OMX_INIT_STRUCTURE(param);
@@ -291,7 +291,7 @@ bool cOmxClock::step (int steps /* = 1 */) {
 //{{{
 bool cOmxClock::reset (bool has_video, bool has_audio) {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   cLog::log (LOGINFO1, "cOmxClock::reset");
 
@@ -329,7 +329,7 @@ bool cOmxClock::reset (bool has_video, bool has_audio) {
 bool cOmxClock::pause() {
 
   if (!m_pause) {
-    cSingleLock lock (mCriticalSection);
+    lock_guard<recursive_mutex> lockGuard (mMutex);
 
     if (setSpeed (0, true))
       m_pause = true;
@@ -343,7 +343,7 @@ bool cOmxClock::pause() {
 bool cOmxClock::resume() {
 
   if (m_pause) {
-    cSingleLock lock (mCriticalSection);
+    lock_guard<recursive_mutex> lockGuard (mMutex);
 
     if (setSpeed (m_omx_speed, true))
       m_pause = false;

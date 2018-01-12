@@ -4,12 +4,12 @@
 #include <sys/types.h>
 #include <assert.h>
 #include <string>
+#include <mutex>
 #include <queue>
 
 #include "avLibs.h"
 
 #include "cOmxStreamInfo.h"
-#include "cSingleLock.h"
 //}}}
 //{{{  defines
 #define MAX_OMX_STREAMS        100
@@ -119,7 +119,7 @@ private:
   OMXPacket* allocPacket (int size);
 
   //{{{  vars
-  cCriticalSection  m_critSection;
+  std::recursive_mutex mMutex;
 
   std::string      m_filename;
 

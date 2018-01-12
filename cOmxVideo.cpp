@@ -38,7 +38,7 @@ cOmxVideo::~cOmxVideo() {
 //{{{
 bool cOmxVideo::SendDecoderConfig() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if ((m_config.hints.extrasize > 0) && (m_config.hints.extradata != NULL)) {
     auto omx_buffer = m_omx_decoder.GetInputBuffer();
@@ -83,28 +83,28 @@ bool cOmxVideo::NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradat
 //{{{
 unsigned int cOmxVideo::GetSize() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
   return m_omx_decoder.GetInputBufferSize();
   }
 //}}}
 //{{{
 int cOmxVideo::GetInputBufferSize() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
   return m_omx_decoder.GetInputBufferSize();
   }
 //}}}
 //{{{
 unsigned int cOmxVideo::GetFreeSpace() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
   return m_omx_decoder.GetInputBufferSpace();
   }
 //}}}
 //{{{
 bool cOmxVideo::IsEOS() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if (!m_failed_eos && !m_omx_render.IsEOS())
     return false;
@@ -121,7 +121,7 @@ bool cOmxVideo::IsEOS() {
 //{{{
 void cOmxVideo::SetAlpha (int alpha) {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
   OMX_INIT_STRUCTURE(configDisplay);
@@ -135,7 +135,7 @@ void cOmxVideo::SetAlpha (int alpha) {
 //{{{
 void cOmxVideo::SetVideoRect() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
   OMX_INIT_STRUCTURE(configDisplay);
@@ -195,7 +195,7 @@ void cOmxVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) {
 //{{{
 bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   bool vflip = false;
   Close();
@@ -516,7 +516,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
 //{{{
 bool cOmxVideo::PortSettingsChanged() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if (m_settings_changed)
     m_omx_decoder.DisablePort (m_omx_decoder.GetOutputPort(), true);
@@ -710,7 +710,7 @@ bool cOmxVideo::PortSettingsChanged() {
 //{{{
 bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   auto demuxer_content = data;
   unsigned int demuxer_bytes = (unsigned int)size;
@@ -773,7 +773,7 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
 //{{{
 void cOmxVideo::SubmitEOS() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   m_submitted_eos = true;
   m_failed_eos = false;
@@ -805,7 +805,7 @@ void cOmxVideo::SubmitEOS() {
 //{{{
 void cOmxVideo::Reset() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   m_setStartTime = true;
   m_omx_decoder.FlushInput();
@@ -818,7 +818,7 @@ void cOmxVideo::Reset() {
 //{{{
 void cOmxVideo::Close() {
 
-  cSingleLock lock (mCriticalSection);
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   m_omx_tunnel_clock.Deestablish();
   m_omx_tunnel_decoder.Deestablish();

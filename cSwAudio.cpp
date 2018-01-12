@@ -52,7 +52,7 @@ uint64_t cSwAudio::getChannelMap() {
   }
 //}}}
 //{{{
-int cSwAudio::getData (BYTE** dst, double& dts, double& pts) {
+int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
 
   if (!mGotFrame)
     return 0;
@@ -84,7 +84,7 @@ int cSwAudio::getData (BYTE** dst, double& dts, double& pts) {
   m_frameSize = outputSize;
 
   if (m_iBufferOutputAlloced < m_iBufferOutputUsed + outputSize) {
-    mBufferOutput = (BYTE*)mAvUtil.av_realloc(mBufferOutput, m_iBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
+    mBufferOutput = (uint8_t*)mAvUtil.av_realloc(mBufferOutput, m_iBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
     m_iBufferOutputAlloced = m_iBufferOutputUsed + outputSize;
     }
 
@@ -215,7 +215,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
   }
 //}}}
 //{{{
-int cSwAudio::decode (BYTE* pData, int iSize, double dts, double pts) {
+int cSwAudio::decode (unsigned char* pData, int iSize, double dts, double pts) {
 
   int iBytesUsed, got_frame;
 
