@@ -69,7 +69,7 @@ public:
   static double normalizeFrameDuration (double frameduration);
 
   // gets
-  bool cOmxReader::isEof() { return m_eof; }
+  bool isEof() { return m_eof; }
   bool isActive (int stream_index);
   bool isActive (OMXStreamType type, int stream_index);
   bool canSeek();
