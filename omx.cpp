@@ -325,21 +325,18 @@ private:
         mClock.stop();
         mClock.pause();
 
-        bool hasAudio = mReader.getAudioStreamCount();
-        bool hasVideo = mReader.getVideoStreamCount();
+        if (mReader.getAudioStreamCount())
+          mPlayerAudio = new cOmxPlayerAudio();
+        if (mReader.getVideoStreamCount())
+          mPlayerVideo = new cOmxPlayerVideo();
         mReader.getHints (OMXSTREAM_AUDIO, audioConfig.hints);
         mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
 
-        if (hasVideo)
-          mPlayerVideo = new cOmxPlayerVideo();
-        if (hasAudio)
-          mPlayerAudio = new cOmxPlayerAudio();
-
-        if (hasVideo && mPlayerVideo->open (&mClock, videoConfig))
+        if (mPlayerVideo && mPlayerVideo->open (&mClock, videoConfig))
           thread ([=]() { mPlayerVideo->run(); } ).detach();
 
         audioConfig.device = "omx:local";
-        if (hasAudio && mPlayerAudio->open (&mClock, audioConfig, &mReader)) {
+        if (mPlayerAudio && mPlayerAudio->open (&mClock, audioConfig, &mReader)) {
           thread ([=]() { mPlayerAudio->run(); } ).detach();
           mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
           }
@@ -347,7 +344,7 @@ private:
         auto loadThreshold = audioConfig.is_live ? 0.7f : 0.2f;
         float loadLatency = 0.f;
 
-        mClock.reset (hasVideo, hasAudio);
+        mClock.reset (mPlayerVideo, mPlayerAudio);
         mClock.stateExecute();
         //}}}
 
@@ -367,15 +364,15 @@ private:
               mClock.stop();
               mClock.pause();
 
-              if (hasVideo)
+              if (mPlayerVideo)
                 mPlayerVideo->flush();
-              if (hasAudio)
+              if (mPlayerAudio)
                 mPlayerAudio->flush();
               mReader.freePacket (omxPacket);
 
               if (pts != DVD_NOPTS_VALUE)
                 mClock.setMediaTime (seekPts);
-              mClock.reset (hasVideo, hasAudio);
+              mClock.reset (mPlayerVideo, mPlayerAudio);
               }
 
             cLog::log (LOGINFO, "seekPos:"  + decFrac(seekPosSec,6,5,' '));
@@ -394,8 +391,8 @@ private:
           auto audio_pts = mPlayerAudio->getCurrentPTS();
           if (audio_pts != DVD_NOPTS_VALUE) {
             audio_fifo = (audio_pts - clockPts) / 1000000.0;
-            audio_fifo_low = hasAudio && (audio_fifo < threshold);
-            audio_fifo_high = !hasAudio ||
+            audio_fifo_low = mPlayerAudio && (audio_fifo < threshold);
+            audio_fifo_high = !mPlayerAudio ||
                               ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > loadThreshold));
             }
 
@@ -406,8 +403,8 @@ private:
           auto video_pts = mPlayerVideo->getCurrentPTS();
           if (video_pts != DVD_NOPTS_VALUE) {
             video_fifo = (video_pts - clockPts) / 1000000.0;
-            video_fifo_low = hasVideo && (video_fifo < threshold);
-            video_fifo_high = !hasVideo ||
+            video_fifo_low = mPlayerVideo && (video_fifo < threshold);
+            video_fifo_high = !mPlayerVideo ||
                               ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
             }
           // debug
@@ -426,9 +423,9 @@ private:
           if (audioConfig.is_live) {
             //{{{  live latency controlled by adjusting clock
             float latency = DVD_NOPTS_VALUE;
-            if (hasAudio && (audio_pts != DVD_NOPTS_VALUE))
+            if (mPlayerAudio && (audio_pts != DVD_NOPTS_VALUE))
               latency = audio_fifo;
-            else if (!hasAudio && hasVideo && video_pts != DVD_NOPTS_VALUE)
+            else if (!mPlayerAudio && mPlayerVideo && video_pts != DVD_NOPTS_VALUE)
               latency = video_fifo;
 
             if (!mPause && (latency != DVD_NOPTS_VALUE)) {
@@ -504,13 +501,13 @@ private:
 
           if (omxPacket) {
             submitEos = false;
-            if (hasVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
+            if (mPlayerVideo && mReader.isActive (OMXSTREAM_VIDEO, omxPacket->stream_index)) {
               if (mPlayerVideo->addPacket (omxPacket))
                 omxPacket = NULL;
               else
                 cOmxClock::sleep (10);
               }
-            else if (hasAudio && (omxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
+            else if (mPlayerAudio && (omxPacket->codec_type == AVMEDIA_TYPE_AUDIO)) {
               if (mPlayerAudio->addPacket (omxPacket))
                 omxPacket = NULL;
               else
@@ -521,15 +518,15 @@ private:
             }
           else if (mReader.isEof()) {
             // reader EOF, may still be playing out
-            if (!(hasVideo && mPlayerVideo->getCached()) && !(hasAudio && mPlayerAudio->getCached())) {
+            if (!(mPlayerVideo && mPlayerVideo->getCached()) && !(mPlayerAudio && mPlayerAudio->getCached())) {
               if (!submitEos) {
                 submitEos = true;
-                if (hasVideo)
+                if (mPlayerVideo)
                   mPlayerVideo->submitEOS();
-                if (hasAudio)
+                if (mPlayerAudio)
                   mPlayerAudio->submitEOS();
                 }
-              if ((!hasVideo || mPlayerVideo->isEOS()) && (!hasAudio || mPlayerAudio->isEOS()))
+              if ((!mPlayerVideo || mPlayerVideo->isEOS()) && (!mPlayerAudio || mPlayerAudio->isEOS()))
                 break;
               }
             // wait for about another frame
