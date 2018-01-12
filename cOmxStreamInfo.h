@@ -1,5 +1,6 @@
-#pragma once
 //{{{  includes
+#pragma once
+
 extern "C" {
   #include "libavcodec/avcodec.h"
   }

@@ -1,3 +1,4 @@
+//{{{  includes
 #pragma once
 
 extern "C" {
@@ -10,6 +11,7 @@ extern "C" {
   #include <libavformat/avformat.h>
   #include <libswresample/swresample.h>
   }
+//}}}
 
 #define AVSEEK_FORCE 0x20000
 #define AVFRAME_IN_LAVU

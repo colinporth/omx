@@ -1,5 +1,6 @@
-#pragma once
 //{{{  includes
+#pragma once
+
 #include <sys/types.h>
 #include <atomic>
 #include <string>

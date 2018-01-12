@@ -1,4 +1,5 @@
 // cOmx.h - OMX singleton wrapper
+//{{{  includes
 #pragma once
 
 #include <IL/OMX_Core.h>
@@ -7,6 +8,7 @@
 #include <IL/OMX_Image.h>
 #include <IL/OMX_Video.h>
 #include <IL/OMX_Broadcom.h>
+//}}}
 
 class cOmx {
 public:

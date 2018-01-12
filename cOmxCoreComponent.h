@@ -1,5 +1,6 @@
-#pragma once
 //{{{  includes
+#pragma once
+
 #include <string>
 #include <queue>
 #include <semaphore.h>

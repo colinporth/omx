@@ -1,5 +1,6 @@
-#pragma once
 //{{{  includes
+#pragma once
+
 #include <mutex>
 #include "avLibs.h"
 #include "cOmxCoreComponent.h"

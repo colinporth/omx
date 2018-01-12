@@ -1,5 +1,6 @@
-#pragma once
 //{{{  includes
+#pragma once
+
 #include <stdint.h>
 #include <vector>
 #include <string>
