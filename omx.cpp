@@ -313,12 +313,11 @@ private:
     vc_dispmanx_update_submit_sync (update);
     //}}}
 
-    cOmxPlayerVideo* mPlayerVideo = nullptr;
-    cOmxPlayerAudio* mPlayerAudio = nullptr;
-
     //audioConfig.is_live = true;
     //audioConfig.hwdecode = true;
     while (true) {
+      cOmxPlayerVideo* mPlayerVideo = nullptr;
+      cOmxPlayerAudio* mPlayerAudio = nullptr;
       if (mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:1000000","")) {
         //{{{  start play
         mClock.stateIdle();
@@ -545,27 +544,22 @@ private:
         //}}}
         }
 
+      if (mPlayerVideo)
+        delete (mPlayerVideo);
+      if (mPlayerAudio)
+        delete (mPlayerAudio);
       if (mEntered) {
         //{{{  remake video,audio players, select file
         mEntered = false;
         fileName = mFileNames[mFileNum];
-
-        if (mPlayerVideo)
-          delete (mPlayerVideo);
-        if (mPlayerAudio)
-          delete (mPlayerAudio);
         }
         //}}}
       else
         break;
       }
 
-    cLog::log (LOGNOTICE, "player - exit mExit:%d gAbort:%d mPlayerAudio->getError:%d",
-                          mExit, gAbort, mPlayerAudio->getError());
-    if (mPlayerVideo)
-      delete (mPlayerVideo);
-    if (mPlayerAudio)
-      delete (mPlayerAudio);
+    cLog::log (LOGNOTICE, "player - exit " + string(mExit ? "mExit" : "") + 
+                          " " + string(gAbort ? "gAbort" : ""));
     mExit = true;
     }
   //}}}
