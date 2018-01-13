@@ -25,19 +25,6 @@
 //}}}
 
 //{{{
-typedef struct OMXPacket {
-  double    pts; // pts in DVD_TIME_BASE
-  double    dts; // dts in DVD_TIME_BASE
-  double    now; // dts in DVD_TIME_BASE
-  double    duration; // duration in DVD_TIME_BASE if available
-  int       size;
-  uint8_t   *data;
-  int       stream_index;
-  cOmxStreamInfo hints;
-  enum AVMediaType codec_type;
-  } OMXPacket;
-//}}}
-//{{{
 enum OMXStreamType {
   OMXSTREAM_NONE      = 0,
   OMXSTREAM_AUDIO     = 1,
@@ -49,14 +36,27 @@ typedef struct OMXStream {
   char language[4];
   std::string name;
   std::string codec_name;
-  AVStream    *stream;
+  AVStream* stream;
   OMXStreamType type;
-  int         id;
-  void        *extradata;
+  int id;
+  void* extradata;
   unsigned int extrasize;
   unsigned int index;
   cOmxStreamInfo hints;
   } OMXStream;
+//}}}
+//{{{
+typedef struct OMXPacket {
+  double pts; // pts in DVD_TIME_BASE
+  double dts; // dts in DVD_TIME_BASE
+  double now; // dts in DVD_TIME_BASE
+  double duration; // duration in DVD_TIME_BASE if available
+  int size;
+  uint8_t* data;
+  int stream_index;
+  cOmxStreamInfo hints;
+  enum AVMediaType codec_type;
+  } OMXPacket;
 //}}}
 
 class cFile;
@@ -69,28 +69,27 @@ public:
   static double normalizeFrameDuration (double frameduration);
 
   // gets
-  bool isEof() { return m_eof; }
+  bool isEof() { return mEof; }
   bool isActive (int stream_index);
   bool isActive (OMXStreamType type, int stream_index);
   bool canSeek();
 
-  std::string getFilename() const { return m_filename; }
-  int getWidth() { return m_width; };
-  int getHeight() { return m_height; };
-  double getAspectRatio() { return m_aspect; };
-  int getAudioStreamCount() { return m_audio_count; };
-  int getVideoStreamCount() { return m_video_count; };
-  int getAudioIndex() { return (m_audio_index >= 0) ? m_streams[m_audio_index].index : -1; };
-  int getVideoIndex() { return (m_video_index >= 0) ? m_streams[m_video_index].index : -1; };
-  int getRelativeIndex (size_t index) { return m_streams[index].index; }
+  std::string getFilename() const { return mFilename; }
+  int getWidth() { return mWidth; };
+  int getHeight() { return mHeight; };
+  double getAspectRatio() { return mAspect; };
+  int getAudioStreamCount() { return mAudioCount; };
+  int getVideoStreamCount() { return mVideoCount; };
+  int getAudioIndex() { return (mAudioIndex >= 0) ? mStreams[mAudioIndex].index : -1; };
+  int getVideoIndex() { return (mVideoIndex >= 0) ? mStreams[mVideoIndex].index : -1; };
+  int getRelativeIndex (size_t index) { return mStreams[index].index; }
   int getStreamLength() { return (int)(mAvFormatContext->duration / (AV_TIME_BASE / 1000)); }
 
   std::string getCodecName (OMXStreamType type);
   std::string getCodecName (OMXStreamType type, unsigned int index);
-  std::string getStreamCodecName (AVStream *stream);
-  std::string getStreamLanguage (OMXStreamType type, unsigned int index);
-  std::string getStreamName (OMXStreamType type, unsigned int index);
   std::string getStreamType (OMXStreamType type, unsigned int index);
+  std::string getStreamName (OMXStreamType type, unsigned int index);
+  std::string getStreamCodecName (AVStream *stream);
   bool getHints (AVStream *stream, cOmxStreamInfo *hints);
   bool getHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
   bool getHints (OMXStreamType type, cOmxStreamInfo &hints);
@@ -122,29 +121,30 @@ private:
   //{{{  vars
   std::recursive_mutex mMutex;
 
-  std::string      m_filename;
+  std::string mFilename;
+  cFile* mFile;
+  bool mEof;
 
-  cFile*           mFile;
   AVFormatContext* mAvFormatContext;
-  AVIOContext*     m_ioContext;
-  bool             m_eof;
+  AVIOContext* mIoContext;
 
-  cAvUtil          mAvUtil;
-  cAvCodec         mAvCodec;
-  cAvFormat        mAvFormat;
+  cAvUtil mAvUtil;
+  cAvCodec mAvCodec;
+  cAvFormat mAvFormat;
 
-  OMXStream        m_streams[MAX_STREAMS];
-  int              m_video_index;
-  int              m_audio_index;
-  int              m_video_count;
-  int              m_audio_count;
+  OMXStream mStreams[MAX_STREAMS];
+  int mVideoIndex;
+  int mAudioIndex;
+  int mVideoCount;
+  int mAudioCount;
+  unsigned int mProgram;
 
-  double           m_iCurrentPts;
-  int              m_speed;
-  unsigned int     m_program;
-  double           m_aspect;
-  int              m_width;
-  int              m_height;
-  bool             m_seek;
-  //}}}
+  int mSpeed;
+  double mICurrentPts;
+
+  double mAspect;
+  int mWidth;
+  int mHeight;
+  bool mSeek;
   };
+  //}}}
