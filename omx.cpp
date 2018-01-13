@@ -102,7 +102,7 @@ protected:
     //}}}
     //{{{  actions
     enum eKeyAction {
-      ACT_NONE, 
+      ACT_NONE,
       ACT_EXIT,
       ACT_PREV_FILE, ACT_NEXT_FILE, ACT_ENTER,
       ACT_PLAYPAUSE, ACT_STEP,
@@ -347,7 +347,7 @@ private:
         bool submitEos = false;
         double lastSeekPosSec = 0.0;
         OMXPacket* packet = nullptr;
-        while (!mEntered && !mExit && !gAbort && !mPlayerAudio->getError()) {
+        while (!mEntered && !mExit && !gAbort) {
           //{{{  play loop
           if (mSeekIncSec != 0.0) {
             //{{{  seek

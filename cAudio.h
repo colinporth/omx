@@ -290,7 +290,6 @@ public:
     };
   //}}}
   float getVolume() { return m_CurrentVolume; }
-  bool getError() { return !mPlayerError; };
   bool isPassthrough (cOmxStreamInfo hints);
   bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
 
@@ -328,11 +327,7 @@ private:
 
   bool openSwAudio();
   bool openOmxAudio();
-
   bool decode (OMXPacket *packet);
-
-  void closeSwAudio();
-  void closeOmxAudio();
 
   //{{{  vars
   pthread_mutex_t mLock;
@@ -343,7 +338,6 @@ private:
   bool            mAbort;
   bool            mFlush = false;
   std::atomic<bool> mFlush_requested;
-  bool            mPlayerError = false;
 
   cOmxClock*      mAvClock = nullptr;
   cOmxReader*     m_omx_reader = nullptr;
@@ -364,7 +358,6 @@ private:
 
   double          m_iCurrentPts;
 
-  std::string     m_codec_name;
   std::string     m_device;
   bool            mPassthrough;
   bool            mHwDecode;
