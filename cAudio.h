@@ -99,17 +99,18 @@ typedef struct tWAVEFORMATEXTENSIBLE {
 //{{{
 class cOmxAudioConfig {
 public:
-  cOmxStreamInfo hints;
-  std::string device;
-  std::string subdevice;
+  cOmxStreamInfo mHints;
+  std::string mDevice;
+  std::string mSubdevice;
 
-  enum PCMLayout layout = PCM_LAYOUT_2_0;
-  bool boostOnDownmix = true;
-  bool passthrough = false;
-  bool hwdecode = false;
-  bool is_live = false;
-  float queue_size = 3.f;
-  float fifo_size = 2.f;
+  enum PCMLayout mLayout = PCM_LAYOUT_2_0;
+  bool mBoostOnDownmix = true;
+  bool mPassthrough = false;
+  bool mHwDecode = false;
+  bool mIsLive = false;
+
+  float mQueueSize = 3.f;
+  float mFfoSize = 2.f;
   };
 //}}}
 
@@ -140,14 +141,14 @@ protected:
   AVCodecContext* mCodecContext = nullptr;
   AVFrame* mFrame1 = nullptr;
 
-  enum AVSampleFormat m_iSampleFormat = AV_SAMPLE_FMT_NONE;
+  enum AVSampleFormat mISampleFormat = AV_SAMPLE_FMT_NONE;
   enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
 
   unsigned char* mBufferOutput = nullptr;
-  int m_iBufferOutputUsed = 0;
-  int m_iBufferOutputAlloced = 0;
+  int mIBufferOutputUsed = 0;
+  int mIBufferOutputAlloced = 0;
 
-  int m_channels = 0;
+  int mChannels = 0;
 
   bool mFirstFrame = true;
   bool mGotFrame = false;
@@ -283,10 +284,10 @@ public:
   double getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
   double getCurrentPTS() { return mICurrentPts; };
   unsigned int getCached() { return mCachedSize; };
-  unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
+  unsigned int getMaxCached() { return mConfig.mQueueSize * 1024 * 1024; };
   //{{{
   unsigned int getLevel() {
-    return mConfig.queue_size ? (100.f * mCachedSize / (mConfig.queue_size * 1024.f * 1024.f)) : 0;
+    return mConfig.mQueueSize ? (100.f * mCachedSize / (mConfig.mQueueSize * 1024.f * 1024.f)) : 0;
     };
   //}}}
   float getVolume() { return mCurrentVolume; }

@@ -37,7 +37,7 @@ cOmxPlayerAudio::~cOmxPlayerAudio() {
 //{{{
 bool cOmxPlayerAudio::isPassthrough (cOmxStreamInfo hints) {
 
-  if (mConfig.device == "omx:local")
+  if (mConfig.mDevice == "omx:local")
     return false;
   if (hints.codec == AV_CODEC_ID_AC3)
     return true;
@@ -123,7 +123,7 @@ void cOmxPlayerAudio::run() {
 bool cOmxPlayerAudio::addPacket (OMXPacket* packet) {
 
   if (!mAbort &&
-      ((mCachedSize + packet->size) < mConfig.queue_size * 1024 * 1024)) {
+      ((mCachedSize + packet->size) < mConfig.mQueueSize * 1024 * 1024)) {
     lock();
     mCachedSize += packet->size;
     mPackets.push_back (packet);
@@ -197,7 +197,7 @@ bool cOmxPlayerAudio::close() {
 bool cOmxPlayerAudio::openSwAudio() {
 
   mSwAudio = new cSwAudio();
-  if (!mSwAudio->open (mConfig.hints, mConfig.layout)) {
+  if (!mSwAudio->open (mConfig.mHints, mConfig.mLayout)) {
     delete mSwAudio;
     mSwAudio = nullptr;
     return false;
@@ -211,10 +211,10 @@ bool cOmxPlayerAudio::openOmxAudio() {
 
   mOmxAudio = new cOmxAudio();
 
-  if (mConfig.passthrough)
-    mPassthrough = isPassthrough (mConfig.hints);
-  if (!mPassthrough && mConfig.hwdecode)
-    mHwDecode = cOmxAudio::hwDecode (mConfig.hints.codec);
+  if (mConfig.mPassthrough)
+    mPassthrough = isPassthrough (mConfig.mHints);
+  if (!mPassthrough && mConfig.mHwDecode)
+    mHwDecode = cOmxAudio::hwDecode (mConfig.mHints.codec);
   if (mPassthrough)
     mHwDecode = false;
 
@@ -222,9 +222,9 @@ bool cOmxPlayerAudio::openOmxAudio() {
                               mSwAudio->getChannelMap(), mSwAudio->getBitsPerSample())) {
     cLog::log (LOGINFO, "cOmxPlayerAudio::openOmxAudio " +
                string(mPassthrough ? " passThru" : "") +
-               " chan:" + dec(mConfig.hints.channels) +
-               " rate:" + dec(mConfig.hints.samplerate) +
-               " bps:" + dec(mConfig.hints.bitspersample));
+               " chan:" + dec(mConfig.mHints.channels) +
+               " rate:" + dec(mConfig.mHints.samplerate) +
+               " bps:" + dec(mConfig.mHints.bitspersample));
 
     // setup current volume settings
     mOmxAudio->setVolume (mCurrentVolume);
@@ -248,29 +248,29 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
     return true;
 
   auto channels = packet->hints.channels;
-  auto old_bitrate = mConfig.hints.bitrate;
+  auto old_bitrate = mConfig.mHints.bitrate;
   auto new_bitrate = packet->hints.bitrate;
 
   // only check bitrate changes on AV_CODEC_ID_DTS, AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3
-  if (mConfig.hints.codec != AV_CODEC_ID_DTS &&
-      mConfig.hints.codec != AV_CODEC_ID_AC3 && mConfig.hints.codec != AV_CODEC_ID_EAC3)
+  if (mConfig.mHints.codec != AV_CODEC_ID_DTS &&
+      mConfig.mHints.codec != AV_CODEC_ID_AC3 && mConfig.mHints.codec != AV_CODEC_ID_EAC3)
     new_bitrate = old_bitrate = 0;
 
   // for passthrough we only care about the codec and the samplerate
-  bool minor_change = (channels != mConfig.hints.channels) ||
-                      (packet->hints.bitspersample != mConfig.hints.bitspersample) ||
+  bool minor_change = (channels != mConfig.mHints.channels) ||
+                      (packet->hints.bitspersample != mConfig.mHints.bitspersample) ||
                       (old_bitrate != new_bitrate);
 
-  if ((packet->hints.codec != mConfig.hints.codec) ||
-      (packet->hints.samplerate != mConfig.hints.samplerate) ||
+  if ((packet->hints.codec != mConfig.mHints.codec) ||
+      (packet->hints.samplerate != mConfig.mHints.samplerate) ||
       (!mPassthrough && minor_change)) {
     cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
-                        mConfig.hints.codec, mConfig.hints.channels, mConfig.hints.samplerate,
-                        mConfig.hints.bitrate, mConfig.hints.bitspersample);
+                        mConfig.mHints.codec, mConfig.mHints.channels, mConfig.mHints.samplerate,
+                        mConfig.mHints.bitrate, mConfig.mHints.bitspersample);
     cLog::log (LOGINFO, "Decode N : %d %d %d %d %d",
                         packet->hints.codec, channels, packet->hints.samplerate,
                         packet->hints.bitrate, packet->hints.bitspersample);
-    mConfig.hints = packet->hints;
+    mConfig.mHints = packet->hints;
 
     delete mSwAudio;
     mSwAudio = nullptr;

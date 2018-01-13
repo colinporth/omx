@@ -75,7 +75,7 @@ float cOmxAudio::getDelay() {
 //{{{
 float cOmxAudio::getCacheTotal() {
 
-  float audioPlusBuffer = mConfig.hints.samplerate ? (32.f * 512.f / mConfig.hints.samplerate) : 0.f;
+  float audioPlusBuffer = mConfig.mHints.samplerate ? (32.f * 512.f / mConfig.mHints.samplerate) : 0.f;
   float inputBuffer = mInputBytesPerSec ?
     (float)mOmxDecoder.GetInputBufferSize() / (float)mInputBytesPerSec : 0;
 
@@ -236,12 +236,12 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
 
   mAvClock = clock;
   mConfig = config;
-  if (mConfig.passthrough) // passthrough overwrites hw decode
-    mConfig.hwdecode = false;
-  else if (mConfig.hwdecode) // check again if we are capable to hw decode the format
-    mConfig.hwdecode = canHwDecode (mConfig.hints.codec);
-  if (mConfig.passthrough || mConfig.hwdecode)
-    setCodingType (mConfig.hints.codec);
+  if (mConfig.mPassthrough) // passthrough overwrites hw decode
+    mConfig.mHwDecode = false;
+  else if (mConfig.mHwDecode) // check again if we are capable to hw decode the format
+    mConfig.mHwDecode = canHwDecode (mConfig.mHints.codec);
+  if (mConfig.mPassthrough || mConfig.mHwDecode)
+    setCodingType (mConfig.mHints.codec);
   else
     setCodingType (AV_CODEC_ID_PCM_S16LE);
 
@@ -255,31 +255,33 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   mWaveHeader.Format.nChannels = 2;
   mWaveHeader.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
 
-  if (!mConfig.passthrough && channelMap) {
+  if (!mConfig.mPassthrough && channelMap) {
     //{{{  set the input format, and get the channel layout so we know what we need to open
     enum PCMChannels inLayout[OMX_AUDIO_MAXCHANNELS];
     enum PCMChannels outLayout[OMX_AUDIO_MAXCHANNELS];
     // force out layout to stereo if input is not multichannel - it gives the receiver a chance to upmix
     if (channelMap == (AV_CH_FRONT_LEFT | AV_CH_FRONT_RIGHT) || channelMap == AV_CH_FRONT_CENTER)
-      mConfig.layout = PCM_LAYOUT_2_0;
+      mConfig.mLayout = PCM_LAYOUT_2_0;
     buildChannelMap (inLayout, channelMap);
-    mNumOutputChannels = buildChannelMapCEA (outLayout, getChannelLayout(mConfig.layout));
+    mNumOutputChannels = buildChannelMapCEA (outLayout, getChannelLayout(mConfig.mLayout));
 
     cPcmRemap remap;
     remap.reset();
-    remap.setInputFormat (mNumInputChannels, inLayout, uiBitsPerSample / 8, mConfig.hints.samplerate, mConfig.layout, mConfig.boostOnDownmix);
+    remap.setInputFormat (mNumInputChannels, inLayout, uiBitsPerSample / 8, 
+                          mConfig.mHints.samplerate, mConfig.mLayout, mConfig.mBoostOnDownmix);
     remap.setOutputFormat (mNumOutputChannels, outLayout, false);
     remap.getDownmixMatrix (mDownmixMatrix);
     mWaveHeader.dwChannelMask = channelMap;
+
     buildChannelMapOMX (mInputChannels, channelMap);
-    buildChannelMapOMX (mOutputChannels, getChannelLayout (mConfig.layout));
+    buildChannelMapOMX (mOutputChannels, getChannelLayout (mConfig.mLayout));
     }
     //}}}
 
   mBitsPerSample = uiBitsPerSample;
-  mBytesPerSec = mConfig.hints.samplerate * 2 << rounded_up_channels_shift[mNumInputChannels];
+  mBytesPerSec = mConfig.mHints.samplerate * 2 << rounded_up_channels_shift[mNumInputChannels];
   mBufferLen = mBytesPerSec * AUDIO_BUFFER_SECONDS;
-  mInputBytesPerSec = mConfig.hints.samplerate * mBitsPerSample * mNumInputChannels >> 3;
+  mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChannels >> 3;
 
   // should be big enough that common formats (e.g. 6 channel DTS) fit in a single packet.
   // we don't mind less common formats being split (e.g. ape/wma output large frames)
@@ -292,7 +294,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   mWaveHeader.Format.nBlockAlign = mNumInputChannels * (mBitsPerSample >> 3);
   // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
   mWaveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
-  mWaveHeader.Format.nSamplesPerSec = mConfig.hints.samplerate;
+  mWaveHeader.Format.nSamplesPerSec = mConfig.mHints.samplerate;
   mWaveHeader.Format.nAvgBytesPerSec = mBytesPerSec;
   mWaveHeader.Format.wBitsPerSample = mBitsPerSample;
   mWaveHeader.Samples.wValidBitsPerSample = mBitsPerSample;
@@ -304,7 +306,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
 
   OMX_CONFIG_BOOLEANTYPE boolType;
   OMX_INIT_STRUCTURE(boolType);
-  if (mConfig.passthrough)
+  if (mConfig.mPassthrough)
     boolType.bEnabled = OMX_TRUE;
   else
     boolType.bEnabled = OMX_FALSE;
@@ -398,9 +400,9 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
       }
     }
     //}}}
-  else if (mConfig.hwdecode) {
+  else if (mConfig.mHwDecode) {
     //{{{  send decoder config
-    if (mConfig.hints.extrasize > 0 && mConfig.hints.extradata != NULL) {
+    if (mConfig.mHints.extrasize > 0 && mConfig.mHints.extradata != NULL) {
       auto omx_buffer = mOmxDecoder.GetInputBuffer();
       if (omx_buffer == NULL) {
         // error, return
@@ -409,9 +411,9 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
         }
 
       omx_buffer->nOffset = 0;
-      omx_buffer->nFilledLen = min((OMX_U32)mConfig.hints.extrasize, omx_buffer->nAllocLen);
+      omx_buffer->nFilledLen = min((OMX_U32)mConfig.mHints.extrasize, omx_buffer->nAllocLen);
       memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
-      memcpy ((unsigned char*)omx_buffer->pBuffer, mConfig.hints.extradata, omx_buffer->nFilledLen);
+      memcpy ((unsigned char*)omx_buffer->pBuffer, mConfig.mHints.extradata, omx_buffer->nFilledLen);
       omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
       if (mOmxDecoder.EmptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
         // error, return
@@ -434,7 +436,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
   mPcmInput.nBitPerSample = mBitsPerSample;
   mPcmInput.ePCMMode = OMX_AUDIO_PCMModeLinear;
   mPcmInput.nChannels = mNumInputChannels;
-  mPcmInput.nSamplingRate = mConfig.hints.samplerate;
+  mPcmInput.nSamplingRate = mConfig.mHints.samplerate;
 
   mSettingsChanged = false;
   mSetStartTime  = true;
@@ -450,7 +452,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
 
   printPCM (&mPcmInput, "input");
   cLog::log (LOGINFO1, "cOmxAudio::Initialize dev:%s pass:%d hw:%d",
-                       mConfig.device.c_str(), mConfig.passthrough, mConfig.hwdecode);
+                       mConfig.mDevice.c_str(), mConfig.mPassthrough, mConfig.mHwDecode);
 
   return true;
   }
@@ -550,20 +552,17 @@ bool cOmxAudio::portSettingsChanged() {
     return true;
     }
 
-  if (!mConfig.passthrough)
+  if (!mConfig.mPassthrough)
     if (!mOmxMixer.Initialize ("OMX.broadcom.audio_mixer", OMX_IndexParamAudioInit))
       return false;
-  if (mConfig.device == "omx:both")
+  if (mConfig.mDevice == "omx:both")
     if (!mOmxSplitter.Initialize ("OMX.broadcom.audio_splitter", OMX_IndexParamAudioInit))
       return false;
-  if (mConfig.device == "omx:both" || mConfig.device == "omx:local")
+  if (mConfig.mDevice == "omx:both" || mConfig.mDevice == "omx:local")
     if (!mOmxRenderAnalog.Initialize ("OMX.broadcom.audio_render", OMX_IndexParamAudioInit))
       return false;
-  if (mConfig.device == "omx:both" || mConfig.device == "omx:hdmi")
+  if (mConfig.mDevice == "omx:both" || mConfig.mDevice == "omx:hdmi")
     if (!mOmxRenderHdmi.Initialize ("OMX.broadcom.audio_render", OMX_IndexParamAudioInit))
-      return false;
-  if (mConfig.device == "omx:alsa")
-    if (!mOmxRenderAnalog.Initialize ("OMX.alsa.audio_render", OMX_IndexParamAudioInit))
       return false;
 
   updateAttenuation();
@@ -678,14 +677,13 @@ bool cOmxAudio::portSettingsChanged() {
     // but can affect video/display sync when in dual audio mode, make Analogue the slave
     OMX_CONFIG_BOOLEANTYPE configBool;
     OMX_INIT_STRUCTURE(configBool);
-    configBool.bEnabled = mConfig.is_live || mConfig.device == "omx:both" ? OMX_FALSE : OMX_TRUE;
+    configBool.bEnabled = mConfig.mIsLive || mConfig.mDevice == "omx:both" ? OMX_FALSE : OMX_TRUE;
     if (mOmxRenderAnalog.SetConfig (OMX_IndexConfigBrcmClockReferenceSource, &configBool) != OMX_ErrorNone)
        return false;
 
     OMX_CONFIG_BRCMAUDIODESTINATIONTYPE audioDest;
     OMX_INIT_STRUCTURE(audioDest);
-    strncpy ((char*)audioDest.sName,
-      mConfig.device == "omx:alsa" ? mConfig.subdevice.c_str() : "local", sizeof(audioDest.sName));
+    strncpy ((char*)audioDest.sName, "local", sizeof(audioDest.sName));
     if (mOmxRenderAnalog.SetConfig(OMX_IndexConfigBrcmAudioDestination, &audioDest) != OMX_ErrorNone) {
       //{{{  error return
       cLog::log (LOGERROR, "cOmxAudio::portSettingsChanged mOmxRenderAnalog.SetConfig");
@@ -701,7 +699,7 @@ bool cOmxAudio::portSettingsChanged() {
     // but can affect video/display sync
     OMX_CONFIG_BOOLEANTYPE configBool;
     OMX_INIT_STRUCTURE(configBool);
-    configBool.bEnabled = mConfig.is_live ? OMX_FALSE:OMX_TRUE;
+    configBool.bEnabled = mConfig.mIsLive ? OMX_FALSE:OMX_TRUE;
     if (mOmxRenderHdmi.SetConfig (OMX_IndexConfigBrcmClockReferenceSource, &configBool) != OMX_ErrorNone)
       return false;
 
@@ -817,7 +815,8 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  unsigned pitch = (mConfig.passthrough || mConfig.hwdecode) ? 1:(mBitsPerSample >> 3) * mNumInputChannels;
+  unsigned pitch = 
+    (mConfig.mPassthrough || mConfig.mHwDecode) ? 1:(mBitsPerSample >> 3) * mNumInputChannels;
   unsigned int demuxer_samples = len / pitch;
   unsigned int demuxer_samples_sent = 0;
   auto demuxer_content = (uint8_t *)data;
@@ -848,7 +847,7 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
     unsigned int frames = frame_size ? len/frame_size:0;
     if ((samples < demuxer_samples || frames > 1) &&
         (mBitsPerSample == 32) &&
-        !(mConfig.passthrough || mConfig.hwdecode)) {
+        !(mConfig.mPassthrough || mConfig.mHwDecode)) {
       const unsigned int sample_pitch = mBitsPerSample >> 3;
       const unsigned int frame_samples = frame_size / pitch;
       const unsigned int plane_size = frame_samples * sample_pitch;
@@ -908,7 +907,7 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
         cLog::log (LOGERROR, "cOmxAudio::AddPackets PortSettingsChanged");
     }
 
-  mSubmitted += (float)demuxer_samples / mConfig.hints.samplerate;
+  mSubmitted += (float)demuxer_samples / mConfig.mHints.samplerate;
   updateAttenuation();
   return len;
   }
@@ -1035,43 +1034,43 @@ bool cOmxAudio::canHwDecode (AVCodecID codec) {
     //case AV_CODEC_ID_VORBIS:
     //  cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingVORBIS");
     //  m_eEncoding = OMX_AUDIO_CodingVORBIS;
-    //  mConfig.hwdecode = true;
+    //  mConfig.mHwDecode = true;
     //  break;
 
     //case AV_CODEC_ID_AAC:
     //  cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingAAC");
     //  m_eEncoding = OMX_AUDIO_CodingAAC;
-    //  mConfig.hwdecode = true;
+    //  mConfig.mHwDecode = true;
     //  break;
 
     case AV_CODEC_ID_MP2:
     case AV_CODEC_ID_MP3:
       cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingMP3");
       mEncoding = OMX_AUDIO_CodingMP3;
-      mConfig.hwdecode = true;
+      mConfig.mHwDecode = true;
       break;
 
     case AV_CODEC_ID_DTS:
       cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingDTS");
       mEncoding = OMX_AUDIO_CodingDTS;
-      mConfig.hwdecode = true;
+      mConfig.mHwDecode = true;
       break;
 
     case AV_CODEC_ID_AC3:
     case AV_CODEC_ID_EAC3:
       cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingDDP");
       mEncoding = OMX_AUDIO_CodingDDP;
-      mConfig.hwdecode = true;
+      mConfig.mHwDecode = true;
       break;
 
     default:
       cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingPCM");
       mEncoding = OMX_AUDIO_CodingPCM;
-      mConfig.hwdecode = false;
+      mConfig.mHwDecode = false;
       break;
     }
 
-  return mConfig.hwdecode;
+  return mConfig.mHwDecode;
   }
 //}}}
 
@@ -1082,7 +1081,7 @@ bool cOmxAudio::applyVolume() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (mConfig.passthrough)
+  if (mConfig.mPassthrough)
     return false;
 
   // the Analogue volume is too quiet for some. Allow use of an advancedsetting to boost this (at risk of distortion) (deprecated)

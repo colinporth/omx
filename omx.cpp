@@ -332,12 +332,12 @@ private:
     vc_dispmanx_update_submit_sync (update);
     //}}}
 
-    //audioConfig.is_live = true;
-    //audioConfig.hwdecode = true;
+    //audioConfig.mIsLive = true;
+    //audioConfig.mHwDecode = true;
     while (true) {
       cOmxPlayerVideo* mPlayerVideo = nullptr;
       cOmxPlayerAudio* mPlayerAudio = nullptr;
-      if (mReader.open (fileName, false, audioConfig.is_live, 5.f, "","","probesize:1000000","")) {
+      if (mReader.open (fileName, false, audioConfig.mIsLive, 5.f, "","","probesize:1000000","")) {
         //{{{  start play
         mClock.stateIdle();
         mClock.stop();
@@ -348,20 +348,20 @@ private:
         if (mReader.getVideoStreamCount())
           mPlayerVideo = new cOmxPlayerVideo();
 
-        mReader.getHints (OMXSTREAM_AUDIO, audioConfig.hints);
+        mReader.getHints (OMXSTREAM_AUDIO, audioConfig.mHints);
         mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
 
         if (mPlayerVideo && mPlayerVideo->open (&mClock, videoConfig))
           thread ([=]() { mPlayerVideo->run(); } ).detach();
 
-        audioConfig.device = "omx:local";
+        audioConfig.mDevice = "omx:local";
         if (mPlayerAudio && mPlayerAudio->open (&mClock, audioConfig, &mReader)) {
           thread ([=]() { mPlayerAudio->run(); } ).detach();
           mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
           //mPlayerAudio.SetDynamicRangeCompression (m_Amplification);
           }
 
-        auto loadThreshold = audioConfig.is_live ? 0.7f : 0.2f;
+        auto loadThreshold = audioConfig.mIsLive ? 0.7f : 0.2f;
         float loadLatency = 0.f;
 
         mClock.reset (mPlayerVideo, mPlayerAudio);
@@ -446,7 +446,7 @@ private:
           mDebugStr = str;
           //}}}
 
-          if (audioConfig.is_live) {
+          if (audioConfig.mIsLive) {
             //{{{  live latency controlled by adjusting clock
             float latency = DVD_NOPTS_VALUE;
             if (mPlayerAudio && (audio_pts != DVD_NOPTS_VALUE))
