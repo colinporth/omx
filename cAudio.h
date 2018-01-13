@@ -281,7 +281,7 @@ public:
   double getDelay() { return mOmxAudio->getDelay(); }
   double getCacheTime() { return mOmxAudio->getCacheTime(); }
   double getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
-  double getCurrentPTS() { return m_iCurrentPts; };
+  double getCurrentPTS() { return mICurrentPts; };
   unsigned int getCached() { return mCachedSize; };
   unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
   //{{{
@@ -289,13 +289,13 @@ public:
     return mConfig.queue_size ? (100.f * mCachedSize / (mConfig.queue_size * 1024.f * 1024.f)) : 0;
     };
   //}}}
-  float getVolume() { return m_CurrentVolume; }
+  float getVolume() { return mCurrentVolume; }
   bool isPassthrough (cOmxStreamInfo hints);
   bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
 
   //{{{
   void setVolume (float volume) {
-    m_CurrentVolume = volume;
+    mCurrentVolume = volume;
     mOmxAudio->setVolume (volume);
     }
   //}}}
@@ -312,7 +312,7 @@ public:
     }
   //}}}
 
-  bool open (cOmxClock* av_clock, const cOmxAudioConfig& config, cOmxReader* omx_reader);
+  bool open (cOmxClock* avClock, const cOmxAudioConfig& config, cOmxReader* omxReader);
   void run();
   bool addPacket (OMXPacket* packet);
   void submitEOS();
@@ -332,39 +332,39 @@ private:
   //{{{  vars
   pthread_mutex_t mLock;
   pthread_mutex_t mLockDecoder;
-  pthread_cond_t  m_packet_cond;
-  pthread_cond_t  m_audio_cond;
+  pthread_cond_t mPacketCond;
+  pthread_cond_t mAudioCond;
 
-  bool            mAbort;
-  bool            mFlush = false;
-  std::atomic<bool> mFlush_requested;
+  bool mAbort;
+  bool mFlush = false;
+  std::atomic<bool> mFlushRequested;
 
-  cOmxClock*      mAvClock = nullptr;
-  cOmxReader*     m_omx_reader = nullptr;
-  cOmxStreamInfo  m_hints;
+  cOmxClock* mAvClock = nullptr;
+  cOmxReader* mOmxReader = nullptr;
+  cOmxStreamInfo mHints;
   cOmxAudioConfig mConfig;
-  cOmxAudio*      mOmxAudio = nullptr;
-  cSwAudio*       mSwAudio = nullptr;
+  cOmxAudio* mOmxAudio = nullptr;
+  cSwAudio* mSwAudio = nullptr;
 
-  cAvUtil         mAvUtil;
-  cAvCodec        mAvCodec;
-  cAvFormat       mAvFormat;
+  cAvUtil mAvUtil;
+  cAvCodec mAvCodec;
+  cAvFormat mAvFormat;
 
-  unsigned int    mCachedSize = 0;
+  unsigned int mCachedSize = 0;
   std::deque<OMXPacket*> mPackets;
 
-  AVStream*       mStream = nullptr;
-  int             m_stream_id = -1;
+  AVStream* mStream = nullptr;
+  int mStreamId = -1;
 
-  double          m_iCurrentPts;
+  double mICurrentPts;
 
-  std::string     m_device;
-  bool            mPassthrough;
-  bool            mHwDecode;
-  bool            m_boost_on_downmix;
+  std::string  mDevice;
+  bool mPassthrough;
+  bool mHwDecode;
+  bool mBoostOnDownmix;
 
-  float           m_CurrentVolume = 0.f;
-  float           mDrc = 0.f;
-  bool            mMute = false;
+  float mCurrentVolume = 0.f;
+  float mDrc = 0.f;
+  bool mMute = false;
   //}}}
   };
