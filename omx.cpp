@@ -81,6 +81,7 @@ public:
     addAt (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,0.f), 0.f, 2.f);
 
     thread dvbCaptureThread;
+    thread dvbGrabThread;
     if (frequency) {
       // launch dvbThread
       dvbCaptureThread = thread ([=]() { mDvb.captureThread (frequency); });
@@ -89,7 +90,10 @@ public:
       pthread_setschedparam (dvbCaptureThread.native_handle(), SCHED_RR, &sch_params);
       dvbCaptureThread.detach();
 
-      thread ([=]() { mDvb.grabThread(); } ).detach();
+      dvbGrabThread = thread ([=]() { mDvb.grabThread(); } );
+      sch_params.sched_priority = sched_get_priority_max (SCHED_RR) - 10;
+      pthread_setschedparam (dvbGrabThread.native_handle(), SCHED_RR, &sch_params);
+      dvbGrabThread.detach();
       }
     else if (!inTs.empty())
       thread ([=]() { mDvb.readThread (inTs); } ).detach();
@@ -637,7 +641,9 @@ int main (int argc, char* argv[]) {
   int fileNum = 0;
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
+    else if (!strcmp(argv[arg], "n")) logLevel = LOGNOTICE;
     else if (!strcmp(argv[arg], "e")) logLevel = LOGERROR;
+    else if (!strcmp(argv[arg], "i")) logLevel = LOGINFO;
     else if (!strcmp(argv[arg], "i1")) logLevel = LOGINFO1;
     else if (!strcmp(argv[arg], "i2")) logLevel = LOGINFO2;
     else if (!strcmp(argv[arg], "i3")) logLevel = LOGINFO3;
