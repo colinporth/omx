@@ -611,9 +611,9 @@ private:
   cOmxPlayerVideo* mPlayerVideo = nullptr;
   cOmxPlayerAudio* mPlayerAudio = nullptr;
 
-  long mVolume = 0;
-  bool mPause = false;
+  bool mPause = true;
   double mSeekIncSec = 0.0;
+  long mVolume = 0;
   string mDebugStr;
 
   static vector<string> mFileNames;
