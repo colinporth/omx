@@ -74,16 +74,16 @@ public:
 
     initialise (1.f, 0);
 
-    if (fileNum > 0) 
+    if (fileNum > 0)
       add (new cTextBox (mDebugStr, 0.f));
     if (frequency) {
-      addBelow (new cTextBox (mDvb.mPacketStr, 15.f));
+      add (new cTextBox (mDvb.mPacketStr, 15.f));
       add (new cTextBox (mDvb.mSignalStr, 14.f));
       add (new cTextBox (mDvb.mTuneStr, 13.f));
-      addAt (new cTransportStreamBox (0.f, -3.f, &mDvb.mTs), 0.f, 2.f);
+      add (new cTransportStreamBox (0.f, -3.f, &mDvb.mTs), 0.f, 2.f);
       }
-    if (fileNum > 0) 
-      addAt (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,0.f), 0.f, 2.f);
+    if (fileNum > 0)
+      add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,0.f), 0.f, 2.f);
 
     thread dvbCaptureThread;
     thread dvbGrabThread;
