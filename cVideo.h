@@ -213,32 +213,32 @@ public:
   ~cOmxVideo();
 
   // Required overrides
-  bool SendDecoderConfig();
-  bool NaluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
+  bool sendDecoderConfig();
+  bool naluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
 
-  unsigned int GetSize();
-  int GetInputBufferSize();
-  unsigned int GetFreeSpace();
-  std::string GetDecoderName() { return mVideoCodecName; };
-  bool BadState() { return mOmxDecoder.BadState(); };
-  bool IsEOS();
-  bool SubmittedEOS() { return mSubmittedEos; }
+  unsigned int getSize();
+  int getInputBufferSize();
+  unsigned int getFreeSpace();
+  std::string getDecoderName() { return mVideoCodecName; };
+  bool badState() { return mOmxDecoder.BadState(); };
+  bool isEOS();
+  bool submittedEOS() { return mSubmittedEos; }
 
-  void SetAlpha (int alpha);
-  void SetVideoRect();
-  void SetVideoRect (int aspectMode);
-  void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
-  void SetDropState (bool drop) { mDropState = drop; }
+  void setAlpha (int alpha);
+  void setVideoRect();
+  void setVideoRect (int aspectMode);
+  void setVideoRect (const CRect& SrcRect, const CRect& DestRect);
+  void setDropState (bool drop) { mDropState = drop; }
 
-  bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
-  bool PortSettingsChanged();
-  bool Decode (uint8_t* data, int size, double dts, double pts);
-  void SubmitEOS();
-  void Reset();
-  void Close();
+  bool open (cOmxClock* clock, const cOmxVideoConfig& config);
+  bool portSettingsChanged();
+  bool decode (uint8_t* data, int size, double dts, double pts);
+  void submitEOS();
+  void reset();
+  void close();
 
 private:
-  void PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
+  void portSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
 
   //{{{  vars
   std::recursive_mutex mMutex;
@@ -278,8 +278,8 @@ public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
 
-  int getDecoderBufferSize() { return mDecoder->GetInputBufferSize(); }
-  int getDecoderFreeSpace() { return mDecoder->GetFreeSpace(); }
+  int getDecoderBufferSize() { return mDecoder->getInputBufferSize(); }
+  int getDecoderFreeSpace() { return mDecoder->getFreeSpace(); }
   double getCurrentPTS() { return mICurrentPts; };
   double getFPS() { return mFps; };
   //{{{
@@ -290,12 +290,12 @@ public:
   unsigned int getCached() { return mCachedSize; };
   unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
   double getDelay() { return mIVideoDelay; }
-  bool isEOS() { return mPackets.empty() && mDecoder->IsEOS(); }
+  bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
 
   void setDelay (double delay) { mIVideoDelay = delay; }
-  void setAlpha (int alpha) { mDecoder->SetAlpha (alpha); }
-  void setVideoRect (int aspectMode) { mDecoder->SetVideoRect (aspectMode); }
-  void setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->SetVideoRect (SrcRect, DestRect); }
+  void setAlpha (int alpha) { mDecoder->setAlpha (alpha); }
+  void setVideoRect (int aspectMode) { mDecoder->setVideoRect (aspectMode); }
+  void setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->setVideoRect (SrcRect, DestRect); }
 
   bool open (cOmxClock* av_clock, const cOmxVideoConfig& config);
   void run();

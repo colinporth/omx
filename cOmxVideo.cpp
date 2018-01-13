@@ -31,12 +31,12 @@ using namespace std;
 
 //{{{
 cOmxVideo::~cOmxVideo() {
-  Close();
+  close();
   }
 //}}}
 
 //{{{
-bool cOmxVideo::SendDecoderConfig() {
+bool cOmxVideo::sendDecoderConfig() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -64,7 +64,7 @@ bool cOmxVideo::SendDecoderConfig() {
   }
 //}}}
 //{{{
-bool cOmxVideo::NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize) {
+bool cOmxVideo::naluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize) {
 // valid avcC atom data always starts with the value 1 (version), otherwise annexb
 
   switch (codec) {
@@ -81,28 +81,28 @@ bool cOmxVideo::NaluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradat
 //}}}
 
 //{{{
-unsigned int cOmxVideo::GetSize() {
+unsigned int cOmxVideo::getSize() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
   return mOmxDecoder.GetInputBufferSize();
   }
 //}}}
 //{{{
-int cOmxVideo::GetInputBufferSize() {
+int cOmxVideo::getInputBufferSize() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
   return mOmxDecoder.GetInputBufferSize();
   }
 //}}}
 //{{{
-unsigned int cOmxVideo::GetFreeSpace() {
+unsigned int cOmxVideo::getFreeSpace() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
   return mOmxDecoder.GetInputBufferSpace();
   }
 //}}}
 //{{{
-bool cOmxVideo::IsEOS() {
+bool cOmxVideo::isEOS() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -119,7 +119,7 @@ bool cOmxVideo::IsEOS() {
 //}}}
 
 //{{{
-void cOmxVideo::SetAlpha (int alpha) {
+void cOmxVideo::setAlpha (int alpha) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -133,7 +133,7 @@ void cOmxVideo::SetAlpha (int alpha) {
   }
 //}}}
 //{{{
-void cOmxVideo::SetVideoRect() {
+void cOmxVideo::setVideoRect() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -177,28 +177,28 @@ void cOmxVideo::SetVideoRect() {
   }
 //}}}
 //{{{
-void cOmxVideo::SetVideoRect (int aspectMode) {
+void cOmxVideo::setVideoRect (int aspectMode) {
 
   mConfig.aspectMode = aspectMode;
-  SetVideoRect();
+  setVideoRect();
   }
 //}}}
 //{{{
-void cOmxVideo::SetVideoRect (const CRect& SrcRect, const CRect& DestRect) {
+void cOmxVideo::setVideoRect (const CRect& SrcRect, const CRect& DestRect) {
 
   mConfig.src_rect = SrcRect;
   mConfig.dst_rect = DestRect;
-  SetVideoRect();
+  setVideoRect();
   }
 //}}}
 
 //{{{
-bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
+bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   bool vflip = false;
-  Close();
+  close();
 
   std::string decoder_name;
   mSettingsChanged = false;
@@ -422,7 +422,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
     }
     //}}}
 
-  if (NaluFormatStartCodes (mConfig.hints.codec, (uint8_t *)mConfig.hints.extradata, mConfig.hints.extrasize)) {
+  if (naluFormatStartCodes (mConfig.hints.codec, (uint8_t *)mConfig.hints.extradata, mConfig.hints.extrasize)) {
     OMX_NALSTREAMFORMATTYPE nalStreamFormat;
     OMX_INIT_STRUCTURE(nalStreamFormat);
     nalStreamFormat.nPortIndex = mOmxDecoder.GetInputPort();
@@ -449,7 +449,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
     }
     //}}}
 
-  SendDecoderConfig();
+  sendDecoderConfig();
 
   mDropState = false;
   mSetStartTime = true;
@@ -513,7 +513,7 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
   }
 //}}}
 //{{{
-bool cOmxVideo::PortSettingsChanged() {
+bool cOmxVideo::portSettingsChanged() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -540,8 +540,8 @@ bool cOmxVideo::PortSettingsChanged() {
     //}}}
   if (mSettingsChanged) {
     //{{{  settings changed
-    PortSettingsChangedLogger (port_image, -1);
-    SetVideoRect();
+    portSettingsChangedLogger (port_image, -1);
+    setVideoRect();
     mOmxDecoder.EnablePort (mOmxDecoder.GetOutputPort(), true);
     return true;
     }
@@ -563,7 +563,7 @@ bool cOmxVideo::PortSettingsChanged() {
     return false;
 
   mOmxrender.ResetEos();
-  PortSettingsChangedLogger (port_image, interlace.eMode);
+  portSettingsChangedLogger (port_image, interlace.eMode);
 
   if (!mOmxsched.Initialize ("OMX.broadcom.video_scheduler", OMX_IndexParamVideoInit))
     return false;
@@ -587,7 +587,7 @@ bool cOmxVideo::PortSettingsChanged() {
     }
     //}}}
 
-  SetVideoRect();
+  setVideoRect();
 
   if (mConfig.hdmi_clock_sync) {
     //{{{  config latency
@@ -707,7 +707,7 @@ bool cOmxVideo::PortSettingsChanged() {
   }
 //}}}
 //{{{
-bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
+bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -754,7 +754,7 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
       //}}}
 
     if (mOmxDecoder.WaitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
-      if (!PortSettingsChanged()) {
+      if (!portSettingsChanged()) {
         //{{{  error return
         cLog::log (LOGERROR, "cOmxVideo::Decode PortSettingsChanged");
         return false;
@@ -762,7 +762,7 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
         //}}}
       }
     if (mOmxDecoder.WaitForEvent (OMX_EventParamOrConfigChanged, 0) == OMX_ErrorNone)
-      if (!PortSettingsChanged())
+      if (!portSettingsChanged())
         cLog::log (LOGERROR, "OMXVideo::Decode PortSettingsChanged (EventParamOrConfigChanged)");
     }
 
@@ -770,7 +770,7 @@ bool cOmxVideo::Decode (uint8_t* data, int size, double dts, double pts) {
   }
 //}}}
 //{{{
-void cOmxVideo::SubmitEOS() {
+void cOmxVideo::submitEOS() {
 
   cLog::log (LOGINFO, "submitEOS");
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -801,7 +801,7 @@ void cOmxVideo::SubmitEOS() {
   }
 //}}}
 //{{{
-void cOmxVideo::Reset() {
+void cOmxVideo::reset() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -814,7 +814,7 @@ void cOmxVideo::Reset() {
   }
 //}}}
 //{{{
-void cOmxVideo::Close() {
+void cOmxVideo::close() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -840,7 +840,7 @@ void cOmxVideo::Close() {
 
 // private
 //{{{
-void cOmxVideo::PortSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
+void cOmxVideo::portSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
 
   cLog::log (LOGINFO, "portSettings %dx%d@%.2f int:%d deint:%d par:%.2f disp:%d lay:%d alpha:%d aspect:%d",
              port_image.format.video.nFrameWidth, port_image.format.video.nFrameHeight,
