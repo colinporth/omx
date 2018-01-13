@@ -612,7 +612,7 @@ private:
   cOmxPlayerVideo* mPlayerVideo = nullptr;
   cOmxPlayerAudio* mPlayerAudio = nullptr;
 
-  bool mPause = true;
+  bool mPause = false;
   double mSeekIncSec = 0.0;
   long mVolume = 0;
   string mDebugStr;
