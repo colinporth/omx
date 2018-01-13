@@ -83,7 +83,7 @@ public:
       add (new cTransportStreamBox (0.f, (fileNum > 0) ? (getHeight()/2.f)-3.f : -2.f, &mDvb.mTs));
       }
     if (fileNum > 0)
-      add (new cListWidget (mFileNames, mFileNum, mFileChanged, 
+      add (new cListWidget (mFileNames, mFileNum, mFileChanged,
                             0.f, (frequency > 0) ? (getHeight()/2.f)-3.f : -2.f));
 
     thread dvbCaptureThread;
@@ -440,15 +440,20 @@ private:
                               ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
             }
           // debug
+          auto aLevel = mPlayerAudio ? mPlayerAudio->getLevel() : 0;
+          auto vLevel = mPlayerVideo ? mPlayerVideo->getLevel() : 0;
+          auto aDelay = mPlayerAudio ? mPlayerAudio->getDelay() : 0;
+          auto aCache = mPlayerAudio ? mPlayerAudio->getCacheTotal() : 0;
+
           auto str = decFrac(clockPts/1000000.0,6,5,' ') +
                      " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
                      " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
                      " af:" + decFrac(audio_fifo,6,5,' ') +
                      " vf:" + decFrac(video_fifo,6,5,' ') +
-                     " al:" + dec(mPlayerAudio->getLevel()) +
-                     " vl:" + dec(mPlayerVideo->getLevel()) +
-                     " ad:" + dec(mPlayerAudio->getDelay()) +
-                     " ac:" + dec(mPlayerAudio->getCacheTotal());
+                     " al:" + dec(aLevel) +
+                     " vl:" + dec(vLevel) +
+                     " ad:" + dec(aDelay) +
+                     " ac:" + dec(aCache);
           mDebugStr = str;
           //}}}
 
