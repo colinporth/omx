@@ -557,17 +557,18 @@ private:
         mReader.freePacket (packet);
         //}}}
         }
-
       delete (mPlayerVideo);
       delete (mPlayerAudio);
-      if (mEntered) {
-        //{{{  remake video,audio players, select file
-        mEntered = false;
-        fileName = mFileNames[mFileNum];
-        }
-        //}}}
-      else
+
+      if (mExit || gAbort)
         break;
+      else if (mEntered) 
+        mEntered = false;
+      else if (mFileNum >= mFileNames.size()-1)
+        break;
+      else
+        mFileNum++;
+      fileName = mFileNames[mFileNum];
       }
 
     cLog::log (LOGNOTICE, "player - exit " + string(mExit ? "mExit" : "") +
