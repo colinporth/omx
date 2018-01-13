@@ -249,7 +249,7 @@ private:
   cOmxCoreComponent m_omx_render;
   cOmxCoreComponent m_omx_sched;
   cOmxCoreComponent m_omx_image_fx;
-  cOmxCoreComponent* m_omx_clock = nullptr;
+  cOmxCoreComponent* mOmxClock = nullptr;
   cOmxClock* m_av_clock = nullptr;
   cOmxVideoConfig m_config;
 

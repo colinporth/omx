@@ -119,7 +119,7 @@ public:
   ~cSwAudio();
 
   uint64_t getChannelMap();
-  unsigned int getFrameSize() { return m_frameSize; }
+  unsigned int getFrameSize() { return mFrameSize; }
   int getData (unsigned char** dst, double &dts, double &pts);
   int getChannels() { return mCodecContext->channels; }
   int getSampleRate() { return mCodecContext->sample_rate; }
@@ -141,7 +141,7 @@ protected:
   AVFrame* mFrame1 = nullptr;
 
   enum AVSampleFormat m_iSampleFormat = AV_SAMPLE_FMT_NONE;
-  enum AVSampleFormat m_desiredSampleFormat = AV_SAMPLE_FMT_NONE;
+  enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
 
   unsigned char* mBufferOutput = nullptr;
   int m_iBufferOutputUsed = 0;
@@ -152,7 +152,7 @@ protected:
   bool mFirstFrame = true;
   bool mGotFrame = false;
   bool mNoConcatenate = false;
-  unsigned int m_frameSize = 0;
+  unsigned int mFrameSize = 0;
   double mPts = 0.0;
   double mDts = 0.0;
   };
@@ -173,15 +173,15 @@ public:
   ~cOmxAudio();
 
   static bool hwDecode (AVCodecID codec);
-  unsigned int getSpace() { return m_omx_decoder.GetInputBufferSpace(); }
-  unsigned int getChunkLen() { return m_ChunkLen; }
+  unsigned int getSpace() { return mOmxDecoder.GetInputBufferSpace(); }
+  unsigned int getChunkLen() { return mChunkLen; }
   float getDelay();
   float getCacheTime() { return getDelay(); }
   float getCacheTotal();
   unsigned int getAudioRenderingLatency();
   float getMaxLevel (double &pts);
   uint64_t getChannelLayout (enum PCMLayout layout);
-  float getVolume() { return mMute ? 0.f : m_CurrentVolume; }
+  float getVolume() { return mMute ? 0.f : mCurrentVolume; }
   bool isEOS();
 
   void setMute (bool mute);
@@ -215,51 +215,51 @@ private:
   cAvUtil mAvUtil;
   cOmxAudioConfig mConfig;
   cOmxClock* mAvClock = nullptr;
-  cOmxCoreComponent* m_omx_clock = nullptr;
+  cOmxCoreComponent* mOmxClock = nullptr;
 
-  cOmxCoreComponent m_omx_render_analog;
-  cOmxCoreComponent m_omx_render_hdmi;
-  cOmxCoreComponent m_omx_splitter;
-  cOmxCoreComponent m_omx_mixer;
-  cOmxCoreComponent m_omx_decoder;
+  cOmxCoreComponent mOmxRenderAnalog;
+  cOmxCoreComponent mOmxRenderHdmi;
+  cOmxCoreComponent mOmxSplitter;
+  cOmxCoreComponent mOmxMixer;
+  cOmxCoreComponent mOmxDecoder;
 
-  cOmxCoreTunnel m_omx_tunnel_clock_analog;
-  cOmxCoreTunnel m_omx_tunnel_clock_hdmi;
-  cOmxCoreTunnel m_omx_tunnel_mixer;
-  cOmxCoreTunnel m_omx_tunnel_decoder;
-  cOmxCoreTunnel m_omx_tunnel_splitter_analog;
-  cOmxCoreTunnel m_omx_tunnel_splitter_hdmi;
+  cOmxCoreTunnel mOmxTunnelClockAnalog;
+  cOmxCoreTunnel mOmxTunnelClockHdmi;
+  cOmxCoreTunnel mOmxTunnelMixer;
+  cOmxCoreTunnel mOmxTunnelDecoder;
+  cOmxCoreTunnel mOmxTunnelSplitterAnalog;
+  cOmxCoreTunnel mOmxTunnelSplitterHdmi;
 
-  OMX_AUDIO_CODINGTYPE m_eEncoding = OMX_AUDIO_CodingPCM;
-  OMX_AUDIO_CHANNELTYPE m_input_channels[OMX_AUDIO_MAXCHANNELS];
-  OMX_AUDIO_CHANNELTYPE m_output_channels[OMX_AUDIO_MAXCHANNELS];
-  OMX_AUDIO_PARAM_PCMMODETYPE m_pcm_input;
-  OMX_AUDIO_PARAM_PCMMODETYPE m_pcm_output;
+  OMX_AUDIO_CODINGTYPE mEncoding = OMX_AUDIO_CodingPCM;
+  OMX_AUDIO_CHANNELTYPE mInputChannels[OMX_AUDIO_MAXCHANNELS];
+  OMX_AUDIO_CHANNELTYPE mOutputChannels[OMX_AUDIO_MAXCHANNELS];
+  OMX_AUDIO_PARAM_PCMMODETYPE mPcmInput;
+  OMX_AUDIO_PARAM_PCMMODETYPE mPcmOutput;
 
-  bool m_Initialized = false;
-  unsigned int m_BytesPerSec = 0;
-  unsigned int m_InputBytesPerSec = 0;
-  unsigned int m_BufferLen = 0;
-  unsigned int m_ChunkLen = 0;
-  unsigned int m_InputChannels = 0;
-  unsigned int m_OutputChannels = 0;
-  unsigned int m_BitsPerSample = 0;
+  bool mInitialized = false;
+  unsigned int mBytesPerSec = 0;
+  unsigned int mInputBytesPerSec = 0;
+  unsigned int mBufferLen = 0;
+  unsigned int mChunkLen = 0;
+  unsigned int mNumInputChannels = 0;
+  unsigned int mNumOutputChannels = 0;
+  unsigned int mBitsPerSample = 0;
 
-  float m_CurrentVolume = 0.f;
+  float mCurrentVolume = 0.f;
   bool mMute = false;
-  float m_maxLevel = 0.f;
-  float m_attenuation = 1.f;
+  float mMaxLevel = 0.f;
+  float mAttenuation = 1.f;
   float mDrc = 1.f;
 
-  float m_submitted = 0.f;
+  float mSubmitted = 0.f;
   bool mSettingsChanged = false;
-  bool  m_setStartTime = false;
-  double m_last_pts = DVD_NOPTS_VALUE;
-  bool m_submitted_eos = false;
-  bool m_failed_eos = false;
+  bool  mSetStartTime = false;
+  double mLastPts = DVD_NOPTS_VALUE;
+  bool mSubmittedEos = false;
+  bool mFailedEos = false;
 
-  OMX_AUDIO_PARAM_DTSTYPE m_dtsParam;
-  WAVEFORMATEXTENSIBLE m_wave_header;
+  OMX_AUDIO_PARAM_DTSTYPE mDtsParam;
+  WAVEFORMATEXTENSIBLE mWaveHeader;
 
   //{{{  struct amplitudes_t
   typedef struct {
@@ -267,8 +267,8 @@ private:
     float level;
     } amplitudes_t;
   //}}}
-  std::deque<amplitudes_t> m_ampqueue;
-  float m_downmix_matrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
+  std::deque<amplitudes_t> mAmpQueue;
+  float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
   //}}}
   };
 //}}}

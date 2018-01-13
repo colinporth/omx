@@ -13,11 +13,11 @@ using namespace std;
 //{{{
 cOmxPlayerAudio::cOmxPlayerAudio() {
 
-  pthread_mutex_init (&mLock, NULL);
-  pthread_mutex_init (&mLockDecoder, NULL);
+  pthread_mutex_init (&mLock, nullptr);
+  pthread_mutex_init (&mLockDecoder, nullptr);
 
-  pthread_cond_init (&m_packet_cond, NULL);
-  pthread_cond_init (&m_audio_cond, NULL);
+  pthread_cond_init (&m_packet_cond, nullptr);
+  pthread_cond_init (&m_audio_cond, nullptr);
 
   mFlush_requested = false;
   }
@@ -68,7 +68,7 @@ bool cOmxPlayerAudio::open (cOmxClock* av_clock, const cOmxAudioConfig& config, 
   mCachedSize = 0;
 
   mSwAudio = nullptr;
-  mOmxAudio = NULL;
+  mOmxAudio = nullptr;
   if (openSwAudio() && openOmxAudio())
     return true;
   else {
@@ -82,7 +82,7 @@ void cOmxPlayerAudio::run() {
 
   cLog::setThreadName ("aud ");
 
-  OMXPacket* packet = NULL;
+  OMXPacket* packet = nullptr;
   while (true) {
     lock();
     if (!mAbort && mPackets.empty())
@@ -180,13 +180,13 @@ bool cOmxPlayerAudio::close() {
   unLock();
 
   delete mSwAudio;
-  mSwAudio = NULL;
+  mSwAudio = nullptr;
   delete mOmxAudio;
-  mOmxAudio = NULL;
+  mOmxAudio = nullptr;
 
   m_stream_id = -1;
   m_iCurrentPts = DVD_NOPTS_VALUE;
-  mStream = NULL;
+  mStream = nullptr;
 
   return true;
   }
@@ -274,9 +274,9 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
     mConfig.hints = packet->hints;
 
     delete mSwAudio;
-    mSwAudio = NULL;
+    mSwAudio = nullptr;
     delete mOmxAudio;
-    mOmxAudio = NULL;
+    mOmxAudio = nullptr;
     if (!(openSwAudio() && openOmxAudio()))
       return false;
     }

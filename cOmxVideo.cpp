@@ -352,11 +352,11 @@ bool cOmxVideo::Open (cOmxClock* clock, const cOmxVideoConfig &config) {
     return false;
 
   m_av_clock = clock;
-  m_omx_clock = m_av_clock->getOmxClock();
-  if (m_omx_clock->GetComponent() == NULL) {
+  mOmxClock = m_av_clock->getOmxClock();
+  if (mOmxClock->GetComponent() == NULL) {
     //{{{  noc clock return
     m_av_clock = NULL;
-    m_omx_clock = NULL;
+    mOmxClock = NULL;
     return false;
     }
     //}}}
@@ -657,7 +657,7 @@ bool cOmxVideo::PortSettingsChanged() {
     m_omx_tunnel_decoder.Initialize (&m_omx_decoder, m_omx_decoder.GetOutputPort(), &m_omx_sched, m_omx_sched.GetInputPort());
 
   m_omx_tunnel_sched.Initialize (&m_omx_sched, m_omx_sched.GetOutputPort(), &m_omx_render, m_omx_render.GetInputPort());
-  m_omx_tunnel_clock.Initialize (m_omx_clock, m_omx_clock->GetInputPort() + 1, &m_omx_sched, m_omx_sched.GetOutputPort() + 1);
+  m_omx_tunnel_clock.Initialize (mOmxClock, mOmxClock->GetInputPort() + 1, &m_omx_sched, m_omx_sched.GetOutputPort() + 1);
   if (m_omx_tunnel_clock.Establish() != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged m_omx_tunnel_clock.Establish");

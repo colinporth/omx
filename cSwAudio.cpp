@@ -59,19 +59,22 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
 
   // input audio is aligned
   int inLineSize;
-  int inputSize = mAvUtil.av_samples_get_buffer_size (&inLineSize, mCodecContext->channels, mFrame1->nb_samples, mCodecContext->sample_fmt, 0);
+  int inputSize = mAvUtil.av_samples_get_buffer_size (
+    &inLineSize, mCodecContext->channels, mFrame1->nb_samples, mCodecContext->sample_fmt, 0);
 
   // output audio will be packed
   int outLineSize;
-  int outputSize = mAvUtil.av_samples_get_buffer_size (&outLineSize, mCodecContext->channels, mFrame1->nb_samples, m_desiredSampleFormat, 1);
+  int outputSize = mAvUtil.av_samples_get_buffer_size (
+    &outLineSize, mCodecContext->channels, mFrame1->nb_samples, mDesiredSampleFormat, 1);
 
-  if (!mNoConcatenate && m_iBufferOutputUsed && (int)m_frameSize != outputSize) {
-    cLog::log (LOGERROR, "cSwAudio::getData size:%d->%d", m_frameSize, outputSize);
+  if (!mNoConcatenate && m_iBufferOutputUsed && (int)mFrameSize != outputSize) {
+    cLog::log (LOGERROR, "cSwAudio::getData size:%d->%d", mFrameSize, outputSize);
     mNoConcatenate = true;
     }
 
   // if this buffer won't fit then flush out what we have
-  int desired_size = AUDIO_DECODE_OUTPUT_BUFFER * (mCodecContext->channels * getBitsPerSample()) >> (rounded_up_channels_shift[mCodecContext->channels] + 4);
+  int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
+    (mCodecContext->channels * getBitsPerSample()) >> (rounded_up_channels_shift[mCodecContext->channels] + 4);
   if (m_iBufferOutputUsed && (m_iBufferOutputUsed + outputSize > desired_size || mNoConcatenate)) {
     int ret = m_iBufferOutputUsed;
     m_iBufferOutputUsed = 0;
@@ -81,16 +84,18 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
     *dst = mBufferOutput;
     return ret;
     }
-  m_frameSize = outputSize;
+  mFrameSize = outputSize;
 
   if (m_iBufferOutputAlloced < m_iBufferOutputUsed + outputSize) {
-    mBufferOutput = (uint8_t*)mAvUtil.av_realloc(mBufferOutput, m_iBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
+    mBufferOutput = (uint8_t*)mAvUtil.av_realloc (
+      mBufferOutput, m_iBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
     m_iBufferOutputAlloced = m_iBufferOutputUsed + outputSize;
     }
 
   // need to convert format
-  if (mCodecContext->sample_fmt != m_desiredSampleFormat) {
-    if (mConvert && (mCodecContext->sample_fmt != m_iSampleFormat || m_channels != mCodecContext->channels)) {
+  if (mCodecContext->sample_fmt != mDesiredSampleFormat) {
+    if (mConvert &&
+        (mCodecContext->sample_fmt != m_iSampleFormat || m_channels != mCodecContext->channels)) {
       mSwResample.swr_free (&mConvert);
       m_channels = mCodecContext->channels;
       }
@@ -99,32 +104,38 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
       m_iSampleFormat = mCodecContext->sample_fmt;
       mConvert = mSwResample.swr_alloc_set_opts (NULL,
                    mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
-                   m_desiredSampleFormat, mCodecContext->sample_rate,
+                   mDesiredSampleFormat, mCodecContext->sample_rate,
                    mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
                    mCodecContext->sample_fmt, mCodecContext->sample_rate,
                    0, NULL);
 
       if (!mConvert || mSwResample.swr_init(mConvert) < 0) {
         cLog::log (LOGERROR, "cSwAudio::getData unable to initialise convert format:%d to %d",
-                             mCodecContext->sample_fmt, m_desiredSampleFormat);
+                             mCodecContext->sample_fmt, mDesiredSampleFormat);
         return 0;
         }
       }
 
     // use unaligned flag to keep output packed
     uint8_t* out_planes[mCodecContext->channels];
-    if (mAvUtil.av_samples_fill_arrays(out_planes, NULL, mBufferOutput + m_iBufferOutputUsed, mCodecContext->channels, mFrame1->nb_samples, m_desiredSampleFormat, 1) < 0 ||
-       mSwResample.swr_convert(mConvert, out_planes, mFrame1->nb_samples, (const uint8_t **)mFrame1->data, mFrame1->nb_samples) < 0) {
+    if ((mAvUtil.av_samples_fill_arrays (
+          out_planes, NULL, mBufferOutput + m_iBufferOutputUsed, mCodecContext->channels,
+          mFrame1->nb_samples, mDesiredSampleFormat, 1) < 0) ||
+        mSwResample.swr_convert (mConvert, out_planes,
+          mFrame1->nb_samples, (const uint8_t**)mFrame1->data, mFrame1->nb_samples) < 0) {
       cLog::log (LOGERROR, "cSwAudio::getData decode unable to convert format %d to %d",
-                           (int)mCodecContext->sample_fmt, m_desiredSampleFormat);
+                           (int)mCodecContext->sample_fmt, mDesiredSampleFormat);
       outputSize = 0;
       }
     }
   else {
     // copy to a contiguous buffer
     uint8_t* out_planes[mCodecContext->channels];
-    if (mAvUtil.av_samples_fill_arrays(out_planes, NULL, mBufferOutput + m_iBufferOutputUsed, mCodecContext->channels, mFrame1->nb_samples, m_desiredSampleFormat, 1) < 0 ||
-      mAvUtil.av_samples_copy(out_planes, mFrame1->data, 0, 0, mFrame1->nb_samples, mCodecContext->channels, m_desiredSampleFormat) < 0 )
+    if (mAvUtil.av_samples_fill_arrays (
+          out_planes, NULL, mBufferOutput + m_iBufferOutputUsed, mCodecContext->channels,
+          mFrame1->nb_samples, mDesiredSampleFormat, 1) < 0 ||
+        mAvUtil.av_samples_copy (out_planes, mFrame1->data, 0, 0, mFrame1->nb_samples,
+                                 mCodecContext->channels, mDesiredSampleFormat) < 0 )
       outputSize = 0;
     }
   mGotFrame = false;
@@ -208,7 +219,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
 
   mFrame1 = mAvCodec.av_frame_alloc();
   m_iSampleFormat = AV_SAMPLE_FMT_NONE;
-  m_desiredSampleFormat =
+  mDesiredSampleFormat =
     (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
 
   return true;
@@ -245,7 +256,7 @@ int cSwAudio::decode (unsigned char* pData, int iSize, double dts, double pts) {
   if (mFirstFrame)
     cLog::log (LOGINFO, "cSwAudio - Decode %d format:%d:%d chan:%d samples:%d lineSize:%d",
                iSize,
-               mCodecContext->sample_fmt, m_desiredSampleFormat,
+               mCodecContext->sample_fmt, mDesiredSampleFormat,
                mCodecContext->channels,
                mFrame1->nb_samples, mFrame1->linesize[0]
                );
