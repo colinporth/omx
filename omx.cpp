@@ -80,10 +80,11 @@ public:
       add (new cTextBox (mDvb.mPacketStr, 15.f));
       add (new cTextBox (mDvb.mSignalStr, 14.f));
       add (new cTextBox (mDvb.mTuneStr, 13.f));
-      add (new cTransportStreamBox (0.f, -3.f, &mDvb.mTs), 0.f, 2.f);
+      add (new cTransportStreamBox (0.f, (fileNum > 0) ? (getHeight()/2.f)-3.f : -2.f, &mDvb.mTs));
       }
     if (fileNum > 0)
-      add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,0.f), 0.f, 2.f);
+      add (new cListWidget (mFileNames, mFileNum, mFileChanged, 
+                            0.f, (frequency > 0) ? (getHeight()/2.f)-3.f : -2.f));
 
     thread dvbCaptureThread;
     thread dvbGrabThread;
