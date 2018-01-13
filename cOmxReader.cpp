@@ -13,6 +13,7 @@
 
 #include "cOmxReader.h"
 
+#include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
 
 #include "cOmxClock.h"
@@ -385,49 +386,43 @@ string cOmxReader::getCodecName (OMXStreamType type, unsigned int index) {
 //{{{
 string cOmxReader::getStreamType (OMXStreamType type, unsigned int index) {
 
-  string strInfo;
+  string str;
 
-  char sInfo[64];
   for (int i = 0; i < MAX_STREAMS; i++) {
-    if(mStreams[i].type == type &&  mStreams[i].index == index) {
+    if (mStreams[i].type == type &&  mStreams[i].index == index) {
       if (mStreams[i].hints.codec == AV_CODEC_ID_AC3)
-        strcpy (sInfo, "AC3 ");
+        str = "AC3 ";
       else if (mStreams[i].hints.codec == AV_CODEC_ID_DTS) {
         if (mStreams[i].hints.profile == FF_PROFILE_DTS_HD_MA)
-          strcpy (sInfo, "DTS-HD MA ");
+          str = "DTS-HD MA ";
         else if (mStreams[i].hints.profile == FF_PROFILE_DTS_HD_HRA)
-          strcpy (sInfo, "DTS-HD HRA ");
+          str = "DTS-HD HRA ";
         else
-          strcpy (sInfo, "DTS ");
+         str = "DTS ";
         }
       else if (mStreams[i].hints.codec == AV_CODEC_ID_MP2)
-        strcpy (sInfo, "MP2 ");
-      else
-        strcpy (sInfo, "");
+        str = "MP2 ";
 
       if (mStreams[i].hints.channels == 1)
-        strcat (sInfo, "Mono");
+        str += "Mono";
       else if (mStreams[i].hints.channels == 2)
-        strcat (sInfo, "Stereo");
+        str += "Stereo";
       else if (mStreams[i].hints.channels == 6)
-        strcat (sInfo, "5.1");
-      else if (mStreams[i].hints.channels != 0) {
-        char temp[32];
-        sprintf (temp, " %d %s", mStreams[i].hints.channels, "Channels");
-        strcat (sInfo, temp);
-        }
+        str += "5.1";
+      else if (mStreams[i].hints.channels != 0)
+        str += dec (mStreams[i].hints.channels) + "chans";
       break;
       }
    }
 
-  strInfo = sInfo;
-  return strInfo;
+  return str;
   }
 //}}}
 //{{{
 string cOmxReader::getStreamName (OMXStreamType type, unsigned int index) {
 
   string name;
+
   for (int i = 0; i < MAX_STREAMS; i++) {
     if (mStreams[i].type == type &&  mStreams[i].index == index) {
       name = mStreams[i].name;
@@ -441,9 +436,7 @@ string cOmxReader::getStreamName (OMXStreamType type, unsigned int index) {
 //{{{
 string cOmxReader::getStreamCodecName (AVStream* stream) {
 
-  string strStreamName;
-  if (!stream)
-    return strStreamName;
+  string str;
 
   unsigned int in = stream->codec->codec_tag;
   // FourCC codes are only valid on video streams, audio codecs in AVI/WAV
@@ -451,32 +444,31 @@ string cOmxReader::getStreamCodecName (AVStream* stream) {
   // e.g AC-3 instead of ac3
   if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO && in != 0) {
     char fourcc[5];
-    memcpy(fourcc, &in, 4);
+    memcpy (fourcc, &in, 4);
     fourcc[4] = 0;
     // fourccs have to be 4 characters
-    if (strlen(fourcc) == 4) {
-      strStreamName = fourcc;
-      return strStreamName;
+    if (strlen (fourcc) == 4) {
+      str = fourcc;
+      return str;
       }
     }
 
   /* use profile to determine the DTS type */
   if (stream->codec->codec_id == AV_CODEC_ID_DTS) {
     if (stream->codec->profile == FF_PROFILE_DTS_HD_MA)
-      strStreamName = "dtshd_ma";
+      str = "dtshd_ma";
     else if (stream->codec->profile == FF_PROFILE_DTS_HD_HRA)
-      strStreamName = "dtshd_hra";
+      str = "dtshd_hra";
     else
-      strStreamName = "dca";
-    return strStreamName;
+      str = "dca";
+    return str;
     }
 
-  AVCodec* codec = mAvCodec.avcodec_find_decoder(stream->codec->codec_id);
-
+  auto codec = mAvCodec.avcodec_find_decoder (stream->codec->codec_id);
   if (codec)
-    strStreamName = codec->name;
+    str = codec->name;
 
-  return strStreamName;
+  return str;
   }
 //}}}
 //{{{
@@ -568,6 +560,7 @@ bool cOmxReader::getHints (OMXStreamType type, cOmxStreamInfo& hints) {
 //}}}
 //{{{
 AVMediaType cOmxReader::getPacketType (OMXPacket* packet) {
+
   return (!mAvFormatContext || !packet) ?
     AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[packet->stream_index]->codec->codec_type;
   }
