@@ -69,7 +69,7 @@ public:
   //{{{
   void run (unsigned int fileNum, const string& inTs, int frequency) {
 
-    mFileNum = fileNum;
+    mFileNum = fileNum-1;
     nftw (mRoot.c_str(), addFile, 20, 0);
 
     initialise (1.f, 0);
@@ -91,14 +91,15 @@ public:
       dvbCaptureThread.detach();
 
       dvbGrabThread = thread ([=]() { mDvb.grabThread(); } );
-      sch_params.sched_priority = sched_get_priority_max (SCHED_RR) - 10;
+      sch_params.sched_priority = sched_get_priority_max (SCHED_RR)-1;
       pthread_setschedparam (dvbGrabThread.native_handle(), SCHED_RR, &sch_params);
       dvbGrabThread.detach();
       }
     else if (!inTs.empty())
       thread ([=]() { mDvb.readThread (inTs); } ).detach();
 
-    thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
+    if (fileNum > 0)
+      thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
 
     cRaspWindow::run();
     }
@@ -638,7 +639,7 @@ int main (int argc, char* argv[]) {
   string root = "/home/pi/tv";
   string inTs;
   int frequency = 0;
-  int fileNum = 0;
+  int fileNum = 1;
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
     else if (!strcmp(argv[arg], "n")) logLevel = LOGNOTICE;
