@@ -216,11 +216,11 @@ int64_t currentHostCounter() {
   }
 //}}}
 //{{{
-int interrupt_cb (void *unused) {
+int interruptCb (void* unused) {
 
   int ret = 0;
   if (timeout_duration && currentHostCounter() - timeout_start > timeout_duration) {
-    cLog::log (LOGERROR, "cOmxReader::interrupt_cb - Timed out");
+    cLog::log (LOGERROR, "cOmxReader::interruptCb - Timed out");
     ret = 1;
     }
 
@@ -231,7 +231,7 @@ int interrupt_cb (void *unused) {
 int fileRead (void* h, uint8_t* buf, int size) {
 
   RESET_TIMEOUT(1);
-  if (interrupt_cb(NULL))
+  if (interruptCb (NULL))
     return -1;
 
   auto file = (cFile*)h;
@@ -242,7 +242,7 @@ int fileRead (void* h, uint8_t* buf, int size) {
 offset_t fileSeek (void* h, offset_t pos, int whence) {
 
   RESET_TIMEOUT(1);
-  if (interrupt_cb (NULL))
+  if (interruptCb (NULL))
     return -1;
 
   auto file = (cFile*)h;
@@ -292,13 +292,6 @@ double cOmxReader::normalizeFrameDuration (double frameduration) {
 // cOmxReader
 //{{{
 cOmxReader::cOmxReader() {
-
-  mFilename = "";
-  mFile = NULL;
-  mIoContext = NULL;
-  mAvFormatContext = NULL;
-  mEof = false;
-  mICurrentPts = DVD_NOPTS_VALUE;
 
   for (int i = 0; i < MAX_STREAMS; i++)
     mStreams[i].extradata = NULL;
@@ -672,8 +665,8 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
     }
   //}}}
 
-  const AVIOInterruptCB int_cb = { interrupt_cb, NULL };
-  mAvFormatContext->interrupt_callback = int_cb;
+  const AVIOInterruptCB intCb = { interruptCb, NULL };
+  mAvFormatContext->interrupt_callback = intCb;
   mAvFormatContext->flags |= AVFMT_FLAG_NONBLOCK;
 
   if (mFilename.substr (0,7) == "http://" ||
@@ -802,7 +795,7 @@ OMXPacket* cOmxReader::readPacket() {
     return NULL;
     }
     //}}}
-  if (avPacket.size < 0 || avPacket.stream_index >= MAX_OMX_STREAMS || interrupt_cb(NULL)) {
+  if (avPacket.size < 0 || avPacket.stream_index >= MAX_OMX_STREAMS || interruptCb(NULL)) {
     //{{{  ffmpeg can return neg packet size, eof return
     if (mAvFormatContext->pb && !mAvFormatContext->pb->eof_reached)
       cLog::log (LOGERROR, "cOmxReader::Read no valid packet");
@@ -1082,12 +1075,11 @@ double cOmxReader::convertTimestamp (int64_t pts, int den, int num) {
 
   // do calculations in floats as they can easily overflow otherwise
   // we don't care for having a completly exact timestamp anyway
-  double timestamp = (double)pts * num  / den;
   double starttime = 0.0;
-
   if (mAvFormatContext->start_time != (int64_t)AV_NOPTS_VALUE)
     starttime = (double)mAvFormatContext->start_time / AV_TIME_BASE;
 
+  double timestamp = (double)pts * num  / den;
   if (timestamp > starttime)
     timestamp -= starttime;
   else if (timestamp + 0.1f > starttime )

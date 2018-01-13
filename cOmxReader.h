@@ -122,29 +122,29 @@ private:
   std::recursive_mutex mMutex;
 
   std::string mFilename;
-  cFile* mFile;
-  bool mEof;
+  cFile* mFile = nullptr;
+  bool mEof = false;
 
-  AVFormatContext* mAvFormatContext;
-  AVIOContext* mIoContext;
+  AVIOContext* mIoContext = nullptr;
+  AVFormatContext* mAvFormatContext = nullptr;
 
   cAvUtil mAvUtil;
   cAvCodec mAvCodec;
   cAvFormat mAvFormat;
 
   OMXStream mStreams[MAX_STREAMS];
-  int mVideoIndex;
-  int mAudioIndex;
-  int mVideoCount;
-  int mAudioCount;
-  unsigned int mProgram;
+  int mVideoIndex = 0;
+  int mAudioIndex = 0;
+  int mVideoCount = 0;
+  int mAudioCount = 0;
+  unsigned int mProgram = 0;
 
-  int mSpeed;
-  double mICurrentPts;
+  int mSpeed = 0;
+  double mICurrentPts = 0.0;
 
-  double mAspect;
-  int mWidth;
-  int mHeight;
-  bool mSeek;
+  double mAspect = 0.0;
+  int mWidth = 0;
+  int mHeight = 0;
+  bool mSeek = false;
   };
   //}}}
