@@ -16,6 +16,7 @@
 #include "../shared/utils/cLog.h"
 #include "../shared/utils/cSemaphore.h"
 #include "../shared/utils/cKeyboard.h"
+#include "../shared/dvb/cDvb.h"
 
 #include "bcm_host.h"
 #include "cPcmRemap.h"
@@ -32,6 +33,8 @@
 #include "../shared/nanoVg/cRaspWindow.h"
 #include "../shared/widgets/cTextBox.h"
 #include "../shared/widgets/cListWidget.h"
+#include "../shared/widgets/cTextBox.h"
+#include "../shared/widgets/cTransportStreamBox.h"
 
 #include "version.h"
 
@@ -58,25 +61,42 @@ void sigHandler (int sig) {
 class cAppWindow : public cRaspWindow {
 public:
   //{{{
-  cAppWindow() {
+  cAppWindow (const string& root) : mDvb(root), mRoot(root) {
     mKeyboard.setKeymap (cKeyConfig::getKeymap());
     thread ([=]() { mKeyboard.run(); } ).detach();
     }
   //}}}
   //{{{
-  void run (const string& root, unsigned int fileNum) {
+  void run (unsigned int fileNum, const string& inTs, int frequency) {
 
     mFileNum = fileNum;
-    nftw (root.c_str(), addFile, 20, 0);
+    nftw (mRoot.c_str(), addFile, 20, 0);
 
-    if (!mFileNames.empty()) {
-      initialise (1.f, 0);
-      add (new cTextBox (mDebugStr, 0.f));
-      addBelow (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,0.f));
+    initialise (1.f, 0);
+    add (new cTextBox (mDebugStr, 0.f));
+    addBelow (new cTextBox (mDvb.mPacketStr, 15.f));
+    add (new cTextBox (mDvb.mSignalStr, 14.f));
+    add (new cTextBox (mDvb.mTuneStr, 13.f));
+    addAt (new cTransportStreamBox (0.f, -3.f, &mDvb.mTs), 0.f, 2.f);
+    addAt (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,0.f), 0.f, 2.f);
 
-      thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
-      cRaspWindow::run();
+    thread dvbCaptureThread;
+    if (frequency) {
+      // launch dvbThread
+      dvbCaptureThread = thread ([=]() { mDvb.captureThread (frequency); });
+      sched_param sch_params;
+      sch_params.sched_priority = sched_get_priority_max (SCHED_RR);
+      pthread_setschedparam (dvbCaptureThread.native_handle(), SCHED_RR, &sch_params);
+      dvbCaptureThread.detach();
+
+      thread ([=]() { mDvb.grabThread(); } ).detach();
       }
+    else if (!inTs.empty())
+      thread ([=]() { mDvb.readThread (inTs); } ).detach();
+
+    thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
+
+    cRaspWindow::run();
     }
   //}}}
 
@@ -562,7 +582,7 @@ private:
 
       if (mExit || gAbort)
         break;
-      else if (mEntered) 
+      else if (mEntered)
         mEntered = false;
       else if (mFileNum >= mFileNames.size()-1)
         break;
@@ -577,6 +597,9 @@ private:
     }
   //}}}
   //{{{  vars
+  cDvb mDvb;
+  string mRoot;
+
   cKeyboard mKeyboard;
   cOmxClock mClock;
   cOmxReader mReader;
@@ -609,6 +632,8 @@ int main (int argc, char* argv[]) {
 
   eLogLevel logLevel = LOGINFO;
   string root = "/home/pi/tv";
+  string inTs;
+  int frequency = 0;
   int fileNum = 0;
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
@@ -617,13 +642,17 @@ int main (int argc, char* argv[]) {
     else if (!strcmp(argv[arg], "i2")) logLevel = LOGINFO2;
     else if (!strcmp(argv[arg], "i3")) logLevel = LOGINFO3;
     else if (!strcmp(argv[arg], "r")) root = argv[++arg];
+    else if (!strcmp(argv[arg], "i")) inTs = argv[++arg];
+    else if (!strcmp(argv[arg], "itv")) frequency = 650;
+    else if (!strcmp(argv[arg], "bbc")) frequency = 674;
+    else if (!strcmp(argv[arg], "hd")) frequency = 706;
     else fileNum = atoi (argv[arg]);
 
   cLog::init (logLevel, false, "");
   cLog::log (LOGNOTICE, "omx " + root + string(VERSION_DATE));
 
-  cAppWindow appWindow;
-  appWindow.run (root, fileNum);
+  cAppWindow appWindow (root);
+  appWindow.run (fileNum, inTs, frequency);
 
   return EXIT_SUCCESS;
   }

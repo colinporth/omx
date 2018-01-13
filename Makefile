@@ -12,6 +12,7 @@ SRC=       cOmxCoreComponent.cpp \
 	   ../shared/utils/cKeyboard.cpp \
 	   ../shared/nanoVg/cRaspWindow.cpp \
 	   ../shared/nanoVg/cVg.cpp \
+	   ../shared/dvb/cDvb.cpp \
 	   omx.cpp \
 
 INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
