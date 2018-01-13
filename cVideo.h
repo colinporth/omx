@@ -211,19 +211,16 @@ public:
 //{{{
 class cOmxVideo {
 public:
-  ~cOmxVideo();
+  ~cOmxVideo() { close(); }
 
-  // Required overrides
   bool sendDecoderConfig();
   bool naluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
 
-  unsigned int getSize();
-  int getInputBufferSize();
-  unsigned int getFreeSpace();
   std::string getDecoderName() { return mVideoCodecName; };
-  bool badState() { return mOmxDecoder.BadState(); };
+
   bool isEOS();
-  bool submittedEOS() { return mSubmittedEos; }
+  int getInputBufferSize();
+  unsigned int GetInputBufferSpace();
 
   void setAlpha (int alpha);
   void setVideoRect();
@@ -244,29 +241,29 @@ private:
   //{{{  vars
   std::recursive_mutex mMutex;
 
+  cOmxVideoConfig mConfig;
   OMX_VIDEO_CODINGTYPE mCodingType;
 
-  cOmxCoreComponent mOmxDecoder;
-  cOmxCoreComponent mOmxrender;
-  cOmxCoreComponent mOmxsched;
-  cOmxCoreComponent mOmximage_fx;
-  cOmxCoreComponent* mOmxClock = nullptr;
   cOmxClock* mAvClock = nullptr;
-  cOmxVideoConfig mConfig;
+  cOmxCoreComponent* mOmxClock = nullptr;
+  cOmxCoreComponent mOmxDecoder;
+  cOmxCoreComponent mOmxRender;
+  cOmxCoreComponent mOmxSched;
+  cOmxCoreComponent mOmxImageFx;
 
-  cOmxCoreTunnel mOmxTunneldecoder;
-  cOmxCoreTunnel mOmxTunnelclock;
-  cOmxCoreTunnel mOmxTunnelsched;
-  cOmxCoreTunnel mOmxTunnelimage_fx;
+  cOmxCoreTunnel mOmxTunnelDecoder;
+  cOmxCoreTunnel mOmxTunnelClock;
+  cOmxCoreTunnel mOmxTunnelSched;
+  cOmxCoreTunnel mOmxTunnelImageFx;
 
   std::string mVideoCodecName;
 
+  bool mFailedEos = false;
+  bool mSettingsChanged = false;
   bool mSetStartTime = false;
   bool mDeinterlace = false;
   bool mDropState = false;
   bool mSubmittedEos = false;
-  bool mFailedEos = false;
-  bool mSettingsChanged = false;
 
   float mPixelAspect = 1.f;
   OMX_DISPLAYTRANSFORMTYPE mTransform = OMX_DISPLAY_ROT0;
@@ -279,9 +276,10 @@ public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
 
+  bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
   int getDecoderBufferSize() { return mDecoder->getInputBufferSize(); }
-  int getDecoderFreeSpace() { return mDecoder->getFreeSpace(); }
-  double getCurrentPTS() { return mICurrentPts; };
+  int getDecoderFreeSpace() { return mDecoder->GetInputBufferSpace(); }
+  double getCurrentPTS() { return mCurrentPts; };
   double getFPS() { return mFps; };
   //{{{
   unsigned int getLevel() {
@@ -290,17 +288,16 @@ public:
   //}}}
   unsigned int getCached() { return mCachedSize; };
   unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
-  double getDelay() { return mIVideoDelay; }
-  bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
+  double getDelay() { return mVideoDelay; }
 
-  void setDelay (double delay) { mIVideoDelay = delay; }
+  void setDelay (double delay) { mVideoDelay = delay; }
   void setAlpha (int alpha) { mDecoder->setAlpha (alpha); }
   void setVideoRect (int aspectMode) { mDecoder->setVideoRect (aspectMode); }
   void setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->setVideoRect (SrcRect, DestRect); }
 
   bool open (cOmxClock* av_clock, const cOmxVideoConfig& config);
   void run();
-  bool addPacket (OMXPacket* pkt);
+  bool addPacket (OMXPacket* packet);
   void submitEOS();
   void flush();
   void reset();
@@ -312,17 +309,13 @@ private:
   void lockDecoder() { pthread_mutex_lock  (&mLockDecoder); }
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
-  bool decode (OMXPacket* pkt);
+  bool decode (OMXPacket* packet);
 
   //{{{  vars
   pthread_mutex_t mLock;
   pthread_mutex_t mLockDecoder;
   pthread_cond_t mPacketCond;
   pthread_cond_t mPictureCond;
-
-  bool mAbort = false;
-  bool mFlush = false;
-  std::atomic<bool>  mFlushRequested;
 
   cOmxClock* mAvClock = nullptr;
   cOmxVideo* mDecoder = nullptr;
@@ -332,14 +325,17 @@ private:
   cAvCodec mAvCodec;
   cAvFormat mAvFormat;
 
+  bool mAbort = false;
+  bool mFlush = false;
+  std::atomic<bool>  mFlushRequested;
   unsigned int mCachedSize = 0;
   std::deque<OMXPacket*> mPackets;
 
   int mStreamId = -1;
   AVStream* mStream = nullptr;
 
-  double mIVideoDelay = 0.0;
-  double mICurrentPts = 0.0;
+  double mVideoDelay = 0.0;
+  double mCurrentPts = 0.0;
 
   float mFps = 25.f;
   double mFrametime = 0.0;
