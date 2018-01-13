@@ -219,16 +219,16 @@ public:
   unsigned int GetSize();
   int GetInputBufferSize();
   unsigned int GetFreeSpace();
-  std::string GetDecoderName() { return m_video_codec_name; };
-  bool BadState() { return m_omx_decoder.BadState(); };
+  std::string GetDecoderName() { return mVideoCodecName; };
+  bool BadState() { return mOmxDecoder.BadState(); };
   bool IsEOS();
-  bool SubmittedEOS() { return m_submitted_eos; }
+  bool SubmittedEOS() { return mSubmittedEos; }
 
   void SetAlpha (int alpha);
   void SetVideoRect();
   void SetVideoRect (int aspectMode);
   void SetVideoRect (const CRect& SrcRect, const CRect& DestRect);
-  void SetDropState (bool drop) { m_drop_state = drop; }
+  void SetDropState (bool drop) { mDropState = drop; }
 
   bool Open (cOmxClock* clock, const cOmxVideoConfig& config);
   bool PortSettingsChanged();
@@ -243,32 +243,32 @@ private:
   //{{{  vars
   std::recursive_mutex mMutex;
 
-  OMX_VIDEO_CODINGTYPE m_codingType;
+  OMX_VIDEO_CODINGTYPE mCodingType;
 
-  cOmxCoreComponent m_omx_decoder;
-  cOmxCoreComponent m_omx_render;
-  cOmxCoreComponent m_omx_sched;
-  cOmxCoreComponent m_omx_image_fx;
+  cOmxCoreComponent mOmxDecoder;
+  cOmxCoreComponent mOmxrender;
+  cOmxCoreComponent mOmxsched;
+  cOmxCoreComponent mOmximage_fx;
   cOmxCoreComponent* mOmxClock = nullptr;
-  cOmxClock* m_av_clock = nullptr;
-  cOmxVideoConfig m_config;
+  cOmxClock* mAvClock = nullptr;
+  cOmxVideoConfig mConfig;
 
-  cOmxCoreTunnel m_omx_tunnel_decoder;
-  cOmxCoreTunnel m_omx_tunnel_clock;
-  cOmxCoreTunnel m_omx_tunnel_sched;
-  cOmxCoreTunnel m_omx_tunnel_image_fx;
+  cOmxCoreTunnel mOmxTunneldecoder;
+  cOmxCoreTunnel mOmxTunnelclock;
+  cOmxCoreTunnel mOmxTunnelsched;
+  cOmxCoreTunnel mOmxTunnelimage_fx;
 
-  std::string m_video_codec_name;
+  std::string mVideoCodecName;
 
-  bool m_setStartTime = false;
-  bool m_deinterlace = false;
-  bool m_drop_state = false;
-  bool m_submitted_eos = false;
-  bool m_failed_eos = false;
-  bool m_settings_changed = false;
+  bool mSetStartTime = false;
+  bool mDeinterlace = false;
+  bool mDropState = false;
+  bool mSubmittedEos = false;
+  bool mFailedEos = false;
+  bool mSettingsChanged = false;
 
-  float m_pixel_aspect = 1.f;
-  OMX_DISPLAYTRANSFORMTYPE m_transform = OMX_DISPLAY_ROT0;
+  float mPixelAspect = 1.f;
+  OMX_DISPLAYTRANSFORMTYPE mTransform = OMX_DISPLAY_ROT0;
   //}}}
   };
 //}}}
@@ -280,19 +280,19 @@ public:
 
   int getDecoderBufferSize() { return mDecoder->GetInputBufferSize(); }
   int getDecoderFreeSpace() { return mDecoder->GetFreeSpace(); }
-  double getCurrentPTS() { return m_iCurrentPts; };
-  double getFPS() { return m_fps; };
+  double getCurrentPTS() { return mICurrentPts; };
+  double getFPS() { return mFps; };
   //{{{
   unsigned int getLevel() {
-    return m_config.queue_size ? 100.f * mCachedSize / (m_config.queue_size * 1024.f * 1024.f) : 0;
+    return mConfig.queue_size ? 100.f * mCachedSize / (mConfig.queue_size * 1024.f * 1024.f) : 0;
     };
   //}}}
   unsigned int getCached() { return mCachedSize; };
-  unsigned int getMaxCached() { return m_config.queue_size * 1024 * 1024; };
-  double getDelay() { return m_iVideoDelay; }
+  unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
+  double getDelay() { return mIVideoDelay; }
   bool isEOS() { return mPackets.empty() && mDecoder->IsEOS(); }
 
-  void setDelay (double delay) { m_iVideoDelay = delay; }
+  void setDelay (double delay) { mIVideoDelay = delay; }
   void setAlpha (int alpha) { mDecoder->SetAlpha (alpha); }
   void setVideoRect (int aspectMode) { mDecoder->SetVideoRect (aspectMode); }
   void setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->SetVideoRect (SrcRect, DestRect); }
@@ -316,16 +316,16 @@ private:
   //{{{  vars
   pthread_mutex_t mLock;
   pthread_mutex_t mLockDecoder;
-  pthread_cond_t m_packet_cond;
-  pthread_cond_t m_picture_cond;
+  pthread_cond_t mPacketCond;
+  pthread_cond_t mPictureCond;
 
   bool mAbort = false;
   bool mFlush = false;
-  std::atomic<bool>  mFlush_requested;
+  std::atomic<bool>  mFlushRequested;
 
-  cOmxClock* m_av_clock = nullptr;
+  cOmxClock* mAvClock = nullptr;
   cOmxVideo* mDecoder = nullptr;
-  cOmxVideoConfig m_config;
+  cOmxVideoConfig mConfig;
 
   cAvUtil mAvUtil;
   cAvCodec mAvCodec;
@@ -334,14 +334,14 @@ private:
   unsigned int mCachedSize = 0;
   std::deque<OMXPacket*> mPackets;
 
-  int m_stream_id = -1;
-  AVStream* m_pStream = nullptr;
+  int mStreamId = -1;
+  AVStream* mStream = nullptr;
 
-  double m_iVideoDelay = 0.0;
-  double m_iCurrentPts = 0.0;
+  double mIVideoDelay = 0.0;
+  double mICurrentPts = 0.0;
 
-  float m_fps = 25.f;
-  double m_frametime = 0.0;
-  float m_display_aspect = false;
+  float mFps = 25.f;
+  double mFrametime = 0.0;
+  float mDisplayAspect = false;
   //}}}
   };
