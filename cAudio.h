@@ -175,7 +175,7 @@ public:
 
   static bool hwDecode (AVCodecID codec);
 
-  int getSpace() { return mOmxDecoder.GetInputBufferSpace(); }
+  int getSpace() { return mOmxDecoder.getInputBufferSpace(); }
   int getChunkLen() { return mChunkLen; }
   float getDelay();
   float getCacheTotal();

@@ -17,8 +17,8 @@ void cOmxClock::stateIdle() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (mOmxClock.GetState() != OMX_StateIdle)
-    mOmxClock.SetStateForComponent (OMX_StateIdle);
+  if (mOmxClock.getState() != OMX_StateIdle)
+    mOmxClock.setStateForComponent (OMX_StateIdle);
   mLastMediaTime = 0.f;
   }
 //}}}
@@ -27,9 +27,9 @@ bool cOmxClock::stateExecute() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (mOmxClock.GetState() != OMX_StateExecuting) {
+  if (mOmxClock.getState() != OMX_StateExecuting) {
     stateIdle();
-    if (mOmxClock.SetStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    if (mOmxClock.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
       //{{{  error, return
       cLog::log (LOGERROR, "cOmxClock::stateExecute");
       return false;
@@ -57,7 +57,7 @@ bool cOmxClock::hdmiClockSync() {
   latencyTarget.nInterFactor = 100;
   latencyTarget.nAdjCap = 100;
 
-  if (mOmxClock.SetConfig (OMX_IndexConfigLatencyTarget, &latencyTarget)!= OMX_ErrorNone) {
+  if (mOmxClock.setConfig (OMX_IndexConfigLatencyTarget, &latencyTarget)!= OMX_ErrorNone) {
     //{{{  error, return
     cLog::log (LOGERROR, "cOmxClock::hdmiClockSync");
     return false;
@@ -87,8 +87,8 @@ double cOmxClock::getMediaTime() {
 
     OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
     OMX_INIT_STRUCTURE(timeStamp);
-    timeStamp.nPortIndex = mOmxClock.GetInputPort();
-    OMX_ERRORTYPE omx_err = mOmxClock.GetConfig (OMX_IndexConfigTimeCurrentMediaTime, &timeStamp);
+    timeStamp.nPortIndex = mOmxClock.getInputPort();
+    OMX_ERRORTYPE omx_err = mOmxClock.getConfig (OMX_IndexConfigTimeCurrentMediaTime, &timeStamp);
     if (omx_err != OMX_ErrorNone) {
       //{{{  error, return
       cLog::log (LOGERROR, "cOmxClock::getMediaTime");
@@ -116,8 +116,8 @@ double cOmxClock::getClockAdjustment() {
 
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
   OMX_INIT_STRUCTURE(timeStamp);
-  timeStamp.nPortIndex = mOmxClock.GetInputPort();
-  if (mOmxClock.GetConfig (OMX_IndexConfigClockAdjustment, &timeStamp) != OMX_ErrorNone) {
+  timeStamp.nPortIndex = mOmxClock.getInputPort();
+  if (mOmxClock.getConfig (OMX_IndexConfigClockAdjustment, &timeStamp) != OMX_ErrorNone) {
     //{{{  error, return
     cLog::log (LOGERROR, "cOmxClock::getClockAdjustment");
     return 0;
@@ -158,7 +158,7 @@ bool cOmxClock::setReferenceClock (bool hasAudio) {
     cLog::log (LOGINFO, "cOmxClock::setReferenceClock %s",
                         (refClock.eClock == OMX_TIME_RefClockVideo) ? "video" : "audio");
 
-    if (mOmxClock.SetConfig (OMX_IndexConfigTimeActiveRefClock, &refClock) != OMX_ErrorNone) {
+    if (mOmxClock.setConfig (OMX_IndexConfigTimeActiveRefClock, &refClock) != OMX_ErrorNone) {
       //{{{  error, return
       cLog::log (LOGERROR, "cOmxClock::setReferenceClock");
       ret = false;
@@ -181,13 +181,13 @@ bool cOmxClock::setMediaTime (double pts) {
   OMX_INDEXTYPE index;
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
   OMX_INIT_STRUCTURE(timeStamp);
-  timeStamp.nPortIndex = mOmxClock.GetInputPort();
+  timeStamp.nPortIndex = mOmxClock.getInputPort();
   if (mClock == OMX_TIME_RefClockAudio)
     index = OMX_IndexConfigTimeCurrentAudioReference;
   else
     index = OMX_IndexConfigTimeCurrentVideoReference;
   timeStamp.nTimestamp = toOmxTime (pts);
-  if (mOmxClock.SetConfig (index, &timeStamp) != OMX_ErrorNone) {
+  if (mOmxClock.setConfig (index, &timeStamp) != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR, "cOmxClock::setMediaTime ref %s",
                index == OMX_IndexConfigTimeCurrentAudioReference ?
@@ -198,7 +198,7 @@ bool cOmxClock::setMediaTime (double pts) {
 
   cLog::log  (LOGINFO1, "cOmxClock::setMediaTime %s %.2f",
                 index == OMX_IndexConfigTimeCurrentAudioReference ?
-                  "OMX_IndexConfigTimeCurrentAudioReference":"OMX_IndexConfigTimeCurrentVideoReference", 
+                  "OMX_IndexConfigTimeCurrentAudioReference":"OMX_IndexConfigTimeCurrentVideoReference",
                   pts);
 
   mLastMediaTime = 0.f;
@@ -220,7 +220,7 @@ bool cOmxClock::setSpeed (int speed, bool pauseResume) {
       scaleType.xScale = 0; // for trickplay we just pause, and single step
     else
       scaleType.xScale = (speed << 16) / DVD_PLAYSPEED_NORMAL;
-    if (mOmxClock.SetConfig (OMX_IndexConfigTimeScale, &scaleType) != OMX_ErrorNone) {
+    if (mOmxClock.setConfig (OMX_IndexConfigTimeScale, &scaleType) != OMX_ErrorNone) {
       //{{{  error, return
       cLog::log (LOGERROR, "cOmxClock::setSpeed");
       return false;
@@ -247,7 +247,7 @@ bool cOmxClock::stop() {
   OMX_INIT_STRUCTURE(clock);
   clock.eState = OMX_TIME_ClockStateStopped;
   clock.nOffset = toOmxTime (-1000LL * OMX_PRE_ROLL);
-  if (mOmxClock.SetConfig (OMX_IndexConfigTimeClockState, &clock) != OMX_ErrorNone) {
+  if (mOmxClock.setConfig (OMX_IndexConfigTimeClockState, &clock) != OMX_ErrorNone) {
     //{{{  error, return
     cLog::log (LOGERROR, "cOmxClock::stop");
     return false;
@@ -270,7 +270,7 @@ bool cOmxClock::step (int steps /* = 1 */) {
   OMX_INIT_STRUCTURE(param);
   param.nPortIndex = OMX_ALL;
   param.nU32 = steps;
-  if (mOmxClock.SetConfig (OMX_IndexConfigSingleStep, &param) != OMX_ErrorNone) {
+  if (mOmxClock.setConfig (OMX_IndexConfigSingleStep, &param) != OMX_ErrorNone) {
     //{{{  error, return
     cLog::log (LOGERROR, "cOmxClock::step");
     return false;
@@ -301,7 +301,7 @@ bool cOmxClock::reset (bool hasVideo, bool hasAudio) {
     setClockPorts (&clock, hasVideo, hasAudio);
 
     if (clock.nWaitMask) {
-      if (mOmxClock.SetConfig (OMX_IndexConfigTimeClockState, &clock) != OMX_ErrorNone) {
+      if (mOmxClock.setConfig (OMX_IndexConfigTimeClockState, &clock) != OMX_ErrorNone) {
         //{{{  error, return
         cLog::log (LOGERROR, "cOmxClock::reset");
         return false;

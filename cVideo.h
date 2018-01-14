@@ -221,7 +221,7 @@ public:
 
   bool isEOS();
   int getInputBufferSize();
-  unsigned int GetInputBufferSpace();
+  unsigned int getInputBufferSpace();
 
   void setAlpha (int alpha);
   void setVideoRect();
