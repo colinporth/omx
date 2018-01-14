@@ -371,7 +371,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
 
   portParam.nPortIndex = mOmxDecoder.GetInputPort();
   portParam.nBufferCountActual = mConfig.mFifoSize / portParam.nBufferSize;
-  portParam.format.video.nFrameWidth  = mConfig.mHints.width;
+  portParam.format.video.nFrameWidth = mConfig.mHints.width;
   portParam.format.video.nFrameHeight = mConfig.mHints.height;
   if (mOmxDecoder.SetParameter (OMX_IndexParamPortDefinition, &portParam) != OMX_ErrorNone) {
     //{{{  error return
@@ -724,6 +724,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
 void cOmxVideo::submitEOS() {
 
   cLog::log (LOGINFO, "submitEOS");
+
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mSubmittedEos = true;
@@ -731,24 +732,22 @@ void cOmxVideo::submitEOS() {
 
   auto omxBuffer = mOmxDecoder.GetInputBuffer (1000);
   if (omxBuffer == NULL) {
-    //{{{  error return
+    // error return
     cLog::log(LOGERROR, "cOmxVideo::submitEOS GetInputBuffer");
     mFailedEos = true;
     return;
     }
-    //}}}
 
   omxBuffer->nOffset = 0;
   omxBuffer->nFilledLen = 0;
   omxBuffer->nTimeStamp = toOmxTime (0LL);
   omxBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
   if (mOmxDecoder.EmptyThisBuffer (omxBuffer) != OMX_ErrorNone) {
-    //{{{  error return
+    // error return
     cLog::log (LOGERROR, "cOmxVideo::submitEOS OMX_EmptyThisBuffer");
     mOmxDecoder.DecoderEmptyBufferDone(mOmxDecoder.GetComponent(), omxBuffer);
     return;
     }
-    //}}}
   }
 //}}}
 //{{{
@@ -757,10 +756,10 @@ void cOmxVideo::reset() {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mSetStartTime = true;
+
   mOmxDecoder.FlushInput();
   if (mDeinterlace)
     mOmxImageFx.FlushInput();
-
   mOmxRender.ResetEos();
   }
 //}}}

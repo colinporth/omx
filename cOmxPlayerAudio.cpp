@@ -278,7 +278,7 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
       return false;
     }
 
-  cLog::log (LOGINFO1, "Decode pts:%6.2f size:%d", packet->pts / 1000000.f, packet->size);
+  cLog::log (LOGINFO1, "decode - pts:%6.2f size:%d", packet->pts / 1000000.f, packet->size);
 
   if (packet->pts != DVD_NOPTS_VALUE)
     mCurrentPts = packet->pts;
@@ -317,7 +317,7 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
       }
     }
   else {
-    while ((int) mOmxAudio->getSpace() < packet->size) {
+    while (mOmxAudio->getSpace() < packet->size) {
       cOmxClock::sleep (10);
       if (mFlushRequested)
         return true;
