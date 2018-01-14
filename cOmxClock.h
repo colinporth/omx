@@ -44,41 +44,41 @@ public:
   bool stateExecute();
   bool hdmiClockSync();
 
-  cOmxCoreComponent* getOmxClock() { return &m_omx_clock; }
+  cOmxCoreComponent* getOmxClock() { return &mOmxClock; }
   int64_t getAbsoluteClock();
   double getClock (bool interpolated = true) { return getAbsoluteClock(); }
 
   double getMediaTime();
   double getClockAdjustment();
-  int getPlaySpeed() { return m_omx_speed; };
-  bool isPaused() { return m_pause; };
+  int getPlaySpeed() { return mOmxSpeed; };
+  bool isPaused() { return mPause; };
 
-  void setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool has_video, bool has_audio);
-  bool setReferenceClock (bool has_audio);
+  void setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool hasVideo, bool hasAudio);
+  bool setReferenceClock (bool hasAudio);
   bool setMediaTime (double pts);
-  bool setSpeed (int speed, bool pause_resume);
+  bool setSpeed (int speed, bool pauseResume);
 
   bool stop();
   bool step (int steps = 1);
-  bool reset (bool has_video, bool has_audio);
+  bool reset (bool has_video, bool hasAudio);
   bool pause();
   bool resume();
 
-  static void sleep (unsigned int dwMilliSeconds);
+  static void sleep (unsigned int mMilliSeconds);
 
 private:
   std::recursive_mutex mMutex;
 
   cAvFormat mAvFormat;
-  cOmxCoreComponent m_omx_clock;
+  cOmxCoreComponent mOmxClock;
 
-  bool m_pause = false;
-  int m_omx_speed = DVD_PLAYSPEED_NORMAL;
+  bool mPause = false;
+  int mOmxSpeed = DVD_PLAYSPEED_NORMAL;
 
-  OMX_U32 m_WaitMask = 0;
-  OMX_TIME_CLOCKSTATE m_eState = OMX_TIME_ClockStateStopped;
-  OMX_TIME_REFCLOCKTYPE m_eClock = OMX_TIME_RefClockNone;
+  OMX_U32 mWaitMask = 0;
+  OMX_TIME_CLOCKSTATE mState = OMX_TIME_ClockStateStopped;
+  OMX_TIME_REFCLOCKTYPE mClock = OMX_TIME_RefClockNone;
 
-  double m_last_media_time = 0.f;
-  double m_last_media_time_read = 0.f;
+  double mLastMediaTime = 0.f;
+  double mLastMediaTimeRead = 0.f;
   };

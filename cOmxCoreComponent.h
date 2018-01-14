@@ -38,7 +38,7 @@ public:
 
   OMX_ERRORTYPE AllocInputBuffers (bool use_buffers = false);
   OMX_ERRORTYPE AllocOutputBuffers (bool use_buffers = false);
-  OMX_ERRORTYPE FreeOutputBuffer (OMX_BUFFERHEADERTYPE *omx_buffer);
+  OMX_ERRORTYPE FreeOutputBuffer (OMX_BUFFERHEADERTYPE *omxBuffer);
   OMX_ERRORTYPE FreeInputBuffers();
   OMX_ERRORTYPE FreeOutputBuffers();
   void FlushAll();
@@ -92,7 +92,7 @@ public:
   OMX_ERRORTYPE DecoderFillBufferDone (OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE* pBuffer);
 
   OMX_ERRORTYPE EmptyThisBuffer (OMX_BUFFERHEADERTYPE* omx_buffer);
-  OMX_ERRORTYPE FillThisBuffer (OMX_BUFFERHEADERTYPE* omx_buffer);
+  OMX_ERRORTYPE FillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
 
   OMX_ERRORTYPE WaitForInputDone (long timeout=200);
   OMX_ERRORTYPE WaitForOutputDone (long timeout=200);
