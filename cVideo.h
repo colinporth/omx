@@ -191,21 +191,22 @@ class cOmxVideoConfig {
 public:
   cOmxStreamInfo mHints;
 
+  float mQueueSize = 5.f;
+  float mFifoSize = (float)80*1024*60 / (1024*1024);
+
   CRect mDstRect = {0, 0, 0, 0};
   CRect mSrcRect = {0, 0, 0, 0};
 
   float mDisplayAspect = 0.f;
-  EDEINTERLACEMODE mDeinterlace = VS_DEINTERLACEMODE_AUTO;
-  bool mAdvancedHdDeinterlace = true;
-
-  bool mHdmiClockSync = false;
-  bool mAllowMvc = false;
-  int mAlpha = 255;
   int mAspectMode = 0;
+  int mAlpha = 255;
   int mDisplay = 0;
   int mLayer = 0;
-  float mQueueSize = 5.f;
-  float mFifoSize = (float)80*1024*60 / (1024*1024);
+
+  bool mHdmiClockSync = false;
+
+  EDEINTERLACEMODE mDeinterlace = VS_DEINTERLACEMODE_AUTO;
+  bool mAdvancedHdDeinterlace = true;
   };
 //}}}
 //{{{

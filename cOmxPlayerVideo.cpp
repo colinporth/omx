@@ -125,19 +125,16 @@ void cOmxPlayerVideo::run() {
 //{{{
 bool cOmxPlayerVideo::addPacket (OMXPacket* packet) {
 
-  if (!mAbort &&
-      ((mCachedSize + packet->size) < (mConfig.mQueueSize * 1024 * 1024))) {
+  if (mAbort || ((mCachedSize + packet->size) > (mConfig.mQueueSize * 1024 * 1024)))
+    return false;
 
-    lock();
-    mCachedSize += packet->size;
-    mPackets.push_back (packet);
-    unLock();
+  lock();
+  mCachedSize += packet->size;
+  mPackets.push_back (packet);
+  unLock();
 
-    pthread_cond_broadcast (&mPacketCond);
-    return true;
-    }
-
-  return false;
+  pthread_cond_broadcast (&mPacketCond);
+  return true;
   }
 //}}}
 //{{{

@@ -237,10 +237,6 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
           break;
         }
       }
-    if (mConfig.mAllowMvc && mCodingType == OMX_VIDEO_CodingAVC) {
-      mCodingType = OMX_VIDEO_CodingMVC;
-      mVideoCodecName = "omx-mvc";
-      }
     break;
     //}}}
     //{{{

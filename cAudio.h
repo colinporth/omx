@@ -100,6 +100,10 @@ typedef struct tWAVEFORMATEXTENSIBLE {
 class cOmxAudioConfig {
 public:
   cOmxStreamInfo mHints;
+
+  float mQueueSize = 3.f;
+  float mFfoSize = 2.f;
+
   std::string mDevice;
   std::string mSubdevice;
 
@@ -108,9 +112,6 @@ public:
   bool mPassthrough = false;
   bool mHwDecode = false;
   bool mIsLive = false;
-
-  float mQueueSize = 3.f;
-  float mFfoSize = 2.f;
   };
 //}}}
 
