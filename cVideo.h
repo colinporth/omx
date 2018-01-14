@@ -192,7 +192,7 @@ public:
   cOmxStreamInfo mHints;
 
   int mPacketCacheSize = 2 * 1024 * 1024; // 1m
-  int mFifoSize = 5 * 1024 * 1024; // 5m
+  int mFifoSize = 2 * 1024 * 1024; // 2m
 
   CRect mDstRect = {0, 0, 0, 0};
   CRect mSrcRect = {0, 0, 0, 0};

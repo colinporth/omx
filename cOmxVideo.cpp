@@ -185,21 +185,18 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  bool vflip = false;
   close();
 
-  std::string decoder_name;
   mSettingsChanged = false;
   mSetStartTime = true;
   mConfig = config;
-  mVideoCodecName = "";
-  mCodingType = OMX_VIDEO_CodingUnused;
   mSubmittedEos = false;
   mFailedEos = false;
 
-  if (!mConfig.mHints.width || !mConfig.mHints.height)
-    return false;
-
+  string decoderName;
+  mCodingType = OMX_VIDEO_CodingUnused;
+  mVideoCodecName = "";
+  bool vflip = false;
   switch (mConfig.mHints.codec) {
     //{{{
     case AV_CODEC_ID_H264: {
@@ -207,31 +204,31 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
         case FF_PROFILE_H264_BASELINE:
           // (role name) video_decoder.avc
           // H.264 Baseline profile
-          decoder_name = OMX_H264BASE_DECODER;
+          decoderName = OMX_H264BASE_DECODER;
           mCodingType = OMX_VIDEO_CodingAVC;
           mVideoCodecName = "omx-h264";
           break;
         case FF_PROFILE_H264_MAIN:
           // (role name) video_decoder.avc
           // H.264 Main profile
-          decoder_name = OMX_H264MAIN_DECODER;
+          decoderName = OMX_H264MAIN_DECODER;
           mCodingType = OMX_VIDEO_CodingAVC;
           mVideoCodecName = "omx-h264";
           break;
         case FF_PROFILE_H264_HIGH:
           // (role name) video_decoder.avc
           // H.264 Main profile
-          decoder_name = OMX_H264HIGH_DECODER;
+          decoderName = OMX_H264HIGH_DECODER;
           mCodingType = OMX_VIDEO_CodingAVC;
           mVideoCodecName = "omx-h264";
           break;
         case FF_PROFILE_UNKNOWN:
-          decoder_name = OMX_H264HIGH_DECODER;
+          decoderName = OMX_H264HIGH_DECODER;
           mCodingType = OMX_VIDEO_CodingAVC;
           mVideoCodecName = "omx-h264";
           break;
         default:
-          decoder_name = OMX_H264HIGH_DECODER;
+          decoderName = OMX_H264HIGH_DECODER;
           mCodingType = OMX_VIDEO_CodingAVC;
           mVideoCodecName = "omx-h264";
           break;
@@ -243,7 +240,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_MPEG4:
       // (role name) video_decoder.mpeg4
       // MPEG-4, DivX 4/5 and Xvid compatible
-      decoder_name = OMX_MPEG4_DECODER;
+      decoderName = OMX_MPEG4_DECODER;
       mCodingType = OMX_VIDEO_CodingMPEG4;
       mVideoCodecName = "omx-mpeg4";
       break;
@@ -253,7 +250,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_MPEG2VIDEO:
       // (role name) video_decoder.mpeg2
       // MPEG-2
-      decoder_name = OMX_MPEG2V_DECODER;
+      decoderName = OMX_MPEG2V_DECODER;
       mCodingType = OMX_VIDEO_CodingMPEG2;
       mVideoCodecName = "omx-mpeg2";
       break;
@@ -262,7 +259,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_H263:
       // (role name) video_decoder.mpeg4
       // MPEG-4, DivX 4/5 and Xvid compatible
-      decoder_name = OMX_MPEG4_DECODER;
+      decoderName = OMX_MPEG4_DECODER;
       mCodingType = OMX_VIDEO_CodingMPEG4;
       mVideoCodecName = "omx-h263";
       break;
@@ -278,7 +275,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_VP6A:
       // (role name) video_decoder.vp6
       // VP6
-      decoder_name = OMX_VP6_DECODER;
+      decoderName = OMX_VP6_DECODER;
       mCodingType = OMX_VIDEO_CodingVP6;
       mVideoCodecName = "omx-vp6";
     break;
@@ -287,7 +284,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_VP8:
       // (role name) video_decoder.vp8
       // VP8
-      decoder_name = OMX_VP8_DECODER;
+      decoderName = OMX_VP8_DECODER;
       mCodingType = OMX_VIDEO_CodingVP8;
       mVideoCodecName = "omx-vp8";
     break;
@@ -296,7 +293,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_THEORA:
       // (role name) video_decoder.theora
       // theora
-      decoder_name = OMX_THEORA_DECODER;
+      decoderName = OMX_THEORA_DECODER;
       mCodingType = OMX_VIDEO_CodingTheora;
       mVideoCodecName = "omx-theora";
     break;
@@ -306,7 +303,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_MJPEGB:
       // (role name) video_decoder.mjpg
       // mjpg
-      decoder_name = OMX_MJPEG_DECODER;
+      decoderName = OMX_MJPEG_DECODER;
       mCodingType = OMX_VIDEO_CodingMJPEG;
       mVideoCodecName = "omx-mjpeg";
     break;
@@ -316,7 +313,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     case AV_CODEC_ID_WMV3:
       // (role name) video_decoder.vc1
       // VC-1, WMV9
-      decoder_name = OMX_VC1_DECODER;
+      decoderName = OMX_VC1_DECODER;
       mCodingType = OMX_VIDEO_CodingWMV;
       mVideoCodecName = "omx-vc1";
       break;
@@ -329,7 +326,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     //}}}
     }
 
-  if (!mOmxDecoder.Initialize (decoder_name, OMX_IndexParamVideoInit))
+  if (!mOmxDecoder.Initialize (decoderName, OMX_IndexParamVideoInit))
     return false;
   if (avClock == NULL)
     return false;
@@ -433,66 +430,34 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     return false;
     }
     //}}}
-
   sendDecoderConfig();
 
   mDropState = false;
   mSetStartTime = true;
+  //{{{  set mTransform
   switch (mConfig.mHints.orientation) {
-    //{{{
-    case 90:
-      mTransform = OMX_DISPLAY_ROT90;
-      break;
-    //}}}
-    //{{{
-    case 180:
-      mTransform = OMX_DISPLAY_ROT180;
-      break;
-    //}}}
-    //{{{
-    case 270:
-      mTransform = OMX_DISPLAY_ROT270;
-      break;
-    //}}}
-    //{{{
-    case 1:
-      mTransform = OMX_DISPLAY_MIRROR_ROT0;
-      break;
-    //}}}
-    //{{{
-    case 91:
-      mTransform = OMX_DISPLAY_MIRROR_ROT90;
-      break;
-    //}}}
-    //{{{
-    case 181:
-      mTransform = OMX_DISPLAY_MIRROR_ROT180;
-      break;
-    //}}}
-    //{{{
-    case 271:
-      mTransform = OMX_DISPLAY_MIRROR_ROT270;
-      break;
-    //}}}
-    //{{{
-    default:
-      mTransform = OMX_DISPLAY_ROT0;
-      break;
-    //}}}
+    case 90:  mTransform = OMX_DISPLAY_ROT90; break;
+    case 180: mTransform = OMX_DISPLAY_ROT180; break;
+    case 270: mTransform = OMX_DISPLAY_ROT270; break;
+    case 1:   mTransform = OMX_DISPLAY_MIRROR_ROT0; break;
+    case 91:  mTransform = OMX_DISPLAY_MIRROR_ROT90; break;
+    case 181: mTransform = OMX_DISPLAY_MIRROR_ROT180; break;
+    case 271: mTransform = OMX_DISPLAY_MIRROR_ROT270; break;
+    default:  mTransform = OMX_DISPLAY_ROT0; break;
     }
+
   if (vflip)
      mTransform = OMX_DISPLAY_MIRROR_ROT180;
-
+  //}}}
   if (mOmxDecoder.BadState())
     return false;
 
   cLog::log (LOGINFO1, "cOmxVideo::open %p in:%x out:%x deint:%d hdmi:%d",
-             mOmxDecoder.GetComponent(),
-             mOmxDecoder.GetInputPort(), mOmxDecoder.GetOutputPort(),
+             mOmxDecoder.GetComponent(), mOmxDecoder.GetInputPort(), mOmxDecoder.GetOutputPort(),
              mConfig.mDeinterlace, mConfig.mHdmiClockSync);
 
   float aspect = mConfig.mHints.aspect ?
-    (float)mConfig.mHints.aspect / (float)mConfig.mHints.width * (float)mConfig.mHints.height : 1.0f;
+    (float)mConfig.mHints.aspect / mConfig.mHints.width * mConfig.mHints.height : 1.f;
   mPixelAspect = aspect / mConfig.mDisplayAspect;
 
   return true;
@@ -510,13 +475,13 @@ bool cOmxVideo::portSettingsChanged() {
   OMX_INIT_STRUCTURE(port_image);
   port_image.nPortIndex = mOmxDecoder.GetOutputPort();
   if (mOmxDecoder.GetParameter (OMX_IndexParamPortDefinition, &port_image) != OMX_ErrorNone)
-    cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexParamPortDefinition");
+    cLog::log (LOGERROR, "cOmxVideo::portSettingsChanged OMX_IndexParamPortDefinition");
 
   OMX_CONFIG_POINTTYPE pixel_aspect;
   OMX_INIT_STRUCTURE(pixel_aspect);
   pixel_aspect.nPortIndex = mOmxDecoder.GetOutputPort();
   if (mOmxDecoder.GetParameter (OMX_IndexParamBrcmPixelAspectRatio, &pixel_aspect) != OMX_ErrorNone)
-    cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexParamBrcmPixelAspectRatio");
+    cLog::log (LOGERROR, "cOmxVideo::portSettingsChanged OMX_IndexParamBrcmPixelAspectRatio");
 
   if (pixel_aspect.nX && pixel_aspect.nY && !mConfig.mHints.forced_aspect) {
     //{{{  aspect changed
