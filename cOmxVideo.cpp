@@ -373,7 +373,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     //}}}
 
   portParam.nPortIndex = mOmxDecoder.GetInputPort();
-  portParam.nBufferCountActual = mConfig.mFifoSize ? mConfig.mFifoSize * 1024 * 1024 / portParam.nBufferSize : 80;
+  portParam.nBufferCountActual = mConfig.mFifoSize / portParam.nBufferSize;
   portParam.format.video.nFrameWidth  = mConfig.mHints.width;
   portParam.format.video.nFrameHeight = mConfig.mHints.height;
   if (mOmxDecoder.SetParameter (OMX_IndexParamPortDefinition, &portParam) != OMX_ErrorNone) {

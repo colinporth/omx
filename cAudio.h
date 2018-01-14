@@ -101,8 +101,7 @@ class cOmxAudioConfig {
 public:
   cOmxStreamInfo mHints;
 
-  int mPacketCacheSize = 512 * 1024; / 0.5m
-  float mFifoSize = 2.f;
+  int mPacketCacheSize = 512 * 1024; // 0.5m
 
   std::string mDevice;
   std::string mSubdevice;
