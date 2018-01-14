@@ -635,8 +635,12 @@ void cOmxCoreComponent::flushAll() {
 //{{{
 void cOmxCoreComponent::flushInput() {
 
+  if (!mHandle || mResourceError)
+    return;
+
   if (OMX_SendCommand (mHandle, OMX_CommandFlush, mInputPort, nullptr) != OMX_ErrorNone)
     cLog::log (LOGERROR, "%s %s OMX_SendCommand", __func__, mComponentName.c_str());
+
   if (waitForCommand (OMX_CommandFlush, mInputPort) != OMX_ErrorNone)
     cLog::log (LOGERROR, "%s %s WaitForCommand", __func__, mComponentName.c_str());
   }
@@ -644,8 +648,12 @@ void cOmxCoreComponent::flushInput() {
 //{{{
 void cOmxCoreComponent::flushOutput() {
 
+  if (!mHandle || mResourceError)
+    return;
+
   if (OMX_SendCommand (mHandle, OMX_CommandFlush, mOutputPort, nullptr) != OMX_ErrorNone)
     cLog::log (LOGERROR, "%s %s OMX_SendCommand",  __func__, mComponentName.c_str());
+
   if (waitForCommand (OMX_CommandFlush, mOutputPort) != OMX_ErrorNone)
     cLog::log (LOGERROR, "%s %s WaitForCommand",  __func__, mComponentName.c_str());
   }
