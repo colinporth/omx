@@ -563,10 +563,10 @@ bool cOmxVideo::portSettingsChanged() {
     //}}}
   if (mDeinterlace) {
     //{{{  setup deinterlace
-    bool advanced_deinterlace = mConfig.mAdvancedHdDeinterlace ||
-               (port_image.format.video.nFrameWidth * port_image.format.video.nFrameHeight <= (576 * 720));
-    if (!advanced_deinterlace) {
-      // ImageFx assumed 3 frames of context. and simple deinterlace don't require this
+    bool advancedDeint = mConfig.mAdvancedHdDeinterlace ||
+          (port_image.format.video.nFrameWidth * port_image.format.video.nFrameHeight <= (576 * 720));
+    if (!advancedDeint) {
+      // imageFx assumed 3 frames of context, not needed for simple deinterlace
       OMX_PARAM_U32TYPE extra_buffers;
       OMX_INIT_STRUCTURE(extra_buffers);
       extra_buffers.nU32 = -2;
@@ -587,7 +587,7 @@ bool cOmxVideo::portSettingsChanged() {
     image_filter.nParams[2] = 0; // half framerate
     image_filter.nParams[3] = 1; // use qpus
 
-    if (advanced_deinterlace)
+    if (advancedDeint)
       image_filter.eImageFilter = OMX_ImageFilterDeInterlaceAdvanced;
     else
       image_filter.eImageFilter = OMX_ImageFilterDeInterlaceFast;
@@ -599,15 +599,15 @@ bool cOmxVideo::portSettingsChanged() {
       }
       //}}}
 
-    mOmxTunnelDecoder.initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxImageFx, mOmxImageFx.GetInputPort());
-    mOmxTunnelImageFx.initialize (&mOmxImageFx, mOmxImageFx.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
+    mOmxTunnelDecoder.init (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxImageFx, mOmxImageFx.GetInputPort());
+    mOmxTunnelImageFx.init (&mOmxImageFx, mOmxImageFx.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
     }
     //}}}
   else
-    mOmxTunnelDecoder.initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
+    mOmxTunnelDecoder.init (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
 
-  mOmxTunnelSched.initialize (&mOmxSched, mOmxSched.GetOutputPort(), &mOmxRender, mOmxRender.GetInputPort());
-  mOmxTunnelClock.initialize (mOmxClock, mOmxClock->GetInputPort() + 1, &mOmxSched, mOmxSched.GetOutputPort() + 1);
+  mOmxTunnelSched.init (&mOmxSched, mOmxSched.GetOutputPort(), &mOmxRender, mOmxRender.GetInputPort());
+  mOmxTunnelClock.init (mOmxClock, mOmxClock->GetInputPort() + 1, &mOmxSched, mOmxSched.GetOutputPort() + 1);
   if (mOmxTunnelClock.establish() != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::portSettingsChanged mOmxTunnelClock.Establish");

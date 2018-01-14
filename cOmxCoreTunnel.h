@@ -9,9 +9,9 @@ public:
   cOmxCoreTunnel();
   ~cOmxCoreTunnel();
 
-  void initialize (cOmxCoreComponent* srcComponent, unsigned int srcPort,
-                   cOmxCoreComponent* dstComponent, unsigned int dstPort);
-  bool isInitialized() const { return mTunnelSet; }
+  void init (cOmxCoreComponent* srcComponent, unsigned int srcPort,
+             cOmxCoreComponent* dstComponent, unsigned int dstPort);
+  bool isInit() const { return mTunnelSet; }
 
   OMX_ERRORTYPE establish (bool enablePorts = true, bool disablePorts = false);
   OMX_ERRORTYPE deEstablish (bool noWait = false);

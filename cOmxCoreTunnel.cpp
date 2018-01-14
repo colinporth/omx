@@ -12,7 +12,7 @@ cOmxCoreTunnel::cOmxCoreTunnel() { m_OMX = cOmx::getOMX(); }
 cOmxCoreTunnel::~cOmxCoreTunnel() {}
 
 //{{{
-void cOmxCoreTunnel::initialize (cOmxCoreComponent* srcComponent, unsigned int srcPort,
+void cOmxCoreTunnel::init (cOmxCoreComponent* srcComponent, unsigned int srcPort,
                                  cOmxCoreComponent* dstComponent, unsigned int dstPort) {
   mSrcComponent = srcComponent;
   mSrcPort = srcPort;
@@ -146,7 +146,7 @@ OMX_ERRORTYPE cOmxCoreTunnel::establish (bool enable_ports /* = true */, bool di
 //{{{
 OMX_ERRORTYPE cOmxCoreTunnel::deEstablish (bool noWait) {
 
-  if (!mSrcComponent || !mDstComponent || !isInitialized())
+  if (!mSrcComponent || !mDstComponent || !isInit())
     return OMX_ErrorUndefined;
 
   OMX_ERRORTYPE omxErr = OMX_ErrorNone;
