@@ -101,8 +101,9 @@ public:
   void setSpeed (int iSpeed);
 
   // actions
-  bool open (std::string filename, bool dump_format, bool live, float timeout,
-             std::string cookie, std::string user_agent, std::string lavfdopts, std::string avdict);
+  bool open (const std::string& filename, bool dumpFormat, bool live, float timeout,
+             const std::string& cookie, const std::string& user_agent, 
+             const std::string& lavfdopts, const std::string& avdict);
   OMXPacket* readPacket();
   bool seek (float time, double& startPts);
   void updateCurrentPTS();

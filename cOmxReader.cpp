@@ -268,10 +268,11 @@ void cOmxReader::freePacket (OMXPacket*& packet) {
 //{{{
 double cOmxReader::normalizeFrameDuration (double frameduration) {
 
-  //if the duration is within 20 microseconds of a common duration, use that
-  const double durations[] = { DVD_TIME_BASE * 1.001 / 24.0, DVD_TIME_BASE / 24.0, DVD_TIME_BASE / 25.0,
-                               DVD_TIME_BASE * 1.001 / 30.0, DVD_TIME_BASE / 30.0, DVD_TIME_BASE / 50.0,
-                               DVD_TIME_BASE * 1.001 / 60.0, DVD_TIME_BASE / 60.0};
+  // if the duration is within 20 microseconds of a common duration, use that
+  const double durations[] = { 
+    DVD_TIME_BASE * 1.001 / 24.0, DVD_TIME_BASE / 24.0, DVD_TIME_BASE / 25.0,
+    DVD_TIME_BASE * 1.001 / 30.0, DVD_TIME_BASE / 30.0, DVD_TIME_BASE / 50.0,
+    DVD_TIME_BASE * 1.001 / 60.0, DVD_TIME_BASE / 60.0};
 
   double lowestdiff = DVD_TIME_BASE;
   int selected = -1;
@@ -312,6 +313,7 @@ bool cOmxReader::isActive (int stream_index) {
 
   if ((mAudioIndex != -1) && mStreams[mAudioIndex].id == stream_index)
     return true;
+
   if ((mVideoIndex != -1) && mStreams[mVideoIndex].id == stream_index)
     return true;
 
@@ -337,10 +339,13 @@ bool cOmxReader::canSeek() {
 
   if (mIoContext)
     return mIoContext->seekable;
+
   if (!mAvFormatContext || !mAvFormatContext->pb)
     return false;
+
   if (mAvFormatContext->pb->seekable == AVIO_SEEKABLE_NORMAL)
     return true;
+
   return false;
   }
 //}}}
@@ -372,15 +377,15 @@ string cOmxReader::getCodecName (OMXStreamType type) {
 //{{{
 string cOmxReader::getCodecName (OMXStreamType type, unsigned int index) {
 
-  string strStreamName;
+  string str;
   for (int i = 0; i < MAX_STREAMS; i++) {
     if (mStreams[i].type == type &&  mStreams[i].index == index) {
-      strStreamName = mStreams[i].codec_name;
+      str = mStreams[i].codec_name;
       break;
       }
     }
 
-  return strStreamName;
+  return str;
   }
 //}}}
 //{{{
@@ -421,16 +426,16 @@ string cOmxReader::getStreamType (OMXStreamType type, unsigned int index) {
 //{{{
 string cOmxReader::getStreamName (OMXStreamType type, unsigned int index) {
 
-  string name;
+  string str;
 
   for (int i = 0; i < MAX_STREAMS; i++) {
     if (mStreams[i].type == type &&  mStreams[i].index == index) {
-      name = mStreams[i].name;
+      str = mStreams[i].name;
       break;
       }
     }
 
-  return name;
+  return str;
   }
 //}}}
 //{{{
@@ -474,43 +479,42 @@ string cOmxReader::getStreamCodecName (AVStream* stream) {
 //{{{
 bool cOmxReader::getHints (AVStream* stream, cOmxStreamInfo* hints) {
 
-  if (!hints || !stream)
-    return false;
-
-  hints->codec         = stream->codec->codec_id;
-  hints->extradata     = stream->codec->extradata;
-  hints->extrasize     = stream->codec->extradata_size;
-  hints->channels      = stream->codec->channels;
-  hints->samplerate    = stream->codec->sample_rate;
-  hints->blockalign    = stream->codec->block_align;
-  hints->bitrate       = stream->codec->bit_rate;
+  hints->codec = stream->codec->codec_id;
+  hints->extradata = stream->codec->extradata;
+  hints->extrasize = stream->codec->extradata_size;
+  hints->channels = stream->codec->channels;
+  hints->samplerate = stream->codec->sample_rate;
+  hints->blockalign = stream->codec->block_align;
+  hints->bitrate = stream->codec->bit_rate;
   hints->bitspersample = stream->codec->bits_per_coded_sample;
   if (hints->bitspersample == 0)
     hints->bitspersample = 16;
 
-  hints->width         = stream->codec->width;
-  hints->height        = stream->codec->height;
-  hints->profile       = stream->codec->profile;
-  hints->orientation   = 0;
+  hints->width = stream->codec->width;
+  hints->height = stream->codec->height;
+  hints->profile = stream->codec->profile;
+  hints->orientation = 0;
 
   if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
-    hints->fpsrate       = stream->r_frame_rate.num;
-    hints->fpsscale      = stream->r_frame_rate.den;
+    hints->fpsrate = stream->r_frame_rate.num;
+    hints->fpsscale = stream->r_frame_rate.den;
 
     if (stream->r_frame_rate.num && stream->r_frame_rate.den) {
-      hints->fpsrate      = stream->r_frame_rate.num;
-      hints->fpsscale     = stream->r_frame_rate.den;
+      hints->fpsrate = stream->r_frame_rate.num;
+      hints->fpsscale = stream->r_frame_rate.den;
       }
     else {
-      hints->fpsscale     = 0;
-      hints->fpsrate      = 0;
+      hints->fpsscale = 0;
+      hints->fpsrate = 0;
       }
 
-    hints->aspect = selectAspect (stream, hints->forced_aspect) * stream->codec->width / stream->codec->height;
+    hints->aspect = 
+      selectAspect (stream, hints->forced_aspect) * stream->codec->width / stream->codec->height;
 
     auto rtag = mAvUtil.av_dict_get (stream->metadata, "rotate", NULL, 0);
     if (rtag)
       hints->orientation = atoi (rtag->value);
+
     mAspect = hints->aspect;
     mWidth = hints->width;
     mHeight = hints->height;
@@ -536,18 +540,19 @@ bool cOmxReader::getHints (OMXStreamType type, unsigned int index, cOmxStreamInf
 bool cOmxReader::getHints (OMXStreamType type, cOmxStreamInfo& hints) {
 
   bool ret = false;
+
   switch (type) {
     case OMXSTREAM_AUDIO:
       if (mAudioIndex != -1) {
-        ret = true;
         hints = mStreams[mAudioIndex].hints;
+        ret = true;
         }
       break;
 
     case OMXSTREAM_VIDEO:
       if (mVideoIndex != -1) {
-        ret = true;
         hints = mStreams[mVideoIndex].hints;
+        ret = true;
         }
       break;
 
@@ -602,15 +607,15 @@ double cOmxReader::selectAspect (AVStream* st, bool& forced) {
 
   forced = false;
 
-  /* if stream aspect is 1:1 or 0:0 use codec aspect */
+  // if stream aspect is 1:1 or 0:0 use codec aspect
   if ((st->sample_aspect_ratio.den == 1 || st->sample_aspect_ratio.den == 0) &&
       (st->sample_aspect_ratio.num == 1 || st->sample_aspect_ratio.num == 0) &&
        st->codec->sample_aspect_ratio.num != 0)
-    return av_q2d(st->codec->sample_aspect_ratio);
+    return av_q2d (st->codec->sample_aspect_ratio);
 
   forced = true;
   if (st->sample_aspect_ratio.num != 0)
-    return av_q2d(st->sample_aspect_ratio);
+    return av_q2d (st->sample_aspect_ratio);
 
   return 0.0;
   }
@@ -618,8 +623,9 @@ double cOmxReader::selectAspect (AVStream* st, bool& forced) {
 
 // actions
 //{{{
-bool cOmxReader::open (string filename, bool dump_format, bool live, float timeout,
-                       string cookie, string user_agent, string lavfdopts, string avdict) {
+bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float timeout,
+                       const string& cookie, const string& user_agent,
+                       const string& lavfdopts, const string& avdict) {
 
   timeout_default_duration = (int64_t) (timeout * 1e9);
   mICurrentPts = DVD_NOPTS_VALUE;
@@ -633,7 +639,7 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
 
   mAvFormat.av_register_all();
   mAvFormat.avformat_network_init();
-  mAvUtil.av_log_set_level (dump_format ? AV_LOG_INFO : AV_LOG_QUIET);
+  mAvUtil.av_log_set_level (dumpFormat ? AV_LOG_INFO : AV_LOG_QUIET);
 
   unsigned char* buffer = NULL;
   unsigned int flags = READ_TRUNCATED | READ_BITRATE | READ_CHUNKED;
@@ -756,7 +762,7 @@ bool cOmxReader::open (string filename, bool dump_format, bool live, float timeo
                         getAudioStreamCount(), getVideoStreamCount());
 
   mSpeed = DVD_PLAYSPEED_NORMAL;
-  if (dump_format)
+  if (dumpFormat)
     mAvFormat.av_dump_format (mAvFormatContext, 0, mFilename.c_str(), 0);
 
   updateCurrentPTS();
