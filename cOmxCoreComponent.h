@@ -32,30 +32,30 @@ public:
   cOmxCoreComponent();
   ~cOmxCoreComponent();
 
-  bool init (const std::string &name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks = NULL);
-  bool isInit() const { return m_handle != NULL; }
+  bool init (const std::string& name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks = NULL);
+  bool isInit() const { return mHandle != NULL; }
   bool deInit();
 
-  OMX_ERRORTYPE allocInputBuffers (bool use_buffers = false);
-  OMX_ERRORTYPE allocOutputBuffers (bool use_buffers = false);
-  OMX_ERRORTYPE freeOutputBuffer (OMX_BUFFERHEADERTYPE *omxBuffer);
+  OMX_ERRORTYPE allocInputBuffers (bool useBuffers = false);
+  OMX_ERRORTYPE allocOutputBuffers (bool useBffers = false);
+  OMX_ERRORTYPE freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
   OMX_ERRORTYPE freeInputBuffers();
   OMX_ERRORTYPE freeOutputBuffers();
   void flushAll();
   void flushInput();
   void flushOutput();
 
-  OMX_HANDLETYPE getComponent() const { return m_handle; }
-  unsigned int getInputPort() const { return m_input_port; }
-  unsigned int getOutputPort() const { return m_output_port; }
-  std::string getName() const { return m_componentName; }
+  OMX_HANDLETYPE getComponent() const { return mHandle; }
+  unsigned int getInputPort() const { return mInputPort; }
+  unsigned int getOutputPort() const { return mOutputPort; }
+  std::string getName() const { return mComponentName; }
 
   OMX_BUFFERHEADERTYPE* getInputBuffer (long timeout=200);
   OMX_BUFFERHEADERTYPE* getOutputBuffer (long timeout=200);
-  unsigned int getInputBufferSize() const { return m_input_buffer_count * m_input_buffer_size; }
-  unsigned int getOutputBufferSize() const { return m_output_buffer_count * m_output_buffer_size; }
-  unsigned int getInputBufferSpace() const { return m_omx_input_avaliable.size() * m_input_buffer_size; }
-  unsigned int getOutputBufferSpace() const { return m_omx_output_available.size() * m_output_buffer_size; }
+  unsigned int getInputBufferSize() const { return mInputBufferCount * mInputBufferSize; }
+  unsigned int getOutputBufferSize() const { return mOutputBufferCount * mOutputBufferSize; }
+  unsigned int getInputBufferSpace() const { return mOmxInputAvaliable.size() * mInputBufferSize; }
+  unsigned int getOutputBufferSpace() const { return mOmxOutputAvailable.size() * mOutputBufferSize; }
 
   OMX_ERRORTYPE enablePort (unsigned int port, bool wait = true);
   OMX_ERRORTYPE disablePort (unsigned int port, bool wait = true);
@@ -92,59 +92,59 @@ public:
   OMX_ERRORTYPE decoderEmptyBufferDone (OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE* pBuffer);
   OMX_ERRORTYPE decoderFillBufferDone (OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE* pBuffer);
 
-  OMX_ERRORTYPE emptyThisBuffer (OMX_BUFFERHEADERTYPE* omx_buffer);
+  OMX_ERRORTYPE emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
   OMX_ERRORTYPE fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
 
   OMX_ERRORTYPE waitForInputDone (long timeout=200);
   OMX_ERRORTYPE waitForOutputDone (long timeout=200);
 
-  bool isEOS() const { return m_eos; }
-  bool badState() const { return m_resource_error; }
+  bool isEOS() const { return mEos; }
+  bool badState() const { return mResourceError; }
   void resetEos();
 
-  void ignoreNextError (OMX_S32 error) { m_ignore_error = error; }
+  void ignoreNextError (OMX_S32 error) { mIgnoreError = error; }
 
 private:
   void transitionToStateLoaded();
 
-  OMX_HANDLETYPE  m_handle;
-  unsigned int    m_input_port;
-  unsigned int    m_output_port;
-  std::string     m_componentName;
-  pthread_mutex_t m_omx_event_mutex;
-  pthread_mutex_t m_omx_eos_mutex;
-  std::vector<omx_event> m_omx_events;
-  OMX_S32 m_ignore_error;
+  OMX_HANDLETYPE  mHandle;
+  unsigned int mInputPort;
+  unsigned int mOutputPort;
+  std::string mComponentName;
+  pthread_mutex_t mOmxEventMutex;
+  pthread_mutex_t mOmxEosMutex;
+  std::vector<omx_event> mOmxEvents;
+  OMX_S32 mIgnoreError;
 
-  OMX_CALLBACKTYPE  m_callbacks;
+  OMX_CALLBACKTYPE mCallbacks;
 
   // OMXCore input buffers (demuxer packets)
-  pthread_mutex_t m_omx_input_mutex;
-  std::queue<OMX_BUFFERHEADERTYPE*> m_omx_input_avaliable;
-  std::vector<OMX_BUFFERHEADERTYPE*> m_omx_input_buffers;
-  unsigned int m_input_alignment;
-  unsigned int m_input_buffer_size;
-  unsigned int m_input_buffer_count;
-  bool         m_omx_input_use_buffers;
+  pthread_mutex_t mOmxInputMutex;
+  std::queue<OMX_BUFFERHEADERTYPE*> mOmxInputAvaliable;
+  std::vector<OMX_BUFFERHEADERTYPE*> mOmxInputBuffers;
+  unsigned int mInputAlignment;
+  unsigned int mInputBufferSize;
+  unsigned int mInputBufferCount;
+  bool mOmxInputUseBuffers;
 
   // OMXCore output buffers (video frames)
-  pthread_mutex_t   m_omx_output_mutex;
-  std::queue<OMX_BUFFERHEADERTYPE*> m_omx_output_available;
-  std::vector<OMX_BUFFERHEADERTYPE*> m_omx_output_buffers;
-  unsigned int m_output_alignment;
-  unsigned int m_output_buffer_size;
-  unsigned int m_output_buffer_count;
-  bool         m_omx_output_use_buffers;
-  cOmx*          mOmx;
+  pthread_mutex_t mOmxOutputMutex;
+  std::queue<OMX_BUFFERHEADERTYPE*> mOmxOutputAvailable;
+  std::vector<OMX_BUFFERHEADERTYPE*> mOmxOutputBuffers;
+  unsigned int mOutputAlignment;
+  unsigned int mOutputBufferSize;
+  unsigned int mOutputBufferCount;
+  bool mOmxOutputUseBuffers;
+  cOmx* mOmx;
 
-  pthread_cond_t m_input_buffer_cond;
-  pthread_cond_t m_output_buffer_cond;
-  pthread_cond_t m_omx_event_cond;
+  pthread_cond_t mInputBufferCond;
+  pthread_cond_t mOutputBufferCond;
+  pthread_cond_t mOmxEventCond;
 
-  bool m_flush_input;
-  bool m_flush_output;
-  bool m_resource_error;
+  bool mFlushInput;
+  bool mFlushOutput;
+  bool mResourceError;
 
-  bool m_eos;
-  bool m_exit;
+  bool mEos;
+  bool mExit;
   };
