@@ -69,9 +69,8 @@ public:
   //{{{
   void run (unsigned int fileNum, const string& inTs, int frequency) {
 
+    refreshFileNames();
     mFileNum = fileNum-1;
-    nftw (mRoot.c_str(), addFile, 20, 0);
-
     initialise (1.f, 0);
 
     if (fileNum > 0)
@@ -287,6 +286,12 @@ private:
       }
 
     return 0;
+    }
+  //}}}
+  //{{{
+  void refreshFileNames() {
+    mFileNames.clear();
+    nftw (mRoot.c_str(), addFile, 20, 0);
     }
   //}}}
   //{{{
@@ -597,6 +602,7 @@ private:
       delete (mPlayerVideo);
       delete (mPlayerAudio);
 
+      refreshFileNames();
       if (mExit || gAbort)
         break;
       else if (mEntered)
