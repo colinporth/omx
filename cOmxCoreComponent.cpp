@@ -88,7 +88,7 @@ cOmxCoreComponent::cOmxCoreComponent() {
 //{{{
 cOmxCoreComponent::~cOmxCoreComponent() {
 
-  Deinitialize();
+  deInit();
 
   pthread_mutex_destroy (&m_omx_input_mutex);
   pthread_mutex_destroy (&m_omx_output_mutex);
@@ -101,8 +101,7 @@ cOmxCoreComponent::~cOmxCoreComponent() {
 //}}}
 
 //{{{
-bool cOmxCoreComponent::Initialize (const string &component_name,
-                                    OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks) {
+bool cOmxCoreComponent::init (const string& name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks) {
   m_input_port  = 0;
   m_output_port = 0;
   m_handle      = NULL;
@@ -127,7 +126,7 @@ bool cOmxCoreComponent::Initialize (const string &component_name,
   m_omx_events.clear();
   m_ignore_error = OMX_ErrorNone;
 
-  m_componentName = component_name;
+  m_componentName = name;
 
   m_callbacks.EventHandler    = &cOmxCoreComponent::DecoderEventHandlerCallback;
   m_callbacks.EmptyBufferDone = &cOmxCoreComponent::DecoderEmptyBufferDoneCallback;
@@ -142,12 +141,12 @@ bool cOmxCoreComponent::Initialize (const string &component_name,
   // Get video component handle setting up callbacks, component is in loaded state on return.
   if (!m_handle) {
     OMX_ERRORTYPE omx_err;
-    omx_err = mOmx->getHandle (&m_handle, (char*)component_name.c_str(), this, &m_callbacks);
+    omx_err = mOmx->getHandle (&m_handle, (char*)name.c_str(), this, &m_callbacks);
 
     if (!m_handle || omx_err != OMX_ErrorNone) {
       cLog::log (LOGERROR, "omxCoreComp::Initialize no component handle %s 0x%08x",
-                 component_name.c_str(), (int)omx_err);
-      Deinitialize();
+                 name.c_str(), (int)omx_err);
+      deInit();
       return false;
       }
     }
@@ -155,10 +154,10 @@ bool cOmxCoreComponent::Initialize (const string &component_name,
   OMX_PORT_PARAM_TYPE port_param;
   OMX_INIT_STRUCTURE(port_param);
   if (OMX_GetParameter (m_handle, index, &port_param) != OMX_ErrorNone)
-    cLog::log (LOGERROR, "%s no get port_param %s",  __func__, component_name.c_str());
+    cLog::log (LOGERROR, "%s no get port_param %s",  __func__, name.c_str());
 
   if (DisableAllPorts() != OMX_ErrorNone)
-    cLog::log (LOGERROR, "omxCoreComp::Initialize disable ports %s", component_name.c_str());
+    cLog::log (LOGERROR, "omxCoreComp::Initialize disable ports %s", name.c_str());
 
   m_input_port  = port_param.nStartPortNumber;
   m_output_port = m_input_port + 1;
@@ -181,7 +180,7 @@ bool cOmxCoreComponent::Initialize (const string &component_name,
   }
 //}}}
 //{{{
-bool cOmxCoreComponent::Deinitialize() {
+bool cOmxCoreComponent::deInit() {
 
   m_exit = true;
   m_flush_input = true;

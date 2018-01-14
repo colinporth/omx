@@ -200,7 +200,7 @@ public:
   void process();
   void submitEOS();
   void flush();
-  bool deinitialize();
+  bool deInit();
 
 private:
   bool canHwDecode (AVCodecID codec);

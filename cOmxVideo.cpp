@@ -326,7 +326,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     //}}}
     }
 
-  if (!mOmxDecoder.Initialize (decoderName, OMX_IndexParamVideoInit))
+  if (!mOmxDecoder.init (decoderName, OMX_IndexParamVideoInit))
     return false;
   if (avClock == NULL)
     return false;
@@ -510,17 +510,17 @@ bool cOmxVideo::portSettingsChanged() {
   else
     mDeinterlace = interlace.eMode != OMX_InterlaceProgressive;
 
-  if (!mOmxRender.Initialize ("OMX.broadcom.video_render", OMX_IndexParamVideoInit))
+  if (!mOmxRender.init ("OMX.broadcom.video_render", OMX_IndexParamVideoInit))
     return false;
 
   mOmxRender.ResetEos();
   portSettingsChangedLog (port_image, interlace.eMode);
 
-  if (!mOmxSched.Initialize ("OMX.broadcom.video_scheduler", OMX_IndexParamVideoInit))
+  if (!mOmxSched.init ("OMX.broadcom.video_scheduler", OMX_IndexParamVideoInit))
     return false;
 
   if (mDeinterlace)
-    if (!mOmxImageFx.Initialize ("OMX.broadcom.ImageFx", OMX_IndexParamImageInit))
+    if (!mOmxImageFx.init ("OMX.broadcom.ImageFx", OMX_IndexParamImageInit))
       return false;
 
   OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
@@ -777,11 +777,11 @@ void cOmxVideo::close() {
 
   mOmxDecoder.FlushInput();
 
-  mOmxSched.Deinitialize();
-  mOmxDecoder.Deinitialize();
+  mOmxSched.deInit();
+  mOmxDecoder.deInit();
   if (mDeinterlace)
-    mOmxImageFx.Deinitialize();
-  mOmxRender.Deinitialize();
+    mOmxImageFx.deInit();
+  mOmxRender.deInit();
 
   mVideoCodecName = "";
   mDeinterlace = false;

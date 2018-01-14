@@ -32,9 +32,9 @@ public:
   cOmxCoreComponent();
   ~cOmxCoreComponent();
 
-  bool Initialize (const std::string &component_name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks = NULL);
-  bool IsInitialized() const { return m_handle != NULL; }
-  bool Deinitialize();
+  bool init (const std::string &name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks = NULL);
+  bool isInit() const { return m_handle != NULL; }
+  bool deInit();
 
   OMX_ERRORTYPE AllocInputBuffers (bool use_buffers = false);
   OMX_ERRORTYPE AllocOutputBuffers (bool use_buffers = false);

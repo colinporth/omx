@@ -9,11 +9,11 @@ using namespace std;
 #define OMX_PRE_ROLL 200
 #define TP(speed) ((speed) < 0 || (speed) > 4*DVD_PLAYSPEED_NORMAL)
 
-cOmxClock::cOmxClock() { m_omx_clock.Initialize ("OMX.broadcom.clock", OMX_IndexParamOtherInit); }
+cOmxClock::cOmxClock() { m_omx_clock.init ("OMX.broadcom.clock", OMX_IndexParamOtherInit); }
 //{{{
 cOmxClock::~cOmxClock() {
 
-  m_omx_clock.Deinitialize();
+  m_omx_clock.deInit();
   m_omx_speed = DVD_PLAYSPEED_NORMAL;
   m_last_media_time = 0.f;
   }
