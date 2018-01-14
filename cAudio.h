@@ -178,8 +178,8 @@ public:
   unsigned int getSpace() { return mOmxDecoder.GetInputBufferSpace(); }
   unsigned int getChunkLen() { return mChunkLen; }
   float getDelay();
-  float getCacheTime() { return getDelay(); }
   float getCacheTotal();
+
   unsigned int getAudioRenderingLatency();
   float getMaxLevel (double &pts);
   uint64_t getChannelLayout (enum PCMLayout layout);
@@ -282,14 +282,11 @@ public:
   cOmxPlayerAudio();
   ~cOmxPlayerAudio();
 
-  double getDelay() { return mOmxAudio->getDelay(); }
-  double getCacheTime() { return mOmxAudio->getCacheTime(); }
-  double getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
   double getCurrentPTS() { return mCurrentPts; };
-
+  double getDelay() { return mOmxAudio->getDelay(); }
+  double getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
   int getPacketCacheSize() { return mPacketCacheSize; };
   float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mPacketCacheSize; };
-
   float getVolume() { return mCurrentVolume; }
   bool isPassthrough (cOmxStreamInfo hints);
   bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
