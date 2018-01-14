@@ -5,6 +5,7 @@
 #include <sys/time.h>
 
 #include "cVideo.h"
+#include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
 
 using namespace std;
@@ -221,11 +222,11 @@ bool cOmxPlayerVideo::decode (OMXPacket* packet) {
     pts += mVideoDelay;
     mCurrentPts = pts;
     }
-  else
-    cLog::log (LOGINFO, "decode - DVD_NOPTS_VALUE");
 
-  cLog::log (LOGINFO1, "Decode pts:%6.2f curPts:%6.2f size:%d",
-                       packet->pts / 1000000.f, mCurrentPts / 1000000.f, packet->size);
+  cLog::log (LOGINFO1, "decode pts" +
+                       (packet->pts == DVD_NOPTS_VALUE) ? "none" : decFrac(packet->pts / 1000000.f, 6,2,' ') +
+                       " curPts" + decFrac(mCurrentPts / 1000000.f, 6,2,' ') +
+                       " size" + dec(packet->size));
 
   while ((int)mDecoder->GetInputBufferSpace() < packet->size) {
     cOmxClock::sleep (10);
