@@ -157,16 +157,18 @@ bool cOmxCoreComponent::deInit() {
   mFlushInput = true;
   mFlushOutput = true;
 
-  flushAll();
-  freeOutputBuffers();
-  freeInputBuffers();
-  transitionToStateLoaded();
+  if (mHandle) {
+    flushAll();
+    freeOutputBuffers();
+    freeInputBuffers();
+    transitionToStateLoaded();
 
-  cLog::log (LOGINFO1, "cOmxCoreComponent::deInit - %s h:%p", mComponentName.c_str(), mHandle);
+    cLog::log (LOGINFO1, "cOmxCoreComponent::deInit - %s h:%p", mComponentName.c_str(), mHandle);
 
-  if (mOmx->freeHandle (mHandle) != OMX_ErrorNone)
-    cLog::log (LOGERROR, "cOmxCoreComponent::deInit - free handle %s", mComponentName.c_str());
-  mHandle = nullptr;
+    if (mOmx->freeHandle (mHandle) != OMX_ErrorNone)
+      cLog::log (LOGERROR, "cOmxCoreComponent::deInit - free handle %s", mComponentName.c_str());
+    mHandle = nullptr;
+    }
 
   mInputPort = 0;
   mOutputPort = 0;
@@ -633,9 +635,6 @@ void cOmxCoreComponent::flushAll() {
 //{{{
 void cOmxCoreComponent::flushInput() {
 
-  if (!mHandle || mResourceError)
-    return;
-
   if (OMX_SendCommand (mHandle, OMX_CommandFlush, mInputPort, nullptr) != OMX_ErrorNone)
     cLog::log (LOGERROR, "%s %s OMX_SendCommand", __func__, mComponentName.c_str());
 
@@ -645,9 +644,6 @@ void cOmxCoreComponent::flushInput() {
 //}}}
 //{{{
 void cOmxCoreComponent::flushOutput() {
-
-  if (!mHandle || mResourceError)
-    return;
 
   if (OMX_SendCommand (mHandle, OMX_CommandFlush, mOutputPort, nullptr) != OMX_ErrorNone)
     cLog::log (LOGERROR, "%s %s OMX_SendCommand",  __func__, mComponentName.c_str());
@@ -1056,9 +1052,6 @@ void cOmxCoreComponent::resetEos() {
 // private
 //{{{
 void cOmxCoreComponent::transitionToStateLoaded() {
-
-  if (!mHandle)
-    return;
 
   if (getState() != OMX_StateLoaded && getState() != OMX_StateIdle)
     setStateForComponent (OMX_StateIdle);
