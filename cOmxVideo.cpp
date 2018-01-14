@@ -520,7 +520,7 @@ bool cOmxVideo::portSettingsChanged() {
     return false;
 
   if (mDeinterlace)
-    if (!mOmxImageFx.init ("OMX.broadcom.ImageFx", OMX_IndexParamImageInit))
+    if (!mOmxImageFx.init ("OMX.broadcom.image_fx", OMX_IndexParamImageInit))
       return false;
 
   OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
@@ -566,7 +566,7 @@ bool cOmxVideo::portSettingsChanged() {
     bool advancedDeint = mConfig.mAdvancedHdDeinterlace ||
           (port_image.format.video.nFrameWidth * port_image.format.video.nFrameHeight <= (576 * 720));
     if (!advancedDeint) {
-      // imageFx assumed 3 frames of context, not needed for simple deinterlace
+      // image_fx assumed 3 frames of context, not needed for simple deinterlace
       OMX_PARAM_U32TYPE extra_buffers;
       OMX_INIT_STRUCTURE(extra_buffers);
       extra_buffers.nU32 = -2;
