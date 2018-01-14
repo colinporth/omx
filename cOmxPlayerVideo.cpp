@@ -125,7 +125,7 @@ void cOmxPlayerVideo::run() {
 //{{{
 bool cOmxPlayerVideo::addPacket (OMXPacket* packet) {
 
-  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mQueueSize))
+  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mPacketCacheSize))
     return false;
 
   lock();

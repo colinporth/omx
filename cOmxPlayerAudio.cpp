@@ -122,7 +122,7 @@ void cOmxPlayerAudio::run() {
 //{{{
 bool cOmxPlayerAudio::addPacket (OMXPacket* packet) {
 
-  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mQueueSize))
+  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mPacketCacheSize))
     return false;
 
   lock();

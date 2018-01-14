@@ -101,7 +101,7 @@ class cOmxAudioConfig {
 public:
   cOmxStreamInfo mHints;
 
-  int mQueueSize = 3 * 1024 * 1024;
+  int mPacketCacheSize = 3 * 1024 * 1024;
   float mFifoSize = 2.f;
 
   std::string mDevice;
@@ -289,7 +289,7 @@ public:
   double getCurrentPTS() { return mCurrentPts; };
 
   int getPacketCacheSize() { return mPacketCacheSize; };
-  float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mQueueSize; };
+  float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mPacketCacheSize; };
 
   float getVolume() { return mCurrentVolume; }
   bool isPassthrough (cOmxStreamInfo hints);

@@ -450,8 +450,8 @@ private:
                      " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
                      " af:" + decFrac(audio_fifo,6,5,' ') +
                      " vf:" + decFrac(video_fifo,6,5,' ') +
-                     " al:" + dec(aLevel) +
-                     " vl:" + dec(vLevel) +
+                     " al:" + decFrac(aLevel,3,1,' ') +
+                     " vl:" + decFrac(vLevel,3,1,' ') +
                      " ad:" + dec(aDelay) +
                      " ac:" + dec(aCache);
           mDebugStr = str;
@@ -566,7 +566,7 @@ private:
             //}}}
           else if (mReader.isEof()) {
             //{{{  EOF, may still be playing out
-            if (!(mPlayerVideo && mPlayerVideo->getPacketCacheSize()) && 
+            if (!(mPlayerVideo && mPlayerVideo->getPacketCacheSize()) &&
                 !(mPlayerAudio && mPlayerAudio->getPacketCacheSize())) {
               if (!submitEos) {
                 submitEos = true;

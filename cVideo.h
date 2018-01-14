@@ -191,7 +191,7 @@ class cOmxVideoConfig {
 public:
   cOmxStreamInfo mHints;
 
-  int mQueueSize = 5 * 1024 * 1024;
+  int mPacketCacheSize = 5 * 1024 * 1024;
   float mFifoSize = (float)80*1024*60 / (1024*1024);
 
   CRect mDstRect = {0, 0, 0, 0};
@@ -282,7 +282,7 @@ public:
   double getFPS() { return mFps; };
 
   int getPacketCacheSize() { return mPacketCacheSize; };
-  float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mQueueSize; };
+  float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mPacketCacheSize; };
 
   double getDelay() { return mVideoDelay; }
 
