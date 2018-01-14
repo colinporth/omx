@@ -104,7 +104,7 @@ public:
   void IgnoreNextError (OMX_S32 error) { m_ignore_error = error; }
 
 private:
-  void TransitionToStateLoaded();
+  void transitionToStateLoaded();
 
   OMX_HANDLETYPE  m_handle;
   unsigned int    m_input_port;
