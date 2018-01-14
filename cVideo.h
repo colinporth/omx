@@ -191,7 +191,7 @@ class cOmxVideoConfig {
 public:
   cOmxStreamInfo mHints;
 
-  float mQueueSize = 5.f;
+  int mQueueSize = 5 * 1024 * 1024;
   float mFifoSize = (float)80*1024*60 / (1024*1024);
 
   CRect mDstRect = {0, 0, 0, 0};
@@ -280,13 +280,10 @@ public:
   bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
   double getCurrentPTS() { return mCurrentPts; };
   double getFPS() { return mFps; };
-  //{{{
-  unsigned int getLevel() {
-    return mConfig.mQueueSize ? 100.f * mCachedSize / (mConfig.mQueueSize * 1024.f * 1024.f) : 0;
-    };
-  //}}}
-  unsigned int getCached() { return mCachedSize; };
-  unsigned int getMaxCached() { return mConfig.mQueueSize * 1024 * 1024; };
+
+  int getPacketCacheSize() { return mPacketCacheSize; };
+  float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mQueueSize; };
+
   double getDelay() { return mVideoDelay; }
 
   void setDelay (double delay) { mVideoDelay = delay; }
@@ -327,8 +324,8 @@ private:
   bool mAbort = false;
   bool mFlush = false;
   std::atomic<bool>  mFlushRequested;
-  unsigned int mCachedSize = 0;
   std::deque<OMXPacket*> mPackets;
+  int mPacketCacheSize = 0;
 
   int mStreamId = -1;
   AVStream* mStream = nullptr;

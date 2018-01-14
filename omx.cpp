@@ -440,8 +440,8 @@ private:
                               ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
             }
           // debug
-          auto aLevel = mPlayerAudio ? mPlayerAudio->getLevel() : 0;
-          auto vLevel = mPlayerVideo ? mPlayerVideo->getLevel() : 0;
+          auto aLevel = mPlayerAudio ? mPlayerAudio->getPacketCacheUse()*100.f : 0;
+          auto vLevel = mPlayerVideo ? mPlayerVideo->getPacketCacheUse()*100.f : 0;
           auto aDelay = mPlayerAudio ? mPlayerAudio->getDelay() : 0;
           auto aCache = mPlayerAudio ? mPlayerAudio->getCacheTotal() : 0;
 
@@ -566,7 +566,8 @@ private:
             //}}}
           else if (mReader.isEof()) {
             //{{{  EOF, may still be playing out
-            if (!(mPlayerVideo && mPlayerVideo->getCached()) && !(mPlayerAudio && mPlayerAudio->getCached())) {
+            if (!(mPlayerVideo && mPlayerVideo->getPacketCacheSize()) && 
+                !(mPlayerAudio && mPlayerAudio->getPacketCacheSize())) {
               if (!submitEos) {
                 submitEos = true;
                 if (mPlayerVideo)

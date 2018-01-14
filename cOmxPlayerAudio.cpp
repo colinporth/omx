@@ -65,7 +65,7 @@ bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config, c
   mPassthrough = false;
   mHwDecode = false;
   mCurrentPts = DVD_NOPTS_VALUE;
-  mCachedSize = 0;
+  mPacketCacheSize = 0;
 
   mSwAudio = nullptr;
   mOmxAudio = nullptr;
@@ -99,7 +99,7 @@ void cOmxPlayerAudio::run() {
       }
     else if (!packet && !mPackets.empty()) {
       packet = mPackets.front();
-      mCachedSize -= packet->size;
+      mPacketCacheSize -= packet->size;
       mPackets.pop_front();
       }
     unLock();
@@ -122,11 +122,11 @@ void cOmxPlayerAudio::run() {
 //{{{
 bool cOmxPlayerAudio::addPacket (OMXPacket* packet) {
 
-  if (mAbort || ((mCachedSize + packet->size) > mConfig.mQueueSize * 1024 * 1024))
+  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mQueueSize))
     return false;
 
   lock();
-  mCachedSize += packet->size;
+  mPacketCacheSize += packet->size;
   mPackets.push_back (packet);
   unLock();
 
@@ -160,7 +160,7 @@ void cOmxPlayerAudio::flush() {
     }
 
   mCurrentPts = DVD_NOPTS_VALUE;
-  mCachedSize = 0;
+  mPacketCacheSize = 0;
   mOmxAudio->flush();
 
   unLockDecoder();

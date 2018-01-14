@@ -49,7 +49,7 @@ bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
 
   mAbort = false;
   mFlush = false;
-  mCachedSize = 0;
+  mPacketCacheSize = 0;
   mVideoDelay = 0;
 
   // open decoder
@@ -100,7 +100,7 @@ void cOmxPlayerVideo::run() {
       }
     else if (!packet && !mPackets.empty()) {
       packet = mPackets.front();
-      mCachedSize -= packet->size;
+      mPacketCacheSize -= packet->size;
       mPackets.pop_front();
       }
     unLock();
@@ -125,11 +125,11 @@ void cOmxPlayerVideo::run() {
 //{{{
 bool cOmxPlayerVideo::addPacket (OMXPacket* packet) {
 
-  if (mAbort || ((mCachedSize + packet->size) > (mConfig.mQueueSize * 1024 * 1024)))
+  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mQueueSize))
     return false;
 
   lock();
-  mCachedSize += packet->size;
+  mPacketCacheSize += packet->size;
   mPackets.push_back (packet);
   unLock();
 
@@ -160,7 +160,7 @@ void cOmxPlayerVideo::flush() {
     }
 
   mCurrentPts = DVD_NOPTS_VALUE;
-  mCachedSize = 0;
+  mPacketCacheSize = 0;
 
   mDecoder->reset();
 
@@ -182,7 +182,7 @@ void cOmxPlayerVideo::reset() {
   mFlush = false;
   mFlushRequested = false;
 
-  mCachedSize = 0;
+  mPacketCacheSize = 0;
   mVideoDelay = 0;
   }
 //}}}
