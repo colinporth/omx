@@ -294,8 +294,6 @@ private:
 
     cLog::setThreadName ("play");
 
-    cOmxVideoConfig videoConfig;
-    cOmxAudioConfig audioConfig;
     //{{{  set videoConfig aspect
     TV_DISPLAY_STATE_T state;
     memset (&state, 0, sizeof(TV_DISPLAY_STATE_T));
@@ -343,7 +341,9 @@ private:
     while (true) {
       cOmxPlayerVideo* mPlayerVideo = nullptr;
       cOmxPlayerAudio* mPlayerAudio = nullptr;
+      cLog::log (LOGINFO, "open " + fileName);
       if (mReader.open (fileName, false, audioConfig.mIsLive, 5.f, "","","probesize:1000000","")) {
+        cLog::log (LOGINFO, "opened " + fileName);
         //{{{  start play
         mClock.stateIdle();
         mClock.stop();
@@ -446,7 +446,7 @@ private:
           auto aCache = mPlayerAudio ? mPlayerAudio->getCacheTotal() : 0;
 
           auto str = decFrac(clockPts/1000000.0,6,2,' ') +
-                     " "  + decFrac(audio_pts/1000000.0,6,2,' ') + 
+                     " "  + decFrac(audio_pts/1000000.0,6,2,' ') +
                      ":"  + decFrac(video_pts/1000000.0,6,2,' ') +
                      " "  + decFrac(audio_fifo,6,2,' ') +
                      ":"  + decFrac(video_fifo,6,2,' ') +
@@ -621,6 +621,8 @@ private:
   cOmxClock mClock;
   cOmxReader mReader;
 
+  cOmxVideoConfig videoConfig;
+  cOmxAudioConfig audioConfig;
   cOmxPlayerVideo* mPlayerVideo = nullptr;
   cOmxPlayerAudio* mPlayerAudio = nullptr;
 

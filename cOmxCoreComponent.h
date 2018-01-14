@@ -78,12 +78,13 @@ public:
   OMX_ERRORTYPE getConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) const;
 
   // OMXCore Decoder delegate callback routines.
-  static OMX_ERRORTYPE decoderEventHandlerCallback (OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent,
-                                                    OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData);
-  static OMX_ERRORTYPE decoderEmptyBufferDoneCallback (OMX_HANDLETYPE hComponent, OMX_PTR pAppData,
-                                                       OMX_BUFFERHEADERTYPE* pBuffer);
-  static OMX_ERRORTYPE decoderFillBufferDoneCallback (OMX_HANDLETYPE hComponent, OMX_PTR pAppData,
-                                                      OMX_BUFFERHEADERTYPE* pBufferHeader);
+  static OMX_ERRORTYPE decoderEventHandlerCallback (
+    OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent,
+    OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData);
+  static OMX_ERRORTYPE decoderEmptyBufferDoneCallback (
+    OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer);
+  static OMX_ERRORTYPE decoderFillBufferDoneCallback (
+    OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBufferHeader);
 
   // OMXCore decoder callback routines.
   OMX_ERRORTYPE decoderEventHandler (OMX_HANDLETYPE hComponent, OMX_EVENTTYPE eEvent,
