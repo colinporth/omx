@@ -17,7 +17,7 @@ cOmxPlayerVideo::cOmxPlayerVideo() {
   pthread_mutex_init (&mLockDecoder, NULL);
 
   pthread_cond_init (&mPacketCond, NULL);
-  pthread_cond_init (&mPictureCond, NULL);
+  pthread_cond_init (&mVideoCond, NULL);
 
   mFlushRequested = false;
   }
@@ -28,19 +28,19 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
   close();
 
   pthread_cond_destroy (&mPacketCond);
-  pthread_cond_destroy (&mPictureCond);
+  pthread_cond_destroy (&mVideoCond);
   pthread_mutex_destroy (&mLock);
   pthread_mutex_destroy (&mLockDecoder);
   }
 //}}}
 
 //{{{
-bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) {
+bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
 
   mAvFormat.av_register_all();
 
   mConfig = config;
-  mAvClock = av_clock;
+  mAvClock = avClock;
 
   mFps = 25.f;
   mFrametime = 0;
@@ -53,9 +53,9 @@ bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
   mVideoDelay = 0;
 
   // open decoder
-  if (mConfig.hints.fpsrate && mConfig.hints.fpsscale)
+  if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale)
     mFps = 1000000.f /
-            cOmxReader::normalizeFrameDuration (1000000.0 * mConfig.hints.fpsscale / mConfig.hints.fpsrate);
+            cOmxReader::normalizeFrameDuration (1000000.0 * mConfig.mHints.fpsscale / mConfig.mHints.fpsrate);
   else
     mFps = 25.f;
 
@@ -68,8 +68,8 @@ bool cOmxPlayerVideo::open (cOmxClock* av_clock, const cOmxVideoConfig& config) 
   mDecoder = new cOmxVideo();
   if (mDecoder->open (mAvClock, mConfig)) {
     cLog::log (LOGINFO, "cOmxPlayerVideo::open %s profile:%d %dx%d %ffps",
-               mDecoder->getDecoderName().c_str(), mConfig.hints.profile,
-               mConfig.hints.width, mConfig.hints.height, mFps);
+               mDecoder->getDecoderName().c_str(), mConfig.mHints.profile,
+               mConfig.mHints.width, mConfig.mHints.height, mFps);
     return true;
     }
   else {
@@ -126,7 +126,7 @@ void cOmxPlayerVideo::run() {
 bool cOmxPlayerVideo::addPacket (OMXPacket* packet) {
 
   if (!mAbort &&
-      ((mCachedSize + packet->size) < (mConfig.queue_size * 1024 * 1024))) {
+      ((mCachedSize + packet->size) < (mConfig.mQueueSize * 1024 * 1024))) {
 
     lock();
     mCachedSize += packet->size;

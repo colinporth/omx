@@ -189,23 +189,23 @@ private:
 //{{{
 class cOmxVideoConfig {
 public:
-  cOmxStreamInfo hints;
+  cOmxStreamInfo mHints;
 
-  CRect dst_rect = {0, 0, 0, 0};
-  CRect src_rect = {0, 0, 0, 0};
+  CRect mDstRect = {0, 0, 0, 0};
+  CRect mSrcRect = {0, 0, 0, 0};
 
-  float display_aspect = 0.f;
-  EDEINTERLACEMODE deinterlace = VS_DEINTERLACEMODE_AUTO;
-  bool advanced_hd_deinterlace = true;
+  float mDisplayAspect = 0.f;
+  EDEINTERLACEMODE mDeinterlace = VS_DEINTERLACEMODE_AUTO;
+  bool mAdvancedHdDeinterlace = true;
 
-  bool hdmi_clock_sync = false;
-  bool allow_mvc = false;
-  int alpha = 255;
-  int aspectMode = 0;
-  int display = 0;
-  int layer = 0;
-  float queue_size = 5.f;
-  float fifo_size = (float)80*1024*60 / (1024*1024);
+  bool mHdmiClockSync = false;
+  bool mAllowMvc = false;
+  int mAlpha = 255;
+  int mAspectMode = 0;
+  int mDisplay = 0;
+  int mLayer = 0;
+  float mQueueSize = 5.f;
+  float mFifoSize = (float)80*1024*60 / (1024*1024);
   };
 //}}}
 //{{{
@@ -225,7 +225,7 @@ public:
   void setAlpha (int alpha);
   void setVideoRect();
   void setVideoRect (int aspectMode);
-  void setVideoRect (const CRect& SrcRect, const CRect& DestRect);
+  void setVideoRect (const CRect& srcRect, const CRect& dstRect);
   void setDropState (bool drop) { mDropState = drop; }
 
   bool open (cOmxClock* clock, const cOmxVideoConfig& config);
@@ -236,7 +236,7 @@ public:
   void close();
 
 private:
-  void portSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
+  void portSettingsChangedLog (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
 
   //{{{  vars
   std::recursive_mutex mMutex;
@@ -277,17 +277,15 @@ public:
   ~cOmxPlayerVideo();
 
   bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
-  int getDecoderBufferSize() { return mDecoder->getInputBufferSize(); }
-  int getDecoderFreeSpace() { return mDecoder->GetInputBufferSpace(); }
   double getCurrentPTS() { return mCurrentPts; };
   double getFPS() { return mFps; };
   //{{{
   unsigned int getLevel() {
-    return mConfig.queue_size ? 100.f * mCachedSize / (mConfig.queue_size * 1024.f * 1024.f) : 0;
+    return mConfig.mQueueSize ? 100.f * mCachedSize / (mConfig.mQueueSize * 1024.f * 1024.f) : 0;
     };
   //}}}
   unsigned int getCached() { return mCachedSize; };
-  unsigned int getMaxCached() { return mConfig.queue_size * 1024 * 1024; };
+  unsigned int getMaxCached() { return mConfig.mQueueSize * 1024 * 1024; };
   double getDelay() { return mVideoDelay; }
 
   void setDelay (double delay) { mVideoDelay = delay; }
@@ -295,7 +293,7 @@ public:
   void setVideoRect (int aspectMode) { mDecoder->setVideoRect (aspectMode); }
   void setVideoRect (const CRect& SrcRect, const CRect& DestRect) { mDecoder->setVideoRect (SrcRect, DestRect); }
 
-  bool open (cOmxClock* av_clock, const cOmxVideoConfig& config);
+  bool open (cOmxClock* avClock, const cOmxVideoConfig& config);
   void run();
   bool addPacket (OMXPacket* packet);
   void submitEOS();
@@ -315,7 +313,7 @@ private:
   pthread_mutex_t mLock;
   pthread_mutex_t mLockDecoder;
   pthread_cond_t mPacketCond;
-  pthread_cond_t mPictureCond;
+  pthread_cond_t mVideoCond;
 
   cOmxClock* mAvClock = nullptr;
   cOmxVideo* mDecoder = nullptr;

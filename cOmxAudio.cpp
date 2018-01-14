@@ -267,7 +267,7 @@ bool cOmxAudio::initialize (cOmxClock* clock, const cOmxAudioConfig &config,
 
     cPcmRemap remap;
     remap.reset();
-    remap.setInputFormat (mNumInputChannels, inLayout, uiBitsPerSample / 8, 
+    remap.setInputFormat (mNumInputChannels, inLayout, uiBitsPerSample / 8,
                           mConfig.mHints.samplerate, mConfig.mLayout, mConfig.mBoostOnDownmix);
     remap.setOutputFormat (mNumOutputChannels, outLayout, false);
     remap.getDownmixMatrix (mDownmixMatrix);
@@ -644,10 +644,10 @@ bool cOmxAudio::portSettingsChanged() {
     }
 
   if (mOmxRenderAnalog.IsInitialized()) {
-    mOmxTunnelClockAnalog.Initialize (mOmxClock, mOmxClock->GetInputPort(),
+    mOmxTunnelClockAnalog.initialize (mOmxClock, mOmxClock->GetInputPort(),
                                       &mOmxRenderAnalog, mOmxRenderAnalog.GetInputPort()+1);
 
-    if (mOmxTunnelClockAnalog.Establish() != OMX_ErrorNone) {
+    if (mOmxTunnelClockAnalog.establish() != OMX_ErrorNone) {
       //{{{  error return
       cLog::log (LOGERROR, "cOmxAudio::portSettingsChanged mOmxTunnel_clock_Analog.Establish");
       return false;
@@ -657,13 +657,13 @@ bool cOmxAudio::portSettingsChanged() {
     }
 
   if (mOmxRenderHdmi.IsInitialized() ) {
-    mOmxTunnelClockHdmi.Initialize (
+    mOmxTunnelClockHdmi.initialize (
       mOmxClock, mOmxClock->GetInputPort() + (mOmxRenderAnalog.IsInitialized() ? 2 : 0),
       &mOmxRenderHdmi, mOmxRenderHdmi.GetInputPort()+1);
 
-    if (mOmxTunnelClockHdmi.Establish() != OMX_ErrorNone) {
+    if (mOmxTunnelClockHdmi.establish() != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log(LOGERROR, "cOmxAudio::portSettingsChanged mOmxTunnel_clock_hdmi.Establish");
+      cLog::log(LOGERROR, "cOmxAudio::portSettingsChanged mOmxTunnel_clock_hdmi.establish");
       return false;
       }
       //}}}
@@ -715,36 +715,36 @@ bool cOmxAudio::portSettingsChanged() {
     }
 
   if (mOmxSplitter.IsInitialized() ) {
-    mOmxTunnelSplitterAnalog.Initialize (&mOmxSplitter, mOmxSplitter.GetOutputPort(),
+    mOmxTunnelSplitterAnalog.initialize (&mOmxSplitter, mOmxSplitter.GetOutputPort(),
                                          &mOmxRenderAnalog, mOmxRenderAnalog.GetInputPort());
-    if (mOmxTunnelSplitterAnalog.Establish() != OMX_ErrorNone) {
+    if (mOmxTunnelSplitterAnalog.establish() != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, "cOmxAudio::PortSettingsChanged  mOmxTunnelSplitterAnalog.Establish");
+      cLog::log (LOGERROR, "cOmxAudio::PortSettingsChanged  mOmxTunnelSplitterAnalog.establish");
       return false;
       }
       //}}}
-    mOmxTunnelSplitterHdmi.Initialize (&mOmxSplitter, mOmxSplitter.GetOutputPort() + 1,
+    mOmxTunnelSplitterHdmi.initialize (&mOmxSplitter, mOmxSplitter.GetOutputPort() + 1,
                                        &mOmxRenderHdmi, mOmxRenderHdmi.GetInputPort());
-    if (mOmxTunnelSplitterHdmi.Establish() != OMX_ErrorNone) {
+    if (mOmxTunnelSplitterHdmi.establish() != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, "cOmxAudio::PortSettingsChanged mOmxTunnelSplitterhdmi.Establish");
+      cLog::log (LOGERROR, "cOmxAudio::PortSettingsChanged mOmxTunnelSplitterhdmi.establish");
       return false;
       }
       //}}}
     }
 
   if (mOmxMixer.IsInitialized()) {
-    mOmxTunnelDecoder.Initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(),
+    mOmxTunnelDecoder.initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(),
                                   &mOmxMixer, mOmxMixer.GetInputPort());
     if (mOmxSplitter.IsInitialized())
-      mOmxTunnelMixer.Initialize (&mOmxMixer, mOmxMixer.GetOutputPort(),
+      mOmxTunnelMixer.initialize (&mOmxMixer, mOmxMixer.GetOutputPort(),
                                   &mOmxSplitter, mOmxSplitter.GetInputPort());
     else {
       if (mOmxRenderAnalog.IsInitialized())
-        mOmxTunnelMixer.Initialize (&mOmxMixer, mOmxMixer.GetOutputPort(),
+        mOmxTunnelMixer.initialize (&mOmxMixer, mOmxMixer.GetOutputPort(),
                                     &mOmxRenderAnalog, mOmxRenderAnalog.GetInputPort());
       if (mOmxRenderHdmi.IsInitialized())
-        mOmxTunnelMixer.Initialize (&mOmxMixer, mOmxMixer.GetOutputPort(),
+        mOmxTunnelMixer.initialize (&mOmxMixer, mOmxMixer.GetOutputPort(),
                                     &mOmxRenderHdmi, mOmxRenderHdmi.GetInputPort());
       }
     cLog::log (LOGINFO1, "cOmxAudio::PortSettingsChanged bits:%d mode:%d ch:%d srate:%d nopassthrough",
@@ -753,17 +753,17 @@ bool cOmxAudio::portSettingsChanged() {
     }
   else {
     if (mOmxRenderAnalog.IsInitialized())
-      mOmxTunnelDecoder.Initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(),
+      mOmxTunnelDecoder.initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(),
                                     &mOmxRenderAnalog, mOmxRenderAnalog.GetInputPort());
     else if (mOmxRenderHdmi.IsInitialized())
-      mOmxTunnelDecoder.Initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(),
+      mOmxTunnelDecoder.initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(),
                                     &mOmxRenderHdmi, mOmxRenderHdmi.GetInputPort());
      cLog::log (LOGINFO1, "cOmxAudio::PortSettingsChanged bits:%d mode:%d ch:%d srate:%d passthrough", 0, 0, 0, 0);
      }
 
-  if (mOmxTunnelDecoder.Establish() != OMX_ErrorNone) {
+  if (mOmxTunnelDecoder.establish() != OMX_ErrorNone) {
     //{{{  error return
-    cLog::log (LOGERROR, "cOmxAudio::portSettingsChanged mOmxTunnel_decoder.Establish");
+    cLog::log (LOGERROR, "cOmxAudio::portSettingsChanged mOmxTunnel_decoder.establish");
     return false;
     }
     //}}}
@@ -776,9 +776,9 @@ bool cOmxAudio::portSettingsChanged() {
       //}}}
     }
   if (mOmxMixer.IsInitialized())
-    if (mOmxTunnelMixer.Establish() != OMX_ErrorNone) {
+    if (mOmxTunnelMixer.establish() != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, "cOmxAudio::portSettingsChanged mOmxTunnel_decoder.Establish");
+      cLog::log (LOGERROR, "cOmxAudio::portSettingsChanged mOmxTunnel_decoder.establish");
       return false;
       }
       //}}}
@@ -815,7 +815,7 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  unsigned pitch = 
+  unsigned pitch =
     (mConfig.mPassthrough || mConfig.mHwDecode) ? 1:(mBitsPerSample >> 3) * mNumInputChannels;
   unsigned int demuxer_samples = len / pitch;
   unsigned int demuxer_samples_sent = 0;
@@ -974,10 +974,10 @@ bool cOmxAudio::deinitialize() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (mOmxTunnelClockAnalog.IsInitialized() )
-    mOmxTunnelClockAnalog.Deestablish();
-  if (mOmxTunnelClockHdmi.IsInitialized() )
-    mOmxTunnelClockHdmi.Deestablish();
+  if (mOmxTunnelClockAnalog.isInitialized() )
+    mOmxTunnelClockAnalog.deEstablish();
+  if (mOmxTunnelClockHdmi.isInitialized() )
+    mOmxTunnelClockHdmi.deEstablish();
 
   // ignore expected errors on teardown
   if (mOmxMixer.IsInitialized() )
@@ -989,13 +989,13 @@ bool cOmxAudio::deinitialize() {
       mOmxRenderAnalog.IgnoreNextError(OMX_ErrorPortUnpopulated);
     }
 
-  mOmxTunnelDecoder.Deestablish();
-  if (mOmxTunnelMixer.IsInitialized() )
-    mOmxTunnelMixer.Deestablish();
-  if (mOmxTunnelSplitterHdmi.IsInitialized() )
-    mOmxTunnelSplitterHdmi.Deestablish();
-  if (mOmxTunnelSplitterAnalog.IsInitialized() )
-    mOmxTunnelSplitterAnalog.Deestablish();
+  mOmxTunnelDecoder.deEstablish();
+  if (mOmxTunnelMixer.isInitialized() )
+    mOmxTunnelMixer.deEstablish();
+  if (mOmxTunnelSplitterHdmi.isInitialized() )
+    mOmxTunnelSplitterHdmi.deEstablish();
+  if (mOmxTunnelSplitterAnalog.isInitialized() )
+    mOmxTunnelSplitterAnalog.deEstablish();
 
   mOmxDecoder.FlushInput();
 

@@ -35,7 +35,7 @@ bool cOmxVideo::sendDecoderConfig() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if ((mConfig.hints.extrasize > 0) && (mConfig.hints.extradata != NULL)) {
+  if ((mConfig.mHints.extrasize > 0) && (mConfig.mHints.extradata != NULL)) {
     auto omx_buffer = mOmxDecoder.GetInputBuffer();
     if (omx_buffer == NULL) {
       cLog::log (LOGERROR, "cOmxVideo::SendDecoderConfig buffer error");
@@ -43,9 +43,9 @@ bool cOmxVideo::sendDecoderConfig() {
       }
 
     omx_buffer->nOffset = 0;
-    omx_buffer->nFilledLen = std::min ((OMX_U32)mConfig.hints.extrasize, omx_buffer->nAllocLen);
+    omx_buffer->nFilledLen = std::min ((OMX_U32)mConfig.mHints.extrasize, omx_buffer->nAllocLen);
     memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
-    memcpy ((unsigned char*)omx_buffer->pBuffer, mConfig.hints.extradata, omx_buffer->nFilledLen);
+    memcpy ((unsigned char*)omx_buffer->pBuffer, mConfig.mHints.extradata, omx_buffer->nFilledLen);
 
     omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
     if (mOmxDecoder.EmptyThisBuffer(omx_buffer) != OMX_ErrorNone) {
@@ -129,23 +129,23 @@ void cOmxVideo::setVideoRect() {
   OMX_INIT_STRUCTURE(configDisplay);
   configDisplay.nPortIndex = mOmxRender.GetInputPort();
   configDisplay.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT | OMX_DISPLAY_SET_MODE | OMX_DISPLAY_SET_SRC_RECT | OMX_DISPLAY_SET_FULLSCREEN | OMX_DISPLAY_SET_PIXEL);
-  configDisplay.noaspect = mConfig.aspectMode == 3 ? OMX_TRUE : OMX_FALSE;
-  configDisplay.mode = mConfig.aspectMode == 2 ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
+  configDisplay.noaspect = mConfig.mAspectMode == 3 ? OMX_TRUE : OMX_FALSE;
+  configDisplay.mode = mConfig.mAspectMode == 2 ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
 
-  configDisplay.src_rect.x_offset = (int)(mConfig.src_rect.x1 + 0.5f);
-  configDisplay.src_rect.y_offset = (int)(mConfig.src_rect.y1 + 0.5f);
-  configDisplay.src_rect.width = (int)(mConfig.src_rect.Width() + 0.5f);
-  configDisplay.src_rect.height = (int)(mConfig.src_rect.Height() + 0.5f);
+  configDisplay.src_rect.x_offset = (int)(mConfig.mSrcRect.x1 + 0.5f);
+  configDisplay.src_rect.y_offset = (int)(mConfig.mSrcRect.y1 + 0.5f);
+  configDisplay.src_rect.width = (int)(mConfig.mSrcRect.Width() + 0.5f);
+  configDisplay.src_rect.height = (int)(mConfig.mSrcRect.Height() + 0.5f);
 
-  if (mConfig.dst_rect.x2 > mConfig.dst_rect.x1 && mConfig.dst_rect.y2 > mConfig.dst_rect.y1) {
+  if (mConfig.mDstRect.x2 > mConfig.mDstRect.x1 && mConfig.mDstRect.y2 > mConfig.mDstRect.y1) {
     configDisplay.set = (OMX_DISPLAYSETTYPE)(configDisplay.set | OMX_DISPLAY_SET_DEST_RECT);
     configDisplay.fullscreen = OMX_FALSE;
-    if (mConfig.aspectMode != 1 && mConfig.aspectMode != 2 && mConfig.aspectMode != 3)
+    if (mConfig.mAspectMode != 1 && mConfig.mAspectMode != 2 && mConfig.mAspectMode != 3)
       configDisplay.noaspect = OMX_TRUE;
-    configDisplay.dest_rect.x_offset = (int)(mConfig.dst_rect.x1 + 0.5f);
-    configDisplay.dest_rect.y_offset = (int)(mConfig.dst_rect.y1 + 0.5f);
-    configDisplay.dest_rect.width = (int)(mConfig.dst_rect.Width() + 0.5f);
-    configDisplay.dest_rect.height = (int)(mConfig.dst_rect.Height() + 0.5f);
+    configDisplay.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
+    configDisplay.dest_rect.y_offset = (int)(mConfig.mDstRect.y1 + 0.5f);
+    configDisplay.dest_rect.width = (int)(mConfig.mDstRect.Width() + 0.5f);
+    configDisplay.dest_rect.height = (int)(mConfig.mDstRect.Height() + 0.5f);
     }
   else
     configDisplay.fullscreen = OMX_TRUE;
@@ -167,21 +167,21 @@ void cOmxVideo::setVideoRect() {
 //{{{
 void cOmxVideo::setVideoRect (int aspectMode) {
 
-  mConfig.aspectMode = aspectMode;
+  mConfig.mAspectMode = aspectMode;
   setVideoRect();
   }
 //}}}
 //{{{
-void cOmxVideo::setVideoRect (const CRect& SrcRect, const CRect& DestRect) {
+void cOmxVideo::setVideoRect (const CRect& srcRect, const CRect& dstRect) {
 
-  mConfig.src_rect = SrcRect;
-  mConfig.dst_rect = DestRect;
+  mConfig.mSrcRect = srcRect;
+  mConfig.mDstRect = dstRect;
   setVideoRect();
   }
 //}}}
 
 //{{{
-bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
+bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -197,13 +197,13 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
   mSubmittedEos = false;
   mFailedEos = false;
 
-  if (!mConfig.hints.width || !mConfig.hints.height)
+  if (!mConfig.mHints.width || !mConfig.mHints.height)
     return false;
 
-  switch (mConfig.hints.codec) {
+  switch (mConfig.mHints.codec) {
     //{{{
     case AV_CODEC_ID_H264: {
-      switch(mConfig.hints.profile) {
+      switch(mConfig.mHints.profile) {
         case FF_PROFILE_H264_BASELINE:
           // (role name) video_decoder.avc
           // H.264 Baseline profile
@@ -237,7 +237,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
           break;
         }
       }
-    if (mConfig.allow_mvc && mCodingType == OMX_VIDEO_CodingAVC) {
+    if (mConfig.mAllowMvc && mCodingType == OMX_VIDEO_CodingAVC) {
       mCodingType = OMX_VIDEO_CodingMVC;
       mVideoCodecName = "omx-mvc";
       }
@@ -327,7 +327,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     //}}}
     //{{{
     default:
-      printf ("Vcodec id unknown: %x\n", mConfig.hints.codec);
+      printf ("Vcodec id unknown: %x\n", mConfig.mHints.codec);
       return false;
     break;
     //}}}
@@ -335,10 +335,10 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   if (!mOmxDecoder.Initialize (decoder_name, OMX_IndexParamVideoInit))
     return false;
-  if (clock == NULL)
+  if (avClock == NULL)
     return false;
 
-  mAvClock = clock;
+  mAvClock = avClock;
   mOmxClock = mAvClock->getOmxClock();
   if (mOmxClock->GetComponent() == NULL) {
     //{{{  no clock return
@@ -359,8 +359,8 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
   OMX_INIT_STRUCTURE(formatType);
   formatType.nPortIndex = mOmxDecoder.GetInputPort();
   formatType.eCompressionFormat = mCodingType;
-  if (mConfig.hints.fpsscale > 0 && mConfig.hints.fpsrate > 0)
-    formatType.xFramerate = (long long)(1<<16)*mConfig.hints.fpsrate / mConfig.hints.fpsscale;
+  if (mConfig.mHints.fpsscale > 0 && mConfig.mHints.fpsrate > 0)
+    formatType.xFramerate = (long long)(1<<16)*mConfig.mHints.fpsrate / mConfig.mHints.fpsscale;
   else
     formatType.xFramerate = 25 * (1<<16);
   if (mOmxDecoder.SetParameter (OMX_IndexParamVideoPortFormat, &formatType) != OMX_ErrorNone)
@@ -377,9 +377,9 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     //}}}
 
   portParam.nPortIndex = mOmxDecoder.GetInputPort();
-  portParam.nBufferCountActual = mConfig.fifo_size ? mConfig.fifo_size * 1024 * 1024 / portParam.nBufferSize : 80;
-  portParam.format.video.nFrameWidth  = mConfig.hints.width;
-  portParam.format.video.nFrameHeight = mConfig.hints.height;
+  portParam.nBufferCountActual = mConfig.mFifoSize ? mConfig.mFifoSize * 1024 * 1024 / portParam.nBufferSize : 80;
+  portParam.format.video.nFrameWidth  = mConfig.mHints.width;
+  portParam.format.video.nFrameHeight = mConfig.mHints.height;
   if (mOmxDecoder.SetParameter (OMX_IndexParamPortDefinition, &portParam) != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::open OMX_IndexParamPortDefinition");
@@ -410,7 +410,8 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     }
     //}}}
 
-  if (naluFormatStartCodes (mConfig.hints.codec, (uint8_t *)mConfig.hints.extradata, mConfig.hints.extrasize)) {
+  if (naluFormatStartCodes (mConfig.mHints.codec,
+                            (uint8_t*)mConfig.mHints.extradata, mConfig.mHints.extrasize)) {
     OMX_NALSTREAMFORMATTYPE nalStreamFormat;
     OMX_INIT_STRUCTURE(nalStreamFormat);
     nalStreamFormat.nPortIndex = mOmxDecoder.GetInputPort();
@@ -441,7 +442,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   mDropState = false;
   mSetStartTime = true;
-  switch (mConfig.hints.orientation) {
+  switch (mConfig.mHints.orientation) {
     //{{{
     case 90:
       mTransform = OMX_DISPLAY_ROT90;
@@ -492,11 +493,11 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
   cLog::log (LOGINFO1, "cOmxVideo::open %p in:%x out:%x deint:%d hdmi:%d",
              mOmxDecoder.GetComponent(),
              mOmxDecoder.GetInputPort(), mOmxDecoder.GetOutputPort(),
-             mConfig.deinterlace, mConfig.hdmi_clock_sync);
+             mConfig.mDeinterlace, mConfig.mHdmiClockSync);
 
-  float aspect = mConfig.hints.aspect ?
-    (float)mConfig.hints.aspect / (float)mConfig.hints.width * (float)mConfig.hints.height : 1.0f;
-  mPixelAspect = aspect / mConfig.display_aspect;
+  float aspect = mConfig.mHints.aspect ?
+    (float)mConfig.mHints.aspect / (float)mConfig.mHints.width * (float)mConfig.mHints.height : 1.0f;
+  mPixelAspect = aspect / mConfig.mDisplayAspect;
 
   return true;
   }
@@ -521,15 +522,15 @@ bool cOmxVideo::portSettingsChanged() {
   if (mOmxDecoder.GetParameter (OMX_IndexParamBrcmPixelAspectRatio, &pixel_aspect) != OMX_ErrorNone)
     cLog::log (LOGERROR, "cOmxVideo::PortSettingsChanged OMX_IndexParamBrcmPixelAspectRatio");
 
-  if (pixel_aspect.nX && pixel_aspect.nY && !mConfig.hints.forced_aspect) {
+  if (pixel_aspect.nX && pixel_aspect.nY && !mConfig.mHints.forced_aspect) {
     //{{{  aspect changed
-    float fAspect = (float)pixel_aspect.nX / (float)pixel_aspect.nY;
-    mPixelAspect = fAspect / mConfig.display_aspect;
+    float aspect = (float)pixel_aspect.nX / (float)pixel_aspect.nY;
+    mPixelAspect = aspect / mConfig.mDisplayAspect;
     }
     //}}}
   if (mSettingsChanged) {
     //{{{  settings changed
-    portSettingsChangedLogger (port_image, -1);
+    portSettingsChangedLog (port_image, -1);
     setVideoRect();
     mOmxDecoder.EnablePort (mOmxDecoder.GetOutputPort(), true);
     return true;
@@ -541,9 +542,9 @@ bool cOmxVideo::portSettingsChanged() {
   interlace.nPortIndex = mOmxDecoder.GetOutputPort();
   mOmxDecoder.GetConfig (OMX_IndexConfigCommonInterlace, &interlace);
 
-  if (mConfig.deinterlace == VS_DEINTERLACEMODE_FORCE)
+  if (mConfig.mDeinterlace == VS_DEINTERLACEMODE_FORCE)
     mDeinterlace = true;
-  else if (mConfig.deinterlace == VS_DEINTERLACEMODE_OFF)
+  else if (mConfig.mDeinterlace == VS_DEINTERLACEMODE_OFF)
     mDeinterlace = false;
   else
     mDeinterlace = interlace.eMode != OMX_InterlaceProgressive;
@@ -552,7 +553,7 @@ bool cOmxVideo::portSettingsChanged() {
     return false;
 
   mOmxRender.ResetEos();
-  portSettingsChangedLogger (port_image, interlace.eMode);
+  portSettingsChangedLog (port_image, interlace.eMode);
 
   if (!mOmxSched.Initialize ("OMX.broadcom.video_scheduler", OMX_IndexParamVideoInit))
     return false;
@@ -565,9 +566,9 @@ bool cOmxVideo::portSettingsChanged() {
   OMX_INIT_STRUCTURE(configDisplay);
   configDisplay.nPortIndex = mOmxRender.GetInputPort();
   configDisplay.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_ALPHA | OMX_DISPLAY_SET_TRANSFORM | OMX_DISPLAY_SET_LAYER | OMX_DISPLAY_SET_NUM);
-  configDisplay.alpha = mConfig.alpha;
-  configDisplay.num = mConfig.display;
-  configDisplay.layer = mConfig.layer;
+  configDisplay.alpha = mConfig.mAlpha;
+  configDisplay.num = mConfig.mDisplay;
+  configDisplay.layer = mConfig.mLayer;
   configDisplay.transform = mTransform;
   if (mOmxRender.SetConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone) {
     //{{{  error return
@@ -578,7 +579,7 @@ bool cOmxVideo::portSettingsChanged() {
 
   setVideoRect();
 
-  if (mConfig.hdmi_clock_sync) {
+  if (mConfig.mHdmiClockSync) {
     //{{{  config latency
     OMX_CONFIG_LATENCYTARGETTYPE latencyTarget;
     OMX_INIT_STRUCTURE(latencyTarget);
@@ -601,7 +602,7 @@ bool cOmxVideo::portSettingsChanged() {
     //}}}
   if (mDeinterlace) {
     //{{{  setup deinterlace
-    bool advanced_deinterlace = mConfig.advanced_hd_deinterlace ||
+    bool advanced_deinterlace = mConfig.mAdvancedHdDeinterlace ||
                (port_image.format.video.nFrameWidth * port_image.format.video.nFrameHeight <= (576 * 720));
     if (!advanced_deinterlace) {
       // ImageFx assumed 3 frames of context. and simple deinterlace don't require this
@@ -637,29 +638,29 @@ bool cOmxVideo::portSettingsChanged() {
       }
       //}}}
 
-    mOmxTunnelDecoder.Initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxImageFx, mOmxImageFx.GetInputPort());
-    mOmxTunnelImageFx.Initialize (&mOmxImageFx, mOmxImageFx.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
+    mOmxTunnelDecoder.initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxImageFx, mOmxImageFx.GetInputPort());
+    mOmxTunnelImageFx.initialize (&mOmxImageFx, mOmxImageFx.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
     }
     //}}}
   else
-    mOmxTunnelDecoder.Initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
+    mOmxTunnelDecoder.initialize (&mOmxDecoder, mOmxDecoder.GetOutputPort(), &mOmxSched, mOmxSched.GetInputPort());
 
-  mOmxTunnelSched.Initialize (&mOmxSched, mOmxSched.GetOutputPort(), &mOmxRender, mOmxRender.GetInputPort());
-  mOmxTunnelClock.Initialize (mOmxClock, mOmxClock->GetInputPort() + 1, &mOmxSched, mOmxSched.GetOutputPort() + 1);
-  if (mOmxTunnelClock.Establish() != OMX_ErrorNone) {
+  mOmxTunnelSched.initialize (&mOmxSched, mOmxSched.GetOutputPort(), &mOmxRender, mOmxRender.GetInputPort());
+  mOmxTunnelClock.initialize (mOmxClock, mOmxClock->GetInputPort() + 1, &mOmxSched, mOmxSched.GetOutputPort() + 1);
+  if (mOmxTunnelClock.establish() != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::portSettingsChanged mOmxTunnelClock.Establish");
     return false;
     }
     //}}}
-  if (mOmxTunnelDecoder.Establish() != OMX_ErrorNone) {
+  if (mOmxTunnelDecoder.establish() != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::portSettingsChanged mOmxTunnelDecoder.Establish");
     return false;
     }
     //}}}
   if (mDeinterlace) {
-    if (mOmxTunnelImageFx.Establish() != OMX_ErrorNone) {
+    if (mOmxTunnelImageFx.establish() != OMX_ErrorNone) {
       //{{{  error return
       cLog::log (LOGERROR, "cOmxVideo::portSettingsChanged mOmxTunnelImageFx.Establish");
       return false;
@@ -672,7 +673,7 @@ bool cOmxVideo::portSettingsChanged() {
       }
       //}}}
     }
-  if (mOmxTunnelSched.Establish() != OMX_ErrorNone) {
+  if (mOmxTunnelSched.establish() != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR, "cOmxVideo::portSettingsChanged mOmxTunnelSched.Establish");
     return false;
@@ -807,11 +808,11 @@ void cOmxVideo::close() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  mOmxTunnelClock.Deestablish();
-  mOmxTunnelDecoder.Deestablish();
+  mOmxTunnelClock.deEstablish();
+  mOmxTunnelDecoder.deEstablish();
   if (mDeinterlace)
-    mOmxTunnelImageFx.Deestablish();
-  mOmxTunnelSched.Deestablish();
+    mOmxTunnelImageFx.deEstablish();
+  mOmxTunnelSched.deEstablish();
 
   mOmxDecoder.FlushInput();
 
@@ -829,12 +830,12 @@ void cOmxVideo::close() {
 
 // private
 //{{{
-void cOmxVideo::portSettingsChangedLogger (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
+void cOmxVideo::portSettingsChangedLog (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
 
   cLog::log (LOGINFO, "portSettings %dx%d@%.2f int:%d deint:%d par:%.2f disp:%d lay:%d alpha:%d aspect:%d",
              port_image.format.video.nFrameWidth, port_image.format.video.nFrameHeight,
              port_image.format.video.xFramerate / (float)(1<<16),
-             interlaceEMode, mDeinterlace,  mPixelAspect, mConfig.display,
-             mConfig.layer, mConfig.alpha, mConfig.aspectMode);
+             interlaceEMode, mDeinterlace,  mPixelAspect,
+             mConfig.mDisplay, mConfig.mLayer, mConfig.mAlpha, mConfig.mAspectMode);
   }
 //}}}

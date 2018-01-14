@@ -302,36 +302,36 @@ private:
     vc_tv_get_display_state (&state);
 
     switch ((HDMI_ASPECT_T)state.display.hdmi.aspect_ratio) {
-      case HDMI_ASPECT_4_3:   videoConfig.display_aspect =  4.f / 3.f;  break;
-      case HDMI_ASPECT_14_9:  videoConfig.display_aspect = 14.f / 9.f;  break;
-      case HDMI_ASPECT_5_4:   videoConfig.display_aspect =  5.f / 4.f;  break;
-      case HDMI_ASPECT_16_10: videoConfig.display_aspect = 16.f / 10.f; break;
-      case HDMI_ASPECT_15_9:  videoConfig.display_aspect = 15.f /  9.f; break;
-      case HDMI_ASPECT_64_27: videoConfig.display_aspect = 64.f / 27.f; break;
+      case HDMI_ASPECT_4_3:   videoConfig.mDisplayAspect =  4.f / 3.f;  break;
+      case HDMI_ASPECT_14_9:  videoConfig.mDisplayAspect = 14.f / 9.f;  break;
+      case HDMI_ASPECT_5_4:   videoConfig.mDisplayAspect =  5.f / 4.f;  break;
+      case HDMI_ASPECT_16_10: videoConfig.mDisplayAspect = 16.f / 10.f; break;
+      case HDMI_ASPECT_15_9:  videoConfig.mDisplayAspect = 15.f /  9.f; break;
+      case HDMI_ASPECT_64_27: videoConfig.mDisplayAspect = 64.f / 27.f; break;
       case HDMI_ASPECT_16_9:
-      default:                videoConfig.display_aspect = 16.f /  9.f; break;
+      default:                videoConfig.mDisplayAspect = 16.f /  9.f; break;
       }
 
-    videoConfig.display_aspect *= (float)state.display.hdmi.height / (float)state.display.hdmi.width;
+    videoConfig.mDisplayAspect *= (float)state.display.hdmi.height / (float)state.display.hdmi.width;
     //}}}
     //{{{  create 1x1 black pixel, added to display just behind video
-    auto display = vc_dispmanx_display_open (videoConfig.display);
+    auto display = vc_dispmanx_display_open (videoConfig.mDisplay);
 
     uint32_t vc_image_ptr;
     auto resource = vc_dispmanx_resource_create (VC_IMAGE_ARGB8888, 1, 1, &vc_image_ptr);
 
     uint32_t rgba = 0;
-    VC_RECT_T dst_rect;
-    vc_dispmanx_rect_set (&dst_rect, 0, 0, 1, 1);
-    vc_dispmanx_resource_write_data (resource, VC_IMAGE_ARGB8888, sizeof(rgba), &rgba, &dst_rect);
+    VC_RECT_T dstRect;
+    vc_dispmanx_rect_set (&dstRect, 0, 0, 1, 1);
+    vc_dispmanx_resource_write_data (resource, VC_IMAGE_ARGB8888, sizeof(rgba), &rgba, &dstRect);
 
-    VC_RECT_T src_rect;
-    vc_dispmanx_rect_set (&src_rect, 0, 0, 1<<16, 1<<16);
-    vc_dispmanx_rect_set (&dst_rect, 0, 0, 0, 0);
+    VC_RECT_T srcRect;
+    vc_dispmanx_rect_set (&srcRect, 0, 0, 1<<16, 1<<16);
+    vc_dispmanx_rect_set (&dstRect, 0, 0, 0, 0);
 
     auto update = vc_dispmanx_update_start (0);
-    vc_dispmanx_element_add (update, display, videoConfig.layer-1,
-                             &dst_rect, resource, &src_rect,
+    vc_dispmanx_element_add (update, display, videoConfig.mLayer-1,
+                             &dstRect, resource, &srcRect,
                              DISPMANX_PROTECTION_NONE, NULL, NULL,
                              DISPMANX_STEREOSCOPIC_MONO);
 
@@ -355,7 +355,7 @@ private:
           mPlayerVideo = new cOmxPlayerVideo();
 
         mReader.getHints (OMXSTREAM_AUDIO, audioConfig.mHints);
-        mReader.getHints (OMXSTREAM_VIDEO, videoConfig.hints);
+        mReader.getHints (OMXSTREAM_VIDEO, videoConfig.mHints);
 
         if (mPlayerVideo && mPlayerVideo->open (&mClock, videoConfig))
           thread ([=]() { mPlayerVideo->run(); } ).detach();

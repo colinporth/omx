@@ -64,7 +64,7 @@ bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config, c
   mFlushRequested = false;
   mPassthrough = false;
   mHwDecode = false;
-  mICurrentPts = DVD_NOPTS_VALUE;
+  mCurrentPts = DVD_NOPTS_VALUE;
   mCachedSize = 0;
 
   mSwAudio = nullptr;
@@ -161,7 +161,7 @@ void cOmxPlayerAudio::flush() {
     cOmxReader::freePacket (packet);
     }
 
-  mICurrentPts = DVD_NOPTS_VALUE;
+  mCurrentPts = DVD_NOPTS_VALUE;
   mCachedSize = 0;
   mOmxAudio->flush();
 
@@ -185,7 +185,7 @@ bool cOmxPlayerAudio::close() {
   mOmxAudio = nullptr;
 
   mStreamId = -1;
-  mICurrentPts = DVD_NOPTS_VALUE;
+  mCurrentPts = DVD_NOPTS_VALUE;
   mStream = nullptr;
 
   return true;
@@ -283,9 +283,9 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
   cLog::log (LOGINFO1, "Decode pts:%6.2f size:%d", packet->pts / 1000000.f, packet->size);
 
   if (packet->pts != DVD_NOPTS_VALUE)
-    mICurrentPts = packet->pts;
+    mCurrentPts = packet->pts;
   else if (packet->dts != DVD_NOPTS_VALUE)
-    mICurrentPts = packet->dts;
+    mCurrentPts = packet->dts;
 
   const uint8_t* data_dec = packet->data;
   int data_len = packet->size;

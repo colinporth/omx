@@ -174,6 +174,7 @@ public:
   ~cOmxAudio();
 
   static bool hwDecode (AVCodecID codec);
+
   unsigned int getSpace() { return mOmxDecoder.GetInputBufferSpace(); }
   unsigned int getChunkLen() { return mChunkLen; }
   float getDelay();
@@ -208,13 +209,14 @@ private:
   void updateAttenuation();
 
   void printChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
-  void printPCM (OMX_AUDIO_PARAM_PCMMODETYPE *pcm, const std::string& direction);
+  void printPCM (OMX_AUDIO_PARAM_PCMMODETYPE* pcm, const std::string& direction);
 
   //{{{  vars
   std::recursive_mutex mMutex;
 
-  cAvUtil mAvUtil;
   cOmxAudioConfig mConfig;
+  cAvUtil mAvUtil;
+
   cOmxClock* mAvClock = nullptr;
   cOmxCoreComponent* mOmxClock = nullptr;
 
@@ -237,20 +239,15 @@ private:
   OMX_AUDIO_PARAM_PCMMODETYPE mPcmInput;
   OMX_AUDIO_PARAM_PCMMODETYPE mPcmOutput;
 
+  unsigned int mNumInputChannels = 0;
+  unsigned int mNumOutputChannels = 0;
+  unsigned int mBitsPerSample = 0;
+
   bool mInitialized = false;
   unsigned int mBytesPerSec = 0;
   unsigned int mInputBytesPerSec = 0;
   unsigned int mBufferLen = 0;
   unsigned int mChunkLen = 0;
-  unsigned int mNumInputChannels = 0;
-  unsigned int mNumOutputChannels = 0;
-  unsigned int mBitsPerSample = 0;
-
-  float mCurrentVolume = 0.f;
-  bool mMute = false;
-  float mMaxLevel = 0.f;
-  float mAttenuation = 1.f;
-  float mDrc = 1.f;
 
   float mSubmitted = 0.f;
   bool mSettingsChanged = false;
@@ -258,6 +255,12 @@ private:
   double mLastPts = DVD_NOPTS_VALUE;
   bool mSubmittedEos = false;
   bool mFailedEos = false;
+
+  float mCurrentVolume = 0.f;
+  bool mMute = false;
+  float mMaxLevel = 0.f;
+  float mAttenuation = 1.f;
+  float mDrc = 1.f;
 
   OMX_AUDIO_PARAM_DTSTYPE mDtsParam;
   WAVEFORMATEXTENSIBLE mWaveHeader;
@@ -282,7 +285,7 @@ public:
   double getDelay() { return mOmxAudio->getDelay(); }
   double getCacheTime() { return mOmxAudio->getCacheTime(); }
   double getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
-  double getCurrentPTS() { return mICurrentPts; };
+  double getCurrentPTS() { return mCurrentPts; };
   unsigned int getCached() { return mCachedSize; };
   unsigned int getMaxCached() { return mConfig.mQueueSize * 1024 * 1024; };
   //{{{
@@ -336,10 +339,6 @@ private:
   pthread_cond_t mPacketCond;
   pthread_cond_t mAudioCond;
 
-  bool mAbort;
-  bool mFlush = false;
-  std::atomic<bool> mFlushRequested;
-
   cOmxClock* mAvClock = nullptr;
   cOmxReader* mOmxReader = nullptr;
   cOmxStreamInfo mHints;
@@ -351,15 +350,18 @@ private:
   cAvCodec mAvCodec;
   cAvFormat mAvFormat;
 
+  bool mAbort;
+  bool mFlush = false;
+  std::atomic<bool> mFlushRequested;
   unsigned int mCachedSize = 0;
   std::deque<OMXPacket*> mPackets;
 
   AVStream* mStream = nullptr;
   int mStreamId = -1;
 
-  double mICurrentPts;
+  double mCurrentPts;
 
-  std::string  mDevice;
+  std::string mDevice;
   bool mPassthrough;
   bool mHwDecode;
   bool mBoostOnDownmix;
