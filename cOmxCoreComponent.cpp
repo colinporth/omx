@@ -164,10 +164,8 @@ bool cOmxCoreComponent::deInit() {
 
   cLog::log (LOGINFO1, "cOmxCoreComponent::deInit - %s h:%p", mComponentName.c_str(), mHandle);
 
-  auto omxErr = mOmx->freeHandle (mHandle);
-  if (omxErr != OMX_ErrorNone)
-    cLog::log (LOGERROR, "cOmxCoreComponent::deInit - free handle %s 0x%08x",
-               mComponentName.c_str(), omxErr);
+  if (mOmx->freeHandle (mHandle) != OMX_ErrorNone)
+    cLog::log (LOGERROR, "cOmxCoreComponent::deInit - free handle %s", mComponentName.c_str());
   mHandle = nullptr;
 
   mInputPort = 0;
@@ -1058,6 +1056,9 @@ void cOmxCoreComponent::resetEos() {
 // private
 //{{{
 void cOmxCoreComponent::transitionToStateLoaded() {
+
+  if (!mHandle)
+    return;
 
   if (getState() != OMX_StateLoaded && getState() != OMX_StateIdle)
     setStateForComponent (OMX_StateIdle);
