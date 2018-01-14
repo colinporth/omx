@@ -36,30 +36,29 @@ public:
   bool isInit() const { return mHandle != NULL; }
   bool deInit();
 
-  OMX_ERRORTYPE allocInputBuffers (bool useBuffers = false);
-  OMX_ERRORTYPE allocOutputBuffers (bool useBffers = false);
-  OMX_ERRORTYPE freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
-  OMX_ERRORTYPE freeInputBuffers();
-  OMX_ERRORTYPE freeOutputBuffers();
-  void flushAll();
-  void flushInput();
-  void flushOutput();
-
   OMX_HANDLETYPE getComponent() const { return mHandle; }
-  unsigned int getInputPort() const { return mInputPort; }
-  unsigned int getOutputPort() const { return mOutputPort; }
   std::string getName() const { return mComponentName; }
 
+  unsigned int getInputPort() const { return mInputPort; }
+  unsigned int getOutputPort() const { return mOutputPort; }
+  OMX_ERRORTYPE enablePort (unsigned int port, bool wait = true);
+  OMX_ERRORTYPE disablePort (unsigned int port, bool wait = true);
+  OMX_ERRORTYPE disableAllPorts();
+
+  OMX_ERRORTYPE allocInputBuffers (bool useBuffers = false);
+  OMX_ERRORTYPE allocOutputBuffers (bool useBffers = false);
   OMX_BUFFERHEADERTYPE* getInputBuffer (long timeout=200);
   OMX_BUFFERHEADERTYPE* getOutputBuffer (long timeout=200);
   unsigned int getInputBufferSize() const { return mInputBufferCount * mInputBufferSize; }
   unsigned int getOutputBufferSize() const { return mOutputBufferCount * mOutputBufferSize; }
   unsigned int getInputBufferSpace() const { return mOmxInputAvaliable.size() * mInputBufferSize; }
   unsigned int getOutputBufferSpace() const { return mOmxOutputAvailable.size() * mOutputBufferSize; }
-
-  OMX_ERRORTYPE enablePort (unsigned int port, bool wait = true);
-  OMX_ERRORTYPE disablePort (unsigned int port, bool wait = true);
-  OMX_ERRORTYPE disableAllPorts();
+  OMX_ERRORTYPE freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
+  OMX_ERRORTYPE freeInputBuffers();
+  OMX_ERRORTYPE freeOutputBuffers();
+  void flushAll();
+  void flushInput();
+  void flushOutput();
 
   OMX_ERRORTYPE addEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
   void removeEvent(OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
@@ -68,23 +67,23 @@ public:
   OMX_ERRORTYPE sendCommand(OMX_COMMANDTYPE cmd, OMX_U32 cmdParam, OMX_PTR cmdParamData);
   OMX_ERRORTYPE waitForCommand (OMX_U32 command, OMX_U32 nData2, long timeout = 2000);
 
-  OMX_ERRORTYPE setStateForComponent (OMX_STATETYPE state);
   OMX_STATETYPE getState() const;
+  OMX_ERRORTYPE setStateForComponent (OMX_STATETYPE state);
 
-  OMX_ERRORTYPE setParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct);
   OMX_ERRORTYPE getParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct) const;
+  OMX_ERRORTYPE setParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct);
 
-  OMX_ERRORTYPE setConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct);
   OMX_ERRORTYPE getConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) const;
+  OMX_ERRORTYPE setConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct);
 
   // OMXCore Decoder delegate callback routines.
   static OMX_ERRORTYPE decoderEventHandlerCallback (
-    OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_EVENTTYPE eEvent,
-    OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData);
+    OMX_HANDLETYPE component, OMX_PTR appData, OMX_EVENTTYPE eEvent,
+    OMX_U32 nData1, OMX_U32 nData2, OMX_PTR eventData);
   static OMX_ERRORTYPE decoderEmptyBufferDoneCallback (
-    OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBuffer);
+    OMX_HANDLETYPE component, OMX_PTR appData, OMX_BUFFERHEADERTYPE* buffer);
   static OMX_ERRORTYPE decoderFillBufferDoneCallback (
-    OMX_HANDLETYPE hComponent, OMX_PTR pAppData, OMX_BUFFERHEADERTYPE* pBufferHeader);
+    OMX_HANDLETYPE component, OMX_PTR appData, OMX_BUFFERHEADERTYPE* bufferHeader);
 
   // OMXCore decoder callback routines.
   OMX_ERRORTYPE decoderEventHandler (OMX_HANDLETYPE hComponent, OMX_EVENTTYPE eEvent,
