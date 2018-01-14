@@ -491,7 +491,7 @@ bool cOmxVideo::portSettingsChanged() {
     //}}}
   if (mSettingsChanged) {
     //{{{  settings changed
-    portSettingsChangedLog (port_image, -1);
+    logPortSettingsChanged (port_image, -1);
     setVideoRect();
     mOmxDecoder.EnablePort (mOmxDecoder.GetOutputPort(), true);
     return true;
@@ -514,7 +514,7 @@ bool cOmxVideo::portSettingsChanged() {
     return false;
 
   mOmxRender.ResetEos();
-  portSettingsChangedLog (port_image, interlace.eMode);
+  logPortSettingsChanged (port_image, interlace.eMode);
 
   if (!mOmxSched.init ("OMX.broadcom.video_scheduler", OMX_IndexParamVideoInit))
     return false;
@@ -791,12 +791,12 @@ void cOmxVideo::close() {
 
 // private
 //{{{
-void cOmxVideo::portSettingsChangedLog (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode) {
+void cOmxVideo::logPortSettingsChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlaceMode) {
 
-  cLog::log (LOGINFO, "portSettings %dx%d@%.2f int:%d deint:%d par:%.2f disp:%d lay:%d alpha:%d aspect:%d",
-             port_image.format.video.nFrameWidth, port_image.format.video.nFrameHeight,
-             port_image.format.video.xFramerate / (float)(1<<16),
-             interlaceEMode, mDeinterlace,  mPixelAspect,
+  cLog::log (LOGINFO, "port %dx%d %.2f intMode:%d deint:%d par:%.2f dis:%d lay:%d alp:%d asp:%d",
+             port.format.video.nFrameWidth, port.format.video.nFrameHeight,
+             port.format.video.xFramerate / (float)(1<<16),
+             interlaceMode, mDeinterlace, mPixelAspect,
              mConfig.mDisplay, mConfig.mLayer, mConfig.mAlpha, mConfig.mAspectMode);
   }
 //}}}

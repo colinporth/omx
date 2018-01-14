@@ -237,7 +237,7 @@ public:
   void close();
 
 private:
-  void portSettingsChangedLog (OMX_PARAM_PORTDEFINITIONTYPE port_image, int interlaceEMode);
+  void logPortSettingsChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlaceMode);
 
   //{{{  vars
   std::recursive_mutex mMutex;
