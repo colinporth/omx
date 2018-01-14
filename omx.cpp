@@ -445,13 +445,13 @@ private:
           auto aDelay = mPlayerAudio ? mPlayerAudio->getDelay() : 0;
           auto aCache = mPlayerAudio ? mPlayerAudio->getCacheTotal() : 0;
 
-          auto str = decFrac(clockPts/1000000.0,6,5,' ') +
-                     " a:"  + decFrac(audio_pts/1000000.0,6,5,' ') +
-                     " v:"  + decFrac(video_pts/1000000.0,6,5,' ') +
-                     " af:" + decFrac(audio_fifo,6,5,' ') +
-                     " vf:" + decFrac(video_fifo,6,5,' ') +
-                     " al:" + decFrac(aLevel,3,1,' ') +
-                     " vl:" + decFrac(vLevel,3,1,' ') +
+          auto str = decFrac(clockPts/1000000.0,5,2,' ') +
+                     " a:"  + decFrac(audio_pts/1000000.0,5,2,' ') +
+                     " v:"  + decFrac(video_pts/1000000.0,5,2,' ') +
+                     " af:" + decFrac(audio_fifo,5,2,' ') +
+                     " vf:" + decFrac(video_fifo,5,2,' ') +
+                     " al:" + decFrac(aLevel,4,1,' ') +
+                     " vl:" + decFrac(vLevel,4,1,' ') +
                      " ad:" + dec(aDelay) +
                      " ac:" + dec(aCache);
           mDebugStr = str;

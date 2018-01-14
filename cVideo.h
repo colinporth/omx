@@ -191,7 +191,7 @@ class cOmxVideoConfig {
 public:
   cOmxStreamInfo mHints;
 
-  int mPacketCacheSize = 5 * 1024 * 1024;
+  int mPacketCacheSize = 2 * 1024 * 1024; // 1m
   float mFifoSize = (float)80*1024*60 / (1024*1024);
 
   CRect mDstRect = {0, 0, 0, 0};
