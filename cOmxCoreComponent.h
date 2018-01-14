@@ -107,14 +107,14 @@ public:
 private:
   void transitionToStateLoaded();
 
-  OMX_HANDLETYPE  mHandle;
-  unsigned int mInputPort;
-  unsigned int mOutputPort;
+  OMX_HANDLETYPE mHandle = nullptr;
+  unsigned int mInputPort = 0;
+  unsigned int mOutputPort = 0;
   std::string mComponentName;
   pthread_mutex_t mOmxEventMutex;
   pthread_mutex_t mOmxEosMutex;
   std::vector<omx_event> mOmxEvents;
-  OMX_S32 mIgnoreError;
+  OMX_S32 mIgnoreError = OMX_ErrorNone;
 
   OMX_CALLBACKTYPE mCallbacks;
 
@@ -122,29 +122,29 @@ private:
   pthread_mutex_t mOmxInputMutex;
   std::queue<OMX_BUFFERHEADERTYPE*> mOmxInputAvaliable;
   std::vector<OMX_BUFFERHEADERTYPE*> mOmxInputBuffers;
-  unsigned int mInputAlignment;
-  unsigned int mInputBufferSize;
-  unsigned int mInputBufferCount;
-  bool mOmxInputUseBuffers;
+  unsigned int mInputAlignment = 0;
+  unsigned int mInputBufferSize = 0;
+  unsigned int mInputBufferCount = 0;
+  bool mOmxInputUseBuffers = false;
 
   // OMXCore output buffers (video frames)
   pthread_mutex_t mOmxOutputMutex;
   std::queue<OMX_BUFFERHEADERTYPE*> mOmxOutputAvailable;
   std::vector<OMX_BUFFERHEADERTYPE*> mOmxOutputBuffers;
-  unsigned int mOutputAlignment;
-  unsigned int mOutputBufferSize;
-  unsigned int mOutputBufferCount;
-  bool mOmxOutputUseBuffers;
+  unsigned int mOutputAlignment = 0;
+  unsigned int mOutputBufferSize = 0;
+  unsigned int mOutputBufferCount = 0;
+  bool mOmxOutputUseBuffers = false;
   cOmx* mOmx;
 
   pthread_cond_t mInputBufferCond;
   pthread_cond_t mOutputBufferCond;
   pthread_cond_t mOmxEventCond;
 
-  bool mFlushInput;
-  bool mFlushOutput;
-  bool mResourceError;
+  bool mFlushInput = false;
+  bool mFlushOutput = false;
+  bool mResourceError = false;
 
-  bool mEos;
-  bool mExit;
+  bool mEos = false;
+  bool mExit = false;
   };
