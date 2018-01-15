@@ -100,7 +100,9 @@ void cOmxVideo::setVideoRect() {
       (mConfig.mDstRect.y2 > mConfig.mDstRect.y1)) {
     configDisplay.set = (OMX_DISPLAYSETTYPE)(configDisplay.set | OMX_DISPLAY_SET_DEST_RECT);
     configDisplay.fullscreen = OMX_FALSE;
-    if (mConfig.mAspectMode != 1 && mConfig.mAspectMode != 2 && mConfig.mAspectMode != 3)
+    if ((mConfig.mAspectMode != 1) && 
+        (mConfig.mAspectMode != 2) && 
+        (mConfig.mAspectMode != 3))
       configDisplay.noaspect = OMX_TRUE;
     configDisplay.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
     configDisplay.dest_rect.y_offset = (int)(mConfig.mDstRect.y1 + 0.5f);
@@ -291,10 +293,10 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
   //}}}
   mAvClock = avClock;
   mClock = mAvClock->getOmxClock();
-  if (mClock->getComponent() == NULL) {
+  if (!mClock->getComponent()) {
     //{{{  no clock return
-    mAvClock = NULL;
-    mClock = NULL;
+    mAvClock = nullptr;
+    mClock = nullptr;
     return false;
     }
     //}}}
@@ -625,7 +627,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
   if (mSetStartTime) {
     nFlags |= OMX_BUFFERFLAG_STARTTIME;
     cLog::log (LOGINFO1, "cOmxVideo::Decode - startTime:%f",
-                         (pts == DVD_NOPTS_VALUE ? 0.0 : pts) / 1000000.f);
+                         ((pts == DVD_NOPTS_VALUE) ? 0.0 : pts) / 1000000.f);
     mSetStartTime = false;
     }
 
@@ -639,7 +641,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
     auto buffer = mDecoder.getInputBuffer (500);
     if (buffer == NULL) {
       //{{{  error return
-      cLog::log (LOGERROR, "cOmxVideo::decode timeout");
+      cLog::log (LOGERROR, string(__func__) + " timeout");
       return false;
       }
       //}}}
@@ -647,7 +649,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
     buffer->nFlags = nFlags;
     buffer->nOffset = 0;
     buffer->nTimeStamp = toOmxTime ((uint64_t)((pts != DVD_NOPTS_VALUE) ?
-                                                 pts : (dts != DVD_NOPTS_VALUE) ? dts : 0));
+                                                 pts : (dts != DVD_NOPTS_VALUE) ? dts : 0.0));
     buffer->nFilledLen = min ((OMX_U32)bytesLeft, buffer->nAllocLen);
     memcpy (buffer->pBuffer, data, buffer->nFilledLen);
     bytesLeft -= buffer->nFilledLen;
@@ -656,7 +658,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
       buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
     if (mDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, "cOmxVideo::decode OMX_EmptyThisBuffer");
+      cLog::log (LOGERROR, string(__func__) + " OMX_EmptyThisBuffer");
       mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), buffer);
       return false;
       }
@@ -665,14 +667,14 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
     if (mDecoder.waitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
       if (!portChanged()) {
         //{{{  error return
-        cLog::log (LOGERROR, "cOmxVideo::decode - port changed");
+        cLog::log (LOGERROR, string(__func__) + " port changed");
         return false;
         }
         //}}}
       }
     if (mDecoder.waitForEvent (OMX_EventParamOrConfigChanged, 0) == OMX_ErrorNone)
       if (!portChanged())
-        cLog::log (LOGERROR, "OMXVideo::decode - param changed");
+        cLog::log (LOGERROR, string(__func__) + " param changed");
     }
 
   return true;
@@ -691,7 +693,7 @@ void cOmxVideo::submitEOS() {
   auto omxBuffer = mDecoder.getInputBuffer (1000);
   if (omxBuffer == NULL) {
     // error return
-    cLog::log (LOGERROR, "cOmxVideo::submitEOS - getInputBuffer");
+    cLog::log (LOGERROR, string(__func__) + " getInputBuffer");
     mFailedEos = true;
     return;
     }
@@ -702,7 +704,7 @@ void cOmxVideo::submitEOS() {
   omxBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
   if (mDecoder.emptyThisBuffer (omxBuffer) != OMX_ErrorNone) {
     // error return
-    cLog::log (LOGERROR, "cOmxVideo::submitEOS - emptyThisBuffer");
+    cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
     mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), omxBuffer);
     return;
     }
