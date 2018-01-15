@@ -96,9 +96,9 @@ public:
   AVMediaType getPacketType (OMXPacket* packet);
 
   // sets
-  bool setActiveStream (OMXStreamType type, unsigned int index);
-  double selectAspect (AVStream* st, bool& forced);
   void setSpeed (int iSpeed);
+  double selectAspect (AVStream* st, bool& forced);
+  bool setActiveStream (OMXStreamType type, unsigned int index);
 
   // actions
   bool open (const std::string& filename, bool dumpFormat, bool live, float timeout,

@@ -576,13 +576,6 @@ AVMediaType cOmxReader::getPacketType (OMXPacket* packet) {
 
 // sets
 //{{{
-bool cOmxReader::setActiveStream (OMXStreamType type, unsigned int index) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-  return setActiveStreamInternal (type, index);
-  }
-//}}}
-//{{{
 void cOmxReader::setSpeed (int iSpeed) {
 
   if (mSpeed != DVD_PLAYSPEED_PAUSE && iSpeed == DVD_PLAYSPEED_PAUSE)
@@ -621,6 +614,13 @@ double cOmxReader::selectAspect (AVStream* st, bool& forced) {
     return av_q2d (st->sample_aspect_ratio);
 
   return 0.0;
+  }
+//}}}
+//{{{
+bool cOmxReader::setActiveStream (OMXStreamType type, unsigned int index) {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+  return setActiveStreamInternal (type, index);
   }
 //}}}
 
