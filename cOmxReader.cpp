@@ -221,7 +221,7 @@ int interruptCb (void* unused) {
 
   int ret = 0;
   if (timeout_duration && currentHostCounter() - timeout_start > timeout_duration) {
-    cLog::log (LOGERROR, "cOmxReader::interruptCb - Timed out");
+    cLog::log (LOGERROR, string(__func__) + " Timed out");
     ret = 1;
     }
 
@@ -231,6 +231,7 @@ int interruptCb (void* unused) {
 //{{{
 int fileRead (void* h, uint8_t* buf, int size) {
 
+  cLog::log (LOGINFO2, "fileRead %d", size);
   RESET_TIMEOUT(1);
   if (interruptCb (NULL))
     return -1;
@@ -241,6 +242,8 @@ int fileRead (void* h, uint8_t* buf, int size) {
 //}}}
 //{{{
 offset_t fileSeek (void* h, offset_t pos, int whence) {
+
+  cLog::log (LOGINFO2, "fileSeek %d %d", pos, whence);
 
   RESET_TIMEOUT(1);
   if (interruptCb (NULL))

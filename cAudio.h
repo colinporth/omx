@@ -191,10 +191,10 @@ public:
   void setDynamicRangeCompression (float drc);
   void setCodingType (AVCodecID codec);
 
-  bool initialize (cOmxClock *clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
-  void buildChannelMap (enum PCMChannels *channelMap, uint64_t layout);
-  int buildChannelMapCEA (enum PCMChannels *channelMap, uint64_t layout);
-  void buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE *channelMap, uint64_t layout);
+  bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
+  void buildChannelMap (enum PCMChannels* channelMap, uint64_t layout);
+  int buildChannelMapCEA (enum PCMChannels* channelMap, uint64_t layout);
+  void buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE* channelMap, uint64_t layout);
   bool portSettingsChanged();
   unsigned int addPackets (const void* data, unsigned int len, double dts, double pts, unsigned int frame_size);
   void process();

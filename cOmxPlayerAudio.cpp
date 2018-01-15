@@ -216,8 +216,7 @@ bool cOmxPlayerAudio::openOmxAudio() {
   if (mPassthrough)
     mHwDecode = false;
 
-  if (mOmxAudio->initialize (mAvClock, mConfig,
-                              mSwAudio->getChannelMap(), mSwAudio->getBitsPerSample())) {
+  if (mOmxAudio->init (mAvClock, mConfig, mSwAudio->getChannelMap(), mSwAudio->getBitsPerSample())) {
     cLog::log (LOGINFO, "cOmxPlayerAudio::openOmxAudio " +
                string(mPassthrough ? " passThru" : "") +
                " chan:" + dec(mConfig.mHints.channels) +
