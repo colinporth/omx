@@ -4,9 +4,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "cVideo.h"
 #include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
+#include "cOmxAv.h"
 
 using namespace std;
 //}}}

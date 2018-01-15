@@ -27,8 +27,7 @@
 #include "cOmx.h"
 #include "cOmxClock.h"
 #include "cOmxReader.h"
-#include "cAudio.h"
-#include "cVideo.h"
+#include "cOmxAv.h"
 
 #include "../shared/nanoVg/cRaspWindow.h"
 #include "../shared/widgets/cTextBox.h"
