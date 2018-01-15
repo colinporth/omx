@@ -214,9 +214,6 @@ class cOmxVideo {
 public:
   ~cOmxVideo() { close(); }
 
-  bool sendDecoderConfig();
-  bool naluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
-
   std::string getDecoderName() { return mVideoCodecName; };
 
   bool isEOS();
@@ -230,14 +227,17 @@ public:
   void setDropState (bool drop) { mDropState = drop; }
 
   bool open (cOmxClock* clock, const cOmxVideoConfig& config);
-  bool portSettingsChanged();
+  bool portChanged();
   bool decode (uint8_t* data, int size, double dts, double pts);
   void submitEOS();
   void reset();
   void close();
 
 private:
-  void logPortSettingsChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlaceMode);
+  bool sendDecoderExtraConfig();
+  bool naluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
+
+  void logPortChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlaceMode);
 
   //{{{  vars
   std::recursive_mutex mMutex;
@@ -249,7 +249,7 @@ private:
   cOmxCoreComponent* mClock = nullptr;
   cOmxCoreComponent mDecoder;
   cOmxCoreComponent mRender;
-  cOmxCoreComponent mSched;
+  cOmxCoreComponent mScheduler;
   cOmxCoreComponent mImageFx;
 
   cOmxCoreTunnel mTunnelDecoder;

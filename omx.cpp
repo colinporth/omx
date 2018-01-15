@@ -345,8 +345,6 @@ private:
 
     bool ok = true;
     while (ok) {
-      cOmxPlayerVideo* mPlayerVideo = nullptr;
-      cOmxPlayerAudio* mPlayerAudio = nullptr;
       cLog::log (LOGINFO, "open " + fileName);
       if (mReader.open (fileName, false, audioConfig.mIsLive, 5.f, "","","probesize:1000000","")) {
         cLog::log (LOGINFO, "opened " + fileName);
