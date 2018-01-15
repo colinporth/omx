@@ -266,10 +266,10 @@ void cOmxReader::freePacket (OMXPacket*& packet) {
   }
 //}}}
 //{{{
-double cOmxReader::normalizeFrameDuration (double frameduration) {
+double cOmxReader::normDur (double frameDuration) {
+// if the duration is within 20 microseconds of a common duration, use that
 
-  // if the duration is within 20 microseconds of a common duration, use that
-  const double durations[] = { 
+  const double durations[] = {
     DVD_TIME_BASE * 1.001 / 24.0, DVD_TIME_BASE / 24.0, DVD_TIME_BASE / 25.0,
     DVD_TIME_BASE * 1.001 / 30.0, DVD_TIME_BASE / 30.0, DVD_TIME_BASE / 50.0,
     DVD_TIME_BASE * 1.001 / 60.0, DVD_TIME_BASE / 60.0};
@@ -277,7 +277,7 @@ double cOmxReader::normalizeFrameDuration (double frameduration) {
   double lowestdiff = DVD_TIME_BASE;
   int selected = -1;
   for (size_t i = 0; i < sizeof(durations) / sizeof(durations[0]); i++) {
-    double diff = fabs (frameduration - durations[i]);
+    double diff = fabs (frameDuration - durations[i]);
     if (diff < DVD_MSEC_TO_TIME(0.02) && diff < lowestdiff) {
       selected = i;
       lowestdiff = diff;
@@ -287,7 +287,7 @@ double cOmxReader::normalizeFrameDuration (double frameduration) {
   if (selected != -1)
     return durations[selected];
   else
-    return frameduration;
+    return frameDuration;
   }
 //}}}
 
@@ -508,7 +508,7 @@ bool cOmxReader::getHints (AVStream* stream, cOmxStreamInfo* hints) {
       hints->fpsrate = 0;
       }
 
-    hints->aspect = 
+    hints->aspect =
       selectAspect (stream, hints->forced_aspect) * stream->codec->width / stream->codec->height;
 
     auto rtag = mAvUtil.av_dict_get (stream->metadata, "rotate", NULL, 0);

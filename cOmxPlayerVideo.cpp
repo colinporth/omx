@@ -43,29 +43,26 @@ bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
   mConfig = config;
   mAvClock = avClock;
 
-  mFps = 25.f;
   mFrametime = 0;
-
   mCurrentPts = DVD_NOPTS_VALUE;
+  mVideoDelay = 0;
 
   mAbort = false;
   mFlush = false;
   mPacketCacheSize = 0;
-  mVideoDelay = 0;
 
-  // open decoder
   if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale)
-    mFps = 1000000.f /
-            cOmxReader::normalizeFrameDuration (1000000.0 * mConfig.mHints.fpsscale / mConfig.mHints.fpsrate);
+    mFps = 1000000.f / cOmxReader::normDur (1000000.0 * mConfig.mHints.fpsscale / mConfig.mHints.fpsrate);
   else
     mFps = 25.f;
 
   if (mFps > 100.f || mFps < 5.f) {
-    cLog::log (LOGERROR, "cOmxPlayerVideo::open invalid framerate %d, using 25fps", (int)mFps);
+    cLog::log (LOGERROR, "cOmxPlayerVideo::open invalid framerate %d", (int)mFps);
     mFps = 25.f;
     }
   mFrametime = 1000000.0 / mFps;
 
+  // open decoder
   mDecoder = new cOmxVideo();
   if (mDecoder->open (mAvClock, mConfig)) {
     cLog::log (LOGINFO, "cOmxPlayerVideo::open %s profile:%d %dx%d %ffps",

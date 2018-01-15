@@ -66,7 +66,7 @@ public:
   ~cOmxReader();
 
   static void freePacket (OMXPacket*& packet);
-  static double normalizeFrameDuration (double frameduration);
+  static double normDur (double frameDuration);
 
   // gets
   bool isEof() { return mEof; }
@@ -102,7 +102,7 @@ public:
 
   // actions
   bool open (const std::string& filename, bool dumpFormat, bool live, float timeout,
-             const std::string& cookie, const std::string& user_agent, 
+             const std::string& cookie, const std::string& user_agent,
              const std::string& lavfdopts, const std::string& avdict);
   OMXPacket* readPacket();
   bool seek (float time, double& startPts);
