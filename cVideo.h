@@ -246,16 +246,16 @@ private:
   OMX_VIDEO_CODINGTYPE mCodingType;
 
   cOmxClock* mAvClock = nullptr;
-  cOmxCoreComponent* mOmxClock = nullptr;
-  cOmxCoreComponent mOmxDecoder;
-  cOmxCoreComponent mOmxRender;
-  cOmxCoreComponent mOmxSched;
-  cOmxCoreComponent mOmxImageFx;
+  cOmxCoreComponent* mClock = nullptr;
+  cOmxCoreComponent mDecoder;
+  cOmxCoreComponent mRender;
+  cOmxCoreComponent mSched;
+  cOmxCoreComponent mImageFx;
 
-  cOmxCoreTunnel mOmxTunnelDecoder;
-  cOmxCoreTunnel mOmxTunnelClock;
-  cOmxCoreTunnel mOmxTunnelSched;
-  cOmxCoreTunnel mOmxTunnelImageFx;
+  cOmxCoreTunnel mTunnelDecoder;
+  cOmxCoreTunnel mTunnelClock;
+  cOmxCoreTunnel mTunnelSched;
+  cOmxCoreTunnel mTunnelImageFx;
 
   std::string mVideoCodecName;
 
