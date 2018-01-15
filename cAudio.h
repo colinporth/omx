@@ -282,14 +282,17 @@ public:
   cOmxPlayerAudio();
   ~cOmxPlayerAudio();
 
+  bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
   double getCurrentPTS() { return mCurrentPts; };
   double getDelay() { return mOmxAudio->getDelay(); }
-  double getCacheTotal() { return  mOmxAudio->getCacheTotal(); }
+  double getCacheTotal() { return mOmxAudio->getCacheTotal(); }
+
+  int getNumPackets() { return mPackets.size(); };
   int getPacketCacheSize() { return mPacketCacheSize; };
   float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mPacketCacheSize; };
+
   float getVolume() { return mCurrentVolume; }
   bool isPassthrough (cOmxStreamInfo hints);
-  bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
 
   //{{{
   void setVolume (float volume) {
@@ -331,7 +334,6 @@ private:
   pthread_mutex_t mLock;
   pthread_mutex_t mLockDecoder;
   pthread_cond_t mPacketCond;
-  pthread_cond_t mAudioCond;
 
   cOmxClock* mAvClock = nullptr;
   cOmxReader* mOmxReader = nullptr;

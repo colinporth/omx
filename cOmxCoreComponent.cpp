@@ -17,10 +17,10 @@ void* alignedMalloc (size_t size, size_t alignTo) {
 // alloc extra space and store the original allocation in it (so that we can free later on)
 // the returned address will be the nearest alligned address within the space allocated.
 
-  char* fullAlloc = (char*)malloc (size + alignTo + sizeof(char*));
-  char* alignedAlloc = (char*)(((((unsigned long)fullAlloc +
-                         sizeof (char*))) + (alignTo-1)) & ~(alignTo-1));
-  *(char**)(alignedAlloc - sizeof(char*)) = fullAlloc;
+  auto fullAlloc = (uint8_t*)malloc (size + alignTo + sizeof(uint8_t*));
+  auto alignedAlloc = (uint8_t*)(((((unsigned long)fullAlloc +
+                         sizeof (uint8_t*))) + (alignTo-1)) & ~(alignTo-1));
+  *(uint8_t**)(alignedAlloc - sizeof(uint8_t*)) = fullAlloc;
   return alignedAlloc;
   }
 //}}}
@@ -30,7 +30,7 @@ void alignedFree (void* ptr) {
   if (!ptr)
     return;
 
-  char* fullAlloc = *(char**)(((char*)ptr) - sizeof(char*));
+  auto fullAlloc = *(uint8_t**)(((uint8_t*)ptr) - sizeof(uint8_t*));
   free (fullAlloc);
   }
 //}}}

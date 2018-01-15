@@ -15,9 +15,7 @@ cOmxPlayerAudio::cOmxPlayerAudio() {
 
   pthread_mutex_init (&mLock, nullptr);
   pthread_mutex_init (&mLockDecoder, nullptr);
-
   pthread_cond_init (&mPacketCond, nullptr);
-  pthread_cond_init (&mAudioCond, nullptr);
 
   mFlushRequested = false;
   }
@@ -27,7 +25,6 @@ cOmxPlayerAudio::~cOmxPlayerAudio() {
 
   close();
 
-  pthread_cond_destroy (&mAudioCond);
   pthread_cond_destroy (&mPacketCond);
   pthread_mutex_destroy (&mLock);
   pthread_mutex_destroy (&mLockDecoder);

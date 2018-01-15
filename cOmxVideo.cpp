@@ -638,7 +638,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
   while (bytesLeft) {
     // 500ms timeout
     auto buffer = mDecoder.getInputBuffer (500);
-    if (buffer == NULL) {
+    if (!buffer) {
       //{{{  error return
       cLog::log (LOGERROR, string(__func__) + " timeout");
       return false;
@@ -662,7 +662,6 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
       return false;
       }
       //}}}
-
     if (mDecoder.waitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
       if (!portChanged()) {
         //{{{  error return

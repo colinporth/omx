@@ -279,10 +279,12 @@ public:
 
   bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
   double getCurrentPTS() { return mCurrentPts; };
+  double getDelay() { return mVideoDelay; }
+  double getFPS() { return mFps; };
+
+  int getNumPackets() { return mPackets.size(); };
   int getPacketCacheSize() { return mPacketCacheSize; };
   float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mPacketCacheSize; };
-  double getFPS() { return mFps; };
-  double getDelay() { return mVideoDelay; }
 
   void setDelay (double delay) { mVideoDelay = delay; }
   void setAlpha (int alpha) { mDecoder->setAlpha (alpha); }
@@ -309,7 +311,6 @@ private:
   pthread_mutex_t mLock;
   pthread_mutex_t mLockDecoder;
   pthread_cond_t mPacketCond;
-  pthread_cond_t mVideoCond;
 
   cOmxClock* mAvClock = nullptr;
   cOmxVideo* mDecoder = nullptr;

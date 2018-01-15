@@ -16,9 +16,7 @@ cOmxPlayerVideo::cOmxPlayerVideo() {
 
   pthread_mutex_init (&mLock, NULL);
   pthread_mutex_init (&mLockDecoder, NULL);
-
   pthread_cond_init (&mPacketCond, NULL);
-  pthread_cond_init (&mVideoCond, NULL);
 
   mFlushRequested = false;
   }
@@ -29,7 +27,6 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
   close();
 
   pthread_cond_destroy (&mPacketCond);
-  pthread_cond_destroy (&mVideoCond);
   pthread_mutex_destroy (&mLock);
   pthread_mutex_destroy (&mLockDecoder);
   }
