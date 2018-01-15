@@ -361,11 +361,11 @@ private:
         mReader.getHints (OMXSTREAM_VIDEO, mVideoConfig.mHints);
 
         if (mPlayerVideo && mPlayerVideo->open (&mClock, mVideoConfig))
-          thread ([=]() { mPlayerVideo->run(); } ).detach();
+          thread ([=]() { mPlayerVideo->run ("vid "); } ).detach();
 
         mAudioConfig.mDevice = "omx:local";
         if (mPlayerAudio && mPlayerAudio->open (&mClock, mAudioConfig, &mReader)) {
-          thread ([=]() { mPlayerAudio->run(); } ).detach();
+          thread ([=]() { mPlayerAudio->run("aud "); } ).detach();
           mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
           //mPlayerAudio.SetDynamicRangeCompression (m_Amplification);
           }
@@ -683,8 +683,8 @@ int main (int argc, char* argv[]) {
 
   cAppWindow appWindow (root);
   appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
-  appWindow.mVideoConfig.mPacketCacheSize = vCache * 1024;
-  appWindow.mAudioConfig.mPacketCacheSize = aCache * 1024;
+  appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
+  appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
   //appWindow.mAudioConfig.mIsLive = true;
   //appWindow.mAudioConfig.mHwDecode = true;
   appWindow.run (inTs, frequency, startPlayer);

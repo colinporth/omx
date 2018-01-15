@@ -11,7 +11,7 @@ using namespace std;
 //}}}
 
 //{{{
-cOmxPlayerAudio::cOmxPlayerAudio() {
+cOmxPlayerAudio::cOmxPlayerAudio() : cOmxPlayer(){
 
   pthread_mutex_init (&mLock, nullptr);
   pthread_mutex_init (&mLockDecoder, nullptr);
@@ -50,8 +50,10 @@ bool cOmxPlayerAudio::isPassthrough (cOmxStreamInfo hints) {
 //{{{
 bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config, cOmxReader* omxReader) {
 
-  mAvClock = avClock;
   mConfig = config;
+  mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
+
+  mAvClock = avClock;
   mOmxReader = omxReader;
 
   mAvFormat.av_register_all();
@@ -72,63 +74,6 @@ bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config, c
     close();
     return false;
     }
-  }
-//}}}
-//{{{
-void cOmxPlayerAudio::run() {
-
-  cLog::setThreadName ("aud ");
-
-  OMXPacket* packet = nullptr;
-  while (true) {
-    lock();
-    if (!mAbort && mPackets.empty())
-      pthread_cond_wait (&mPacketCond, &mLock);
-
-    if (mAbort) {
-      unLock();
-      break;
-      }
-
-    if (mFlush && packet) {
-      cOmxReader::freePacket (packet);
-      mFlush = false;
-      }
-    else if (!packet && !mPackets.empty()) {
-      packet = mPackets.front();
-      mPacketCacheSize -= packet->size;
-      mPackets.pop_front();
-      }
-    unLock();
-
-    lockDecoder();
-    if (mFlush && packet) {
-      cOmxReader::freePacket (packet);
-      mFlush = false;
-      }
-    else if (packet && decode (packet))
-      cOmxReader::freePacket (packet);
-    unLockDecoder();
-    }
-
-  cOmxReader::freePacket (packet);
-
-  cLog::log (LOGNOTICE, "exit");
-  }
-//}}}
-//{{{
-bool cOmxPlayerAudio::addPacket (OMXPacket* packet) {
-
-  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mPacketCacheSize))
-    return false;
-
-  lock();
-  mPacketCacheSize += packet->size;
-  mPackets.push_back (packet);
-  unLock();
-
-  pthread_cond_broadcast (&mPacketCond);
-  return true;
   }
 //}}}
 //{{{

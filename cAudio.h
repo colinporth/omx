@@ -102,7 +102,7 @@ class cOmxAudioConfig {
 public:
   cOmxStreamInfo mHints;
 
-  int mPacketCacheSize = 512 * 1024; // 0.5m
+  int mPacketMaxCacheSize = 512 * 1024; // 0.5m
 
   std::string mDevice;
   std::string mSubdevice;
@@ -284,13 +284,8 @@ public:
   ~cOmxPlayerAudio();
 
   bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
-  double getCurrentPTS() { return mCurrentPts; };
   double getDelay() { return mOmxAudio->getDelay(); }
   double getCacheTotal() { return mOmxAudio->getCacheTotal(); }
-
-  int getNumPackets() { return mPackets.size(); };
-  int getPacketCacheSize() { return mPacketCacheSize; };
-  float getPacketCacheUse() { return (float)mPacketCacheSize / mConfig.mPacketCacheSize; };
 
   float getVolume() { return mCurrentVolume; }
   bool isPassthrough (cOmxStreamInfo hints);
@@ -315,10 +310,9 @@ public:
   //}}}
 
   bool open (cOmxClock* avClock, const cOmxAudioConfig& config, cOmxReader* omxReader);
-  void run();
-  bool addPacket (OMXPacket* packet);
   void submitEOS();
   void flush();
+  void reset() {}
   bool close();
 
 private:
@@ -327,23 +321,11 @@ private:
   bool decode (OMXPacket* packet);
 
   //{{{  vars
-  cOmxClock* mAvClock = nullptr;
-  cOmxReader* mOmxReader = nullptr;
-  cOmxStreamInfo mHints;
   cOmxAudioConfig mConfig;
   cOmxAudio* mOmxAudio = nullptr;
   cSwAudio* mSwAudio = nullptr;
-
-  bool mAbort;
-  bool mFlush = false;
-  std::atomic<bool> mFlushRequested;
-  std::deque<OMXPacket*> mPackets;
-  int mPacketCacheSize = 0;
-
-  AVStream* mStream = nullptr;
-  int mStreamId = -1;
-
-  double mCurrentPts;
+  cOmxReader* mOmxReader = nullptr;
+  cOmxStreamInfo mHints;
 
   std::string mDevice;
   bool mPassthrough;

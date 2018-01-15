@@ -12,7 +12,7 @@ using namespace std;
 //}}}
 
 //{{{
-cOmxPlayerVideo::cOmxPlayerVideo() {
+cOmxPlayerVideo::cOmxPlayerVideo() : cOmxPlayer() {
 
   pthread_mutex_init (&mLock, NULL);
   pthread_mutex_init (&mLockDecoder, NULL);
@@ -35,9 +35,10 @@ cOmxPlayerVideo::~cOmxPlayerVideo() {
 //{{{
 bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
 
-  mAvFormat.av_register_all();
-
   mConfig = config;
+  mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
+
+  mAvFormat.av_register_all();
   mAvClock = avClock;
 
   mFrametime = 0;
@@ -71,65 +72,6 @@ bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
     close();
     return false;
     }
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::run() {
-
-  cLog::setThreadName ("vid ");
-
-  OMXPacket* packet = nullptr;
-  while (true) {
-    lock();
-    if (!mAbort && mPackets.empty())
-      pthread_cond_wait (&mPacketCond, &mLock);
-
-    if (mAbort) {
-      unLock();
-      break;
-      }
-
-    if (mFlush && packet) {
-      cOmxReader::freePacket (packet);
-      mFlush = false;
-      }
-    else if (!packet && !mPackets.empty()) {
-      packet = mPackets.front();
-      mPacketCacheSize -= packet->size;
-      mPackets.pop_front();
-      }
-    unLock();
-
-    lockDecoder();
-    if (packet) {
-      if (mFlush) {
-        cOmxReader::freePacket (packet);
-        mFlush = false;
-        }
-      else if (decode (packet))
-        cOmxReader::freePacket (packet);
-      }
-    unLockDecoder();
-    }
-
-  cOmxReader::freePacket (packet);
-
-  cLog::log (LOGNOTICE, "exit");
-  }
-//}}}
-//{{{
-bool cOmxPlayerVideo::addPacket (OMXPacket* packet) {
-
-  if (mAbort || ((mPacketCacheSize + packet->size) > mConfig.mPacketCacheSize))
-    return false;
-
-  lock();
-  mPacketCacheSize += packet->size;
-  mPackets.push_back (packet);
-  unLock();
-
-  pthread_cond_broadcast (&mPacketCond);
-  return true;
   }
 //}}}
 //{{{
