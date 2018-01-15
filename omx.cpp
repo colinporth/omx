@@ -67,21 +67,20 @@ public:
     }
   //}}}
   //{{{
-  void run (unsigned int fileNum, const string& inTs, int frequency) {
+  void run (const string& inTs, int frequency, bool startPlayer) {
 
     refreshFileNames();
-    mFileNum = fileNum-1;
     initialise (1.f, 0);
 
-    if (fileNum > 0)
+    if (startPlayer)
       add (new cTextBox (mDebugStr, 0.f));
     if (frequency) {
       add (new cTextBox (mDvb.mPacketStr, 15.f));
       add (new cTextBox (mDvb.mSignalStr, 14.f));
       add (new cTextBox (mDvb.mTuneStr, 13.f));
-      add (new cTransportStreamBox (0.f, (fileNum > 0) ? (getHeight()/2.f)-3.f : -2.f, &mDvb.mTs));
+      add (new cTransportStreamBox (0.f, startPlayer ? (getHeight()/2.f)-3.f : -2.f, &mDvb.mTs));
       }
-    if (fileNum > 0)
+    if (startPlayer)
       add (new cListWidget (mFileNames, mFileNum, mFileChanged,
                             0.f, (frequency > 0) ? (getHeight()/2.f)-3.f : -2.f));
 
@@ -103,14 +102,14 @@ public:
     else if (!inTs.empty())
       thread ([=]() { mDvb.readThread (inTs); } ).detach();
 
-    if (fileNum > 0)
+    if (startPlayer)
       thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
 
     cRaspWindow::run();
     }
   //}}}
-  cOmxVideoConfig videoConfig;
-  cOmxAudioConfig audioConfig;
+  cOmxVideoConfig mVideoConfig;
+  cOmxAudioConfig mAudioConfig;
 
 protected:
   //{{{
@@ -307,20 +306,20 @@ private:
     vc_tv_get_display_state (&state);
 
     switch ((HDMI_ASPECT_T)state.display.hdmi.aspect_ratio) {
-      case HDMI_ASPECT_4_3:   videoConfig.mDisplayAspect =  4.f / 3.f;  break;
-      case HDMI_ASPECT_14_9:  videoConfig.mDisplayAspect = 14.f / 9.f;  break;
-      case HDMI_ASPECT_5_4:   videoConfig.mDisplayAspect =  5.f / 4.f;  break;
-      case HDMI_ASPECT_16_10: videoConfig.mDisplayAspect = 16.f / 10.f; break;
-      case HDMI_ASPECT_15_9:  videoConfig.mDisplayAspect = 15.f /  9.f; break;
-      case HDMI_ASPECT_64_27: videoConfig.mDisplayAspect = 64.f / 27.f; break;
+      case HDMI_ASPECT_4_3:   mVideoConfig.mDisplayAspect =  4.f / 3.f;  break;
+      case HDMI_ASPECT_14_9:  mVideoConfig.mDisplayAspect = 14.f / 9.f;  break;
+      case HDMI_ASPECT_5_4:   mVideoConfig.mDisplayAspect =  5.f / 4.f;  break;
+      case HDMI_ASPECT_16_10: mVideoConfig.mDisplayAspect = 16.f / 10.f; break;
+      case HDMI_ASPECT_15_9:  mVideoConfig.mDisplayAspect = 15.f /  9.f; break;
+      case HDMI_ASPECT_64_27: mVideoConfig.mDisplayAspect = 64.f / 27.f; break;
       case HDMI_ASPECT_16_9:
-      default:                videoConfig.mDisplayAspect = 16.f /  9.f; break;
+      default:                mVideoConfig.mDisplayAspect = 16.f /  9.f; break;
       }
 
-    videoConfig.mDisplayAspect *= (float)state.display.hdmi.height / (float)state.display.hdmi.width;
+    mVideoConfig.mDisplayAspect *= (float)state.display.hdmi.height / (float)state.display.hdmi.width;
     //}}}
     //{{{  create 1x1 black pixel, added to display just behind video
-    auto display = vc_dispmanx_display_open (videoConfig.mDisplay);
+    auto display = vc_dispmanx_display_open (mVideoConfig.mDisplay);
 
     uint32_t vc_image_ptr;
     auto resource = vc_dispmanx_resource_create (VC_IMAGE_ARGB8888, 1, 1, &vc_image_ptr);
@@ -335,7 +334,7 @@ private:
     vc_dispmanx_rect_set (&dstRect, 0, 0, 0, 0);
 
     auto update = vc_dispmanx_update_start (0);
-    vc_dispmanx_element_add (update, display, videoConfig.mLayer-1,
+    vc_dispmanx_element_add (update, display, mVideoConfig.mLayer-1,
                              &dstRect, resource, &srcRect,
                              DISPMANX_PROTECTION_NONE, NULL, NULL,
                              DISPMANX_STEREOSCOPIC_MONO);
@@ -346,7 +345,7 @@ private:
     bool ok = true;
     while (ok) {
       cLog::log (LOGINFO, "open " + fileName);
-      if (mReader.open (fileName, false, audioConfig.mIsLive, 5.f, "","","probesize:1000000","")) {
+      if (mReader.open (fileName, false, mAudioConfig.mIsLive, 5.f, "","","probesize:1000000","")) {
         cLog::log (LOGINFO, "opened " + fileName);
         //{{{  start play
         mClock.stateIdle();
@@ -358,20 +357,20 @@ private:
         if (mReader.getVideoStreamCount())
           mPlayerVideo = new cOmxPlayerVideo();
 
-        mReader.getHints (OMXSTREAM_AUDIO, audioConfig.mHints);
-        mReader.getHints (OMXSTREAM_VIDEO, videoConfig.mHints);
+        mReader.getHints (OMXSTREAM_AUDIO, mAudioConfig.mHints);
+        mReader.getHints (OMXSTREAM_VIDEO, mVideoConfig.mHints);
 
-        if (mPlayerVideo && mPlayerVideo->open (&mClock, videoConfig))
+        if (mPlayerVideo && mPlayerVideo->open (&mClock, mVideoConfig))
           thread ([=]() { mPlayerVideo->run(); } ).detach();
 
-        audioConfig.mDevice = "omx:local";
-        if (mPlayerAudio && mPlayerAudio->open (&mClock, audioConfig, &mReader)) {
+        mAudioConfig.mDevice = "omx:local";
+        if (mPlayerAudio && mPlayerAudio->open (&mClock, mAudioConfig, &mReader)) {
           thread ([=]() { mPlayerAudio->run(); } ).detach();
           mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
           //mPlayerAudio.SetDynamicRangeCompression (m_Amplification);
           }
 
-        auto loadThreshold = audioConfig.mIsLive ? 0.7f : 0.2f;
+        auto loadThreshold = mAudioConfig.mIsLive ? 0.7f : 0.2f;
         float loadLatency = 0.f;
 
         mClock.reset (mPlayerVideo, mPlayerAudio);
@@ -444,8 +443,8 @@ private:
                               ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
             }
           // debug
-          auto aLevel = mPlayerAudio ? mPlayerAudio->getPacketCacheUse()*100.f : 0;
-          auto vLevel = mPlayerVideo ? mPlayerVideo->getPacketCacheUse()*100.f : 0;
+          auto aLevel = mPlayerAudio ? mPlayerAudio->getPacketCacheSize()/1024 : 0;
+          auto vLevel = mPlayerVideo ? mPlayerVideo->getPacketCacheSize()/1024 : 0;
           auto aDelay = mPlayerAudio ? mPlayerAudio->getDelay() : 0;
           auto aCache = mPlayerAudio ? mPlayerAudio->getCacheTotal() : 0;
 
@@ -454,14 +453,14 @@ private:
                      ":"  + decFrac(video_pts/1000000.0,6,2,' ') +
                      " "  + decFrac(audio_fifo,6,2,' ') +
                      ":"  + decFrac(video_fifo,6,2,' ') +
-                     " "  + decFrac(aLevel,5,1,' ') +
-                     " :" + decFrac(vLevel,5,1,' ') +
+                     " "  + dec(aLevel,4) +
+                     " :" + dec(vLevel,4) +
                      " ad:" + dec(aDelay) +
                      " ac:" + dec(aCache);
           mDebugStr = str;
           //}}}
 
-          if (audioConfig.mIsLive) {
+          if (mAudioConfig.mIsLive) {
             //{{{  live latency controlled by adjusting clock
             float latency = DVD_NOPTS_VALUE;
             if (mPlayerAudio && (audio_pts != DVD_NOPTS_VALUE))
@@ -656,30 +655,39 @@ int main (int argc, char* argv[]) {
   eLogLevel logLevel = LOGINFO;
   string root = "/home/pi/tv";
   string inTs;
+  bool startPlayer = true;
   int frequency = 0;
-  int fileNum = 1;
+  int vFifo = 1024;
+  int vCache = 2 * 1024;
+  int aCache = 512;
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
-    else if (!strcmp(argv[arg], "n")) logLevel = LOGNOTICE;
-    else if (!strcmp(argv[arg], "e")) logLevel = LOGERROR;
-    else if (!strcmp(argv[arg], "i")) logLevel = LOGINFO;
+    else if (!strcmp(argv[arg], "n"))  logLevel = LOGNOTICE;
+    else if (!strcmp(argv[arg], "e"))  logLevel = LOGERROR;
+    else if (!strcmp(argv[arg], "i"))  logLevel = LOGINFO;
     else if (!strcmp(argv[arg], "i1")) logLevel = LOGINFO1;
     else if (!strcmp(argv[arg], "i2")) logLevel = LOGINFO2;
     else if (!strcmp(argv[arg], "i3")) logLevel = LOGINFO3;
-    else if (!strcmp(argv[arg], "r")) root = argv[++arg];
-    else if (!strcmp(argv[arg], "i")) inTs = argv[++arg];
+    else if (!strcmp(argv[arg], "r"))  root = argv[++arg];
+    else if (!strcmp(argv[arg], "i"))  inTs = argv[++arg];
     else if (!strcmp(argv[arg], "itv")) frequency = 650;
     else if (!strcmp(argv[arg], "bbc")) frequency = 674;
-    else if (!strcmp(argv[arg], "hd")) frequency = 706;
-    else fileNum = atoi (argv[arg]);
+    else if (!strcmp(argv[arg], "hd"))  frequency = 706;
+    else if (!strcmp(argv[arg], "ac")) aCache = atoi (argv[++arg]);
+    else if (!strcmp(argv[arg], "vc")) vCache = atoi (argv[++arg]);
+    else if (!strcmp(argv[arg], "vf")) vFifo = atoi (argv[++arg]);
+    else if (!strcmp(argv[arg], "p")) startPlayer = false;
 
   cLog::init (logLevel, false, "");
-  cLog::log (LOGNOTICE, "omx " + root + string(VERSION_DATE));
+  cLog::log (LOGNOTICE, "omx " + root + " " + string(VERSION_DATE));
 
   cAppWindow appWindow (root);
-  //appWindow.audioConfig.mIsLive = true;
-  //appWindow.audioConfig.mHwDecode = true;
-  appWindow.run (fileNum, inTs, frequency);
+  appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
+  appWindow.mVideoConfig.mPacketCacheSize = vCache * 1024;
+  appWindow.mAudioConfig.mPacketCacheSize = aCache * 1024;
+  //appWindow.mAudioConfig.mIsLive = true;
+  //appWindow.mAudioConfig.mHwDecode = true;
+  appWindow.run (inTs, frequency, startPlayer);
 
   return EXIT_SUCCESS;
   }

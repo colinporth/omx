@@ -100,8 +100,8 @@ void cOmxVideo::setVideoRect() {
       (mConfig.mDstRect.y2 > mConfig.mDstRect.y1)) {
     configDisplay.set = (OMX_DISPLAYSETTYPE)(configDisplay.set | OMX_DISPLAY_SET_DEST_RECT);
     configDisplay.fullscreen = OMX_FALSE;
-    if ((mConfig.mAspectMode != 1) && 
-        (mConfig.mAspectMode != 2) && 
+    if ((mConfig.mAspectMode != 1) &&
+        (mConfig.mAspectMode != 2) &&
         (mConfig.mAspectMode != 3))
       configDisplay.noaspect = OMX_TRUE;
     configDisplay.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
@@ -307,7 +307,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     }
     //}}}
 
-  //{{{  set fps
+  //{{{  set portFormat fps
   OMX_VIDEO_PARAM_PORTFORMATTYPE format;
   OMX_INIT_STRUCTURE(format);
   format.nPortIndex = mDecoder.getInputPort();
@@ -321,7 +321,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     return false;
     }
   //}}}
-  //{{{  set width, height, buffers
+  //{{{  set portParam width,height,buffers
   OMX_PARAM_PORTDEFINITIONTYPE port;
   OMX_INIT_STRUCTURE(port);
   port.nPortIndex = mDecoder.getInputPort();
@@ -341,7 +341,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     return false;
     }
   //}}}
-  //{{{  request portChanged callback on aspectRatio change
+  //{{{  request portChanged callback on aspect change
   OMX_CONFIG_REQUESTCALLBACKTYPE request;
   OMX_INIT_STRUCTURE(request);
   request.nPortIndex = mDecoder.getOutputPort();
@@ -359,11 +359,10 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
   OMX_INIT_STRUCTURE(conceal);
   conceal.bStartWithValidFrame = OMX_FALSE; // OMX_TRUE;
   if (mDecoder.setParameter (OMX_IndexParamBrcmVideoDecodeErrorConcealment, &conceal) != OMX_ErrorNone) {
-    //{{{  error return
+    // error return
     cLog::log (LOGERROR, string(__func__) + " set conceal");
     return false;
     }
-    //}}}
   //}}}
   //{{{  set nalFormat
   if (naluFormatStartCodes (mConfig.mHints.codec,

@@ -18,7 +18,7 @@ void* alignedMalloc (size_t size, size_t alignTo) {
 // the returned address will be the nearest alligned address within the space allocated.
 
   char* fullAlloc = (char*)malloc (size + alignTo + sizeof(char*));
-  char* alignedAlloc = (char*)(((((unsigned long)fullAlloc + 
+  char* alignedAlloc = (char*)(((((unsigned long)fullAlloc +
                          sizeof (char*))) + (alignTo-1)) & ~(alignTo-1));
   *(char**)(alignedAlloc - sizeof(char*)) = fullAlloc;
   return alignedAlloc;
@@ -211,13 +211,13 @@ OMX_ERRORTYPE cOmxCoreComponent::disablePort (unsigned int port, bool wait) {
   portFormat.nPortIndex = port;
   auto omxErr = OMX_GetParameter (mHandle, OMX_IndexParamPortDefinition, &portFormat);
   if(omxErr != OMX_ErrorNone)
-    cLog::log (LOGERROR, "%s get port %d status %s 0x%08x", 
+    cLog::log (LOGERROR, "%s get port %d status %s 0x%08x",
                          __func__, port, mComponentName.c_str(), (int)omxErr);
 
   if (portFormat.bEnabled == OMX_TRUE) {
     omxErr = OMX_SendCommand (mHandle, OMX_CommandPortDisable, port, nullptr);
     if(omxErr != OMX_ErrorNone) {
-      cLog::log (LOGERROR, "%s disable port %d %s 0x%08x", 
+      cLog::log (LOGERROR, "%s disable port %d %s 0x%08x",
                            __func__, port, mComponentName.c_str(), (int)omxErr);
       return omxErr;
       }
@@ -232,10 +232,10 @@ OMX_ERRORTYPE cOmxCoreComponent::disablePort (unsigned int port, bool wait) {
 OMX_ERRORTYPE cOmxCoreComponent::disableAllPorts() {
 
   OMX_INDEXTYPE idxTypes[] = {
-    OMX_IndexParamAudioInit, 
+    OMX_IndexParamAudioInit,
     OMX_IndexParamImageInit,
-    OMX_IndexParamVideoInit, 
-    OMX_IndexParamOtherInit 
+    OMX_IndexParamVideoInit,
+    OMX_IndexParamOtherInit
     };
 
   OMX_PORT_PARAM_TYPE ports;
@@ -292,13 +292,13 @@ OMX_ERRORTYPE cOmxCoreComponent::allocInputBuffers (bool useBuffers /* = false *
   mInputAlignment = portFormat.nBufferAlignment;
   mInputBufferCount = portFormat.nBufferCountActual;
   mInputBufferSize= portFormat.nBufferSize;
-  cLog::log (LOGINFO1, "%s port:%d, min:%u, act:%u, size:%u, a:%u",
-                       mComponentName.c_str(),
-                       getInputPort(), 
-                       portFormat.nBufferCountMin,
-                       portFormat.nBufferCountActual, 
-                       portFormat.nBufferSize, 
-                       portFormat.nBufferAlignment);
+  cLog::log (LOGINFO, "allocInputBuffers %s - port:%d, countMin:%u, countActual:%u, size:%u, align:%u",
+                      mComponentName.c_str(),
+                      getInputPort(),
+                      portFormat.nBufferCountMin,
+                      portFormat.nBufferCountActual,
+                      portFormat.nBufferSize,
+                      portFormat.nBufferAlignment);
 
   for (size_t i = 0; i < portFormat.nBufferCountActual; i++) {
     OMX_BUFFERHEADERTYPE* buffer = nullptr;
@@ -361,13 +361,13 @@ OMX_ERRORTYPE cOmxCoreComponent::allocOutputBuffers (bool useBuffers /* = false 
   mOutputAlignment = portFormat.nBufferAlignment;
   mOutputBufferCount = portFormat.nBufferCountActual;
   mOutputBufferSize = portFormat.nBufferSize;
-  cLog::log (LOGINFO1, "%s %s port:%d, min:%u, act:%u, size:%u, a:%u",
-                       __func__, mComponentName.c_str(), 
-                       mOutputPort, 
-                       portFormat.nBufferCountMin,
-                       portFormat.nBufferCountActual, 
-                       portFormat.nBufferSize, 
-                       portFormat.nBufferAlignment);
+  cLog::log (LOGINFO, "allocOutputBuffers %s - port:%d, countMin:%u, countActual:%u, size:%u, align:%u",
+                      mComponentName.c_str(),
+                      mOutputPort,
+                      portFormat.nBufferCountMin,
+                      portFormat.nBufferCountActual,
+                      portFormat.nBufferSize,
+                      portFormat.nBufferAlignment);
 
   for (size_t i = 0; i < portFormat.nBufferCountActual; i++) {
     OMX_BUFFERHEADERTYPE* buffer = nullptr;
@@ -407,6 +407,7 @@ OMX_ERRORTYPE cOmxCoreComponent::allocOutputBuffers (bool useBuffers /* = false 
   return omxErr;
   }
 //}}}
+
 //{{{
 OMX_BUFFERHEADERTYPE* cOmxCoreComponent::getInputBuffer (long timeout /*=200*/) {
 // timeout in milliseconds
@@ -469,6 +470,7 @@ OMX_BUFFERHEADERTYPE* cOmxCoreComponent::getOutputBuffer (long timeout /*=200*/)
   return omxOutputBuffer;
   }
 //}}}
+
 //{{{
 OMX_ERRORTYPE cOmxCoreComponent::emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
 
@@ -489,6 +491,7 @@ OMX_ERRORTYPE cOmxCoreComponent::fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer
   return omxErr;
   }
 //}}}
+
 //{{{
 OMX_ERRORTYPE cOmxCoreComponent::waitForInputDone (long timeout /*=200*/) {
 
@@ -541,6 +544,7 @@ OMX_ERRORTYPE cOmxCoreComponent::waitForOutputDone (long timeout /*=200*/) {
   return omxErr;
   }
 //}}}
+
 //{{{
 OMX_ERRORTYPE cOmxCoreComponent::freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
 
@@ -637,6 +641,7 @@ OMX_ERRORTYPE cOmxCoreComponent::freeOutputBuffers() {
   return omxErr;
   }
 //}}}
+
 //{{{
 void cOmxCoreComponent::flushAll() {
   flushInput();
@@ -768,8 +773,8 @@ OMX_ERRORTYPE cOmxCoreComponent::waitForCommand (OMX_U32 command, OMX_U32 nData2
   while (true) {
     for (auto it = mOmxEvents.begin(); it != mOmxEvents.end(); it++) {
       auto event = *it;
-      if (event.eEvent == OMX_EventError && 
-          event.nData1 == (OMX_U32)OMX_ErrorSameState && 
+      if (event.eEvent == OMX_EventError &&
+          event.nData1 == (OMX_U32)OMX_ErrorSameState &&
           event.nData2 == 1) {
         mOmxEvents.erase (it);
         pthread_mutex_unlock (&mOmxEventMutex);
@@ -795,7 +800,7 @@ OMX_ERRORTYPE cOmxCoreComponent::waitForCommand (OMX_U32 command, OMX_U32 nData2
 
     if (pthread_cond_timedwait (&mOmxEventCond, &mOmxEventMutex, &endtime) != 0) {
       cLog::log (LOGERROR, "%s %s wait timeout event.eEvent 0x%08x event.command 0x%08x event.nData2 %d",
-                           __func__, mComponentName.c_str(), 
+                           __func__, mComponentName.c_str(),
                            (int)OMX_EventCmdComplete, (int)command, (int)nData2);
 
       pthread_mutex_unlock (&mOmxEventMutex);
@@ -923,7 +928,7 @@ OMX_ERRORTYPE cOmxCoreComponent::decoderFillBufferDoneCallback (OMX_HANDLETYPE c
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::decoderEmptyBufferDone (OMX_HANDLETYPE component, 
+OMX_ERRORTYPE cOmxCoreComponent::decoderEmptyBufferDone (OMX_HANDLETYPE component,
                                                          OMX_BUFFERHEADERTYPE* buffer) {
 
   if (mExit)
@@ -940,7 +945,7 @@ OMX_ERRORTYPE cOmxCoreComponent::decoderEmptyBufferDone (OMX_HANDLETYPE componen
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::decoderFillBufferDone (OMX_HANDLETYPE component, 
+OMX_ERRORTYPE cOmxCoreComponent::decoderFillBufferDone (OMX_HANDLETYPE component,
                                                         OMX_BUFFERHEADERTYPE* buffer) {
 
   if (mExit)
@@ -957,7 +962,7 @@ OMX_ERRORTYPE cOmxCoreComponent::decoderFillBufferDone (OMX_HANDLETYPE component
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandler (OMX_HANDLETYPE component, 
+OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandler (OMX_HANDLETYPE component,
   OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2, OMX_PTR eventData) {
 
   // if the error is expected, then we can skip it
@@ -1052,9 +1057,9 @@ OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandler (OMX_HANDLETYPE component,
       //}}}
     #endif
 
-    case OMX_EventCmdComplete: 
-    case OMX_EventPortSettingsChanged: 
-    case OMX_EventParamOrConfigChanged: 
+    case OMX_EventCmdComplete:
+    case OMX_EventPortSettingsChanged:
+    case OMX_EventParamOrConfigChanged:
       break;
 
     default:
