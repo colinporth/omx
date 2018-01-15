@@ -109,6 +109,8 @@ public:
     cRaspWindow::run();
     }
   //}}}
+  cOmxVideoConfig videoConfig;
+  cOmxAudioConfig audioConfig;
 
 protected:
   //{{{
@@ -341,9 +343,8 @@ private:
     vc_dispmanx_update_submit_sync (update);
     //}}}
 
-    //audioConfig.mIsLive = true;
-    //audioConfig.mHwDecode = true;
-    while (true) {
+    bool ok = true;
+    while (ok) {
       cOmxPlayerVideo* mPlayerVideo = nullptr;
       cOmxPlayerAudio* mPlayerAudio = nullptr;
       cLog::log (LOGINFO, "open " + fileName);
@@ -604,18 +605,19 @@ private:
 
       refreshFileNames();
       if (mExit || gAbort)
-        break;
+        ok = false;
       else if (mEntered)
         mEntered = false;
       else if (mFileNum >= mFileNames.size()-1)
-        break;
+        ok = false;
       else
         mFileNum++;
       fileName = mFileNames[mFileNum];
       }
 
-    cLog::log (LOGNOTICE, "player - exit " + string(mExit ? "mExit" : "") +
-                          " " + string(gAbort ? "gAbort" : ""));
+    cLog::log (LOGNOTICE, "player - exit");
+
+    // make sure everybody sees exit
     mExit = true;
     }
   //}}}
@@ -627,8 +629,6 @@ private:
   cOmxClock mClock;
   cOmxReader mReader;
 
-  cOmxVideoConfig videoConfig;
-  cOmxAudioConfig audioConfig;
   cOmxPlayerVideo* mPlayerVideo = nullptr;
   cOmxPlayerAudio* mPlayerAudio = nullptr;
 
@@ -679,6 +679,8 @@ int main (int argc, char* argv[]) {
   cLog::log (LOGNOTICE, "omx " + root + string(VERSION_DATE));
 
   cAppWindow appWindow (root);
+  //appWindow.audioConfig.mIsLive = true;
+  //appWindow.audioConfig.mHwDecode = true;
   appWindow.run (fileNum, inTs, frequency);
 
   return EXIT_SUCCESS;

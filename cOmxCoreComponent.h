@@ -86,10 +86,10 @@ public:
     OMX_HANDLETYPE component, OMX_PTR appData, OMX_BUFFERHEADERTYPE* bufferHeader);
 
   // OMXCore decoder callback routines.
-  OMX_ERRORTYPE decoderEventHandler (OMX_HANDLETYPE hComponent, OMX_EVENTTYPE eEvent,
-                                     OMX_U32 nData1, OMX_U32 nData2, OMX_PTR pEventData);
-  OMX_ERRORTYPE decoderEmptyBufferDone (OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE* pBuffer);
-  OMX_ERRORTYPE decoderFillBufferDone (OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE* pBuffer);
+  OMX_ERRORTYPE decoderEventHandler (OMX_HANDLETYPE component, OMX_EVENTTYPE eEvent,
+                                     OMX_U32 nData1, OMX_U32 nData2, OMX_PTR eventData);
+  OMX_ERRORTYPE decoderEmptyBufferDone (OMX_HANDLETYPE component, OMX_BUFFERHEADERTYPE* buffer);
+  OMX_ERRORTYPE decoderFillBufferDone (OMX_HANDLETYPE component, OMX_BUFFERHEADERTYPE* buffer);
 
   OMX_ERRORTYPE emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
   OMX_ERRORTYPE fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
