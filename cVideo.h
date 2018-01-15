@@ -13,6 +13,7 @@
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
+#include "cOmxPlayer.h"
 //}}}
 //{{{
 enum EDEINTERLACEMODE {
@@ -272,7 +273,7 @@ private:
   };
 //}}}
 
-class cOmxPlayerVideo {
+class cOmxPlayerVideo : public cOmxPlayer {
 public:
   cOmxPlayerVideo();
   ~cOmxPlayerVideo();
@@ -300,25 +301,12 @@ public:
   bool close();
 
 private:
-  void lock() { pthread_mutex_lock (&mLock); }
-  void unLock() { pthread_mutex_unlock (&mLock); }
-  void lockDecoder() { pthread_mutex_lock  (&mLockDecoder); }
-  void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
-
   bool decode (OMXPacket* packet);
 
   //{{{  vars
-  pthread_mutex_t mLock;
-  pthread_mutex_t mLockDecoder;
-  pthread_cond_t mPacketCond;
-
   cOmxClock* mAvClock = nullptr;
   cOmxVideo* mDecoder = nullptr;
   cOmxVideoConfig mConfig;
-
-  cAvUtil mAvUtil;
-  cAvCodec mAvCodec;
-  cAvFormat mAvFormat;
 
   bool mAbort = false;
   bool mFlush = false;

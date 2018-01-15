@@ -13,6 +13,7 @@
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
+#include "cOmxPlayer.h"
 
 //{{{  WAVE_FORMAT defines
 #define WAVE_FORMAT_UNKNOWN           0x0000
@@ -277,7 +278,7 @@ private:
   };
 //}}}
 
-class cOmxPlayerAudio {
+class cOmxPlayerAudio : public cOmxPlayer{
 public:
   cOmxPlayerAudio();
   ~cOmxPlayerAudio();
@@ -321,30 +322,17 @@ public:
   bool close();
 
 private:
-  void lock() { pthread_mutex_lock (&mLock); }
-  void unLock() { pthread_mutex_unlock (&mLock); }
-  void lockDecoder() { pthread_mutex_lock (&mLockDecoder); }
-  void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
-
   bool openSwAudio();
   bool openOmxAudio();
-  bool decode (OMXPacket *packet);
+  bool decode (OMXPacket* packet);
 
   //{{{  vars
-  pthread_mutex_t mLock;
-  pthread_mutex_t mLockDecoder;
-  pthread_cond_t mPacketCond;
-
   cOmxClock* mAvClock = nullptr;
   cOmxReader* mOmxReader = nullptr;
   cOmxStreamInfo mHints;
   cOmxAudioConfig mConfig;
   cOmxAudio* mOmxAudio = nullptr;
   cSwAudio* mSwAudio = nullptr;
-
-  cAvUtil mAvUtil;
-  cAvCodec mAvCodec;
-  cAvFormat mAvFormat;
 
   bool mAbort;
   bool mFlush = false;
