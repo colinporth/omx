@@ -64,7 +64,7 @@ public:
   bool pause();
   bool resume();
 
-  static void sleep (unsigned int mMilliSeconds);
+  static void sleep (unsigned int mSecs);
 
 private:
   std::recursive_mutex mMutex;
