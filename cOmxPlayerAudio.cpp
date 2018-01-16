@@ -48,13 +48,12 @@ bool cOmxPlayerAudio::isPassthrough (cOmxStreamInfo hints) {
 //}}}
 
 //{{{
-bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config, cOmxReader* omxReader) {
+bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
 
   mConfig = config;
   mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
 
   mAvClock = avClock;
-  mOmxReader = omxReader;
 
   mAvFormat.av_register_all();
 

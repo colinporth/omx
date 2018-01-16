@@ -619,7 +619,7 @@ protected:
 
   virtual bool decode (OMXPacket* packet) = 0;
   //{{{
-  void flushPackets() {  
+  void flushPackets() {
     mFlush = true;
     while (!mPackets.empty()) {
       auto packet = mPackets.front();
@@ -688,7 +688,7 @@ public:
     }
   //}}}
 
-  bool open (cOmxClock* avClock, const cOmxAudioConfig& config, cOmxReader* omxReader);
+  bool open (cOmxClock* avClock, const cOmxAudioConfig& config);
   void submitEOS();
   void flush();
   void reset() {}

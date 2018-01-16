@@ -363,7 +363,7 @@ private:
           thread ([=]() { mPlayerVideo->run ("vid "); } ).detach();
 
         mAudioConfig.mDevice = "omx:local";
-        if (mPlayerAudio && mPlayerAudio->open (&mClock, mAudioConfig, &mReader)) {
+        if (mPlayerAudio && mPlayerAudio->open (&mClock, mAudioConfig)) {
           thread ([=]() { mPlayerAudio->run("aud "); } ).detach();
           mPlayerAudio->setVolume (pow (10, mVolume / 2000.0));
           //mPlayerAudio.SetDynamicRangeCompression (m_Amplification);
