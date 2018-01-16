@@ -179,7 +179,7 @@ void cOmxAudio::setMute (bool mute) {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mMute = mute;
-  if (mSettingsChanged)
+  if (mPortChanged)
     updateAttenuation();
   }
 //}}}
@@ -189,7 +189,7 @@ void cOmxAudio::setVolume (float volume) {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mCurrentVolume = volume;
-  if (mSettingsChanged)
+  if (mPortChanged)
     updateAttenuation();
   }
 //}}}
@@ -199,7 +199,7 @@ void cOmxAudio::setDynamicRangeCompression (float drc) {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mDrc = powf (10.f, drc);
-  if (mSettingsChanged)
+  if (mPortChanged)
     updateAttenuation();
   }
 //}}}
@@ -454,7 +454,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   cLog::log (LOGINFO1, "cOmxAudio::init - dev:%s pass:%d hw:%d",
                        mConfig.mDevice.c_str(), mConfig.mPassThru, mConfig.mHwDecode);
 
-  mSettingsChanged = false;
+  mPortChanged = false;
   mSetStartTime  = true;
   mSubmittedEos = false;
   mFailedEos = false;
@@ -554,7 +554,7 @@ bool cOmxAudio::portChanged() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (mSettingsChanged) {
+  if (mPortChanged) {
     mDecoder.disablePort (mDecoder.getOutputPort(), true);
     mDecoder.enablePort (mDecoder.getOutputPort(), true);
     return true;
@@ -807,7 +807,7 @@ bool cOmxAudio::portChanged() {
       }
       //}}}
 
-  mSettingsChanged = true;
+  mPortChanged = true;
   return true;
   }
 //}}}
@@ -1107,7 +1107,7 @@ bool cOmxAudio::applyVolume() {
       }
     }
   //}}}
-  //{{{  set mixer downmix coeffs 
+  //{{{  set mixer downmix coeffs
   for (size_t i = 0; i < 8*8; ++i)
     mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * volume * mDrc * mAttenuation));
   mix.nPortIndex = mMixer.getInputPort();

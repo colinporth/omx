@@ -345,7 +345,7 @@ private:
   std::string mVideoCodecName;
 
   bool mFailedEos = false;
-  bool mSettingsChanged = false;
+  bool mPortChanged = false;
   bool mSetStartTime = false;
   bool mDeinterlace = false;
   bool mDropState = false;
@@ -511,7 +511,7 @@ private:
   unsigned int mChunkLen = 0;
 
   float mSubmitted = 0.f;
-  bool mSettingsChanged = false;
+  bool mPortChanged = false;
   bool  mSetStartTime = false;
   double mLastPts = DVD_NOPTS_VALUE;
   bool mSubmittedEos = false;

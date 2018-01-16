@@ -11,6 +11,7 @@ using namespace std;
 //}}}
 //{{{  decoder defines
 #define OMX_VIDEO_DECODER       "OMX.broadcom.video_decode"
+
 #define OMX_H264BASE_DECODER    OMX_VIDEO_DECODER
 #define OMX_H264MAIN_DECODER    OMX_VIDEO_DECODER
 #define OMX_H264HIGH_DECODER    OMX_VIDEO_DECODER
@@ -149,10 +150,11 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
   close();
 
   mConfig = config;
-  mSettingsChanged = false;
+  mPortChanged = false;
   mSetStartTime = true;
   mSubmittedEos = false;
   mFailedEos = false;
+  mDropState = false;
 
   //{{{  init decoder
   string decoderName;
@@ -395,8 +397,6 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     //}}}
   sendDecoderExtraConfig();
 
-  mDropState = false;
-  mSetStartTime = true;
   //{{{  set transform
   switch (mConfig.mHints.orientation) {
     case 90:  mTransform = OMX_DISPLAY_ROT90; break;
@@ -431,7 +431,7 @@ bool cOmxVideo::portChanged() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (mSettingsChanged)
+  if (mPortChanged)
     mDecoder.disablePort (mDecoder.getOutputPort(), true);
 
   //{{{  get port
@@ -453,7 +453,7 @@ bool cOmxVideo::portChanged() {
   if ((aspect.nX && aspect.nY) && !mConfig.mHints.forced_aspect)
     mPixelAspect = ((float)aspect.nX / (float)aspect.nY) / mConfig.mDisplayAspect;
   //}}}
-  if (mSettingsChanged) {
+  if (mPortChanged) {
     //{{{  settings changed
     logPortChanged (port, -1);
     setVideoRect();
@@ -620,7 +620,7 @@ bool cOmxVideo::portChanged() {
     }
     //}}}
 
-  mSettingsChanged = true;
+  mPortChanged = true;
   return true;
   }
 //}}}
