@@ -213,7 +213,7 @@ protected:
         if (mFileNum > 0) {
           mFileNum--;
           mFileChanged = true;
-          //mEntered = true;
+          changed();
           }
         break;
       //}}}
@@ -222,7 +222,7 @@ protected:
         if (mFileNum < mFileNames.size()-1) {
           mFileNum++;
           mFileChanged = true;
-          //mEntered = true;
+          changed();
           }
         break;
       //}}}
@@ -253,16 +253,16 @@ protected:
         break;
       //}}}
 
-      case cKeyConfig::ACT_TOGGLE_VSYNC: toggleVsync(); break; // v
-      case cKeyConfig::ACT_TOGGLE_PERF:  togglePerf();  break; // p
-      case cKeyConfig::ACT_TOGGLE_STATS: toggleStats(); break; // s
-      case cKeyConfig::ACT_TOGGLE_TESTS: toggleTests(); break; // y
+      case cKeyConfig::ACT_TOGGLE_VSYNC: toggleVsync(); changed(); break; // v
+      case cKeyConfig::ACT_TOGGLE_PERF:  togglePerf(); changed();  break; // p
+      case cKeyConfig::ACT_TOGGLE_STATS: toggleStats(); changed(); break; // s
+      case cKeyConfig::ACT_TOGGLE_TESTS: toggleTests(); changed(); break; // y
 
       case cKeyConfig::ACT_TOGGLE_SOLID: toggleSolid(); break; // s
       case cKeyConfig::ACT_TOGGLE_EDGES: toggleEdges(); break; // a
       case cKeyConfig::ACT_TOGGLE_TRIANGLES: toggleTriangles();  break; // d
-      case cKeyConfig::ACT_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
-      case cKeyConfig::ACT_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
+      case cKeyConfig::ACT_LESS_FRINGE: fringeWidth (getFringeWidth() - 0.25f); changed(); break; // q
+      case cKeyConfig::ACT_MORE_FRINGE: fringeWidth (getFringeWidth() + 0.25f); changed(); break; // w
 
       case cKeyConfig::ACT_LOG1: cLog::setLogLevel (LOGNOTICE); break;
       case cKeyConfig::ACT_LOG2: cLog::setLogLevel (LOGERROR); break;
@@ -296,6 +296,7 @@ private:
   void refreshFileNames() {
     mFileNames.clear();
     nftw (mRoot.c_str(), addFile, 20, 0);
+    changed();
     }
   //}}}
   //{{{
@@ -461,6 +462,7 @@ private:
                      " ad:" + dec(aDelay) +
                      " ac:" + dec(aCache);
           mDebugStr = str;
+          changed();
           //}}}
 
           if (mAudioConfig.mIsLive) {
