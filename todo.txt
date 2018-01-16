@@ -1,0 +1,7 @@
+fix mp3
+fix h264
+fix switch to 5.1
+speed up ts open
+make dvb work
+make mpeg2 sw work
+background not extending to whole screen

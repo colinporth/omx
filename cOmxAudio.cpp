@@ -388,7 +388,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
     mWaveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
 
     auto buffer = mDecoder.getInputBuffer();
-    if (buffer == NULL) {
+    if (!buffer) {
        //  error, return
       cLog::log (LOGERROR, string(__func__) + " getInputBuffer");
       return false;
@@ -409,9 +409,9 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
     //}}}
   else if (mConfig.mHwDecode) {
     //{{{  send decoder config
-    if (mConfig.mHints.extrasize > 0 && mConfig.mHints.extradata != NULL) {
+    if (mConfig.mHints.extrasize > 0 && !mConfig.mHints.extradata) {
       auto buffer = mDecoder.getInputBuffer();
-      if (buffer == NULL) {
+      if (!buffer) {
         // error, return
         cLog::log (LOGERROR, string(__func__) + " extra getInputBuffer");
         return false;
@@ -830,7 +830,7 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
   unsigned int demuxSamples_sent = 0;
   auto demuxer_content = (uint8_t *)data;
 
-  OMX_BUFFERHEADERTYPE* buffer = NULL;
+  OMX_BUFFERHEADERTYPE* buffer = nullptr;
   while (demuxSamples_sent < demuxSamples) {
     buffer = mDecoder.getInputBuffer (200); // 200ms timeout
     if (!buffer) {
@@ -931,19 +931,19 @@ void cOmxAudio::submitEOS() {
   mSubmittedEos = true;
   mFailedEos = false;
 
-  auto* omx_buffer = mDecoder.getInputBuffer(1000);
-  if (omx_buffer == NULL) {
+  auto* buffer = mDecoder.getInputBuffer(1000);
+  if (!buffer) {
     cLog::log (LOGERROR, string(__func__) + " buffer");
     mFailedEos = true;
     return;
     }
-  omx_buffer->nOffset = 0;
-  omx_buffer->nFilledLen = 0;
-  omx_buffer->nTimeStamp = toOmxTime (0LL);
-  omx_buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
-  if (mDecoder.emptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
-    cLog::log (LOGERROR, string(__func__) + " OMX_EmptyThisBuffer");
-    mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), omx_buffer);
+  buffer->nOffset = 0;
+  buffer->nFilledLen = 0;
+  buffer->nTimeStamp = toOmxTime (0LL);
+  buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
+  if (mDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {
+    cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+    mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), buffer);
     return;
     }
   }
@@ -972,10 +972,11 @@ void cOmxAudio::flush() {
   if (mRenderHdmi.isInit() )
     mRenderHdmi.resetEos();
 
+  mSetStartTime  = true;
   mLastPts = DVD_NOPTS_VALUE;
   mSubmitted = 0.f;
+
   mMaxLevel = 0.f;
-  mSetStartTime  = true;
   }
 //}}}
 //{{{
@@ -1021,13 +1022,14 @@ bool cOmxAudio::deInit() {
   mBytesPerSec = 0;
   mBufferLen = 0;
 
-  mClock = NULL;
-  mAvClock = NULL;
+  mClock = nullptr;
+  mAvClock = nullptr;
 
   while (!mAmpQueue.empty())
     mAmpQueue.pop_front();
 
   mLastPts = DVD_NOPTS_VALUE;
+
   mSubmitted = 0.f;
   mMaxLevel = 0.f;
 
