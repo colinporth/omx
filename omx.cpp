@@ -609,8 +609,12 @@ private:
       refreshFileNames();
       if (mExit || gAbort)
         ok = false;
-      else if (mEntered)
+      else if (mEntered) {
+        //{{{  play
         mEntered = false;
+        mPause = false;
+        }
+        //}}}
       else if (mFileNum >= mFileNames.size()-1)
         ok = false;
       else
