@@ -364,12 +364,13 @@ public:
   int mPacketMaxCacheSize = 512 * 1024; // 0.5m
 
   std::string mDevice;
-  std::string mSubdevice;
 
   enum PCMLayout mLayout = PCM_LAYOUT_2_0;
   bool mBoostOnDownmix = true;
+
   bool mPassThru = false;
   bool mHwDecode = false;
+
   bool mIsLive = false;
   };
 //}}}
@@ -550,7 +551,6 @@ public:
   //}}}
   //{{{
   virtual ~cOmxPlayer() {
-    close();
     pthread_cond_destroy (&mPacketCond);
     pthread_mutex_destroy (&mLock);
     pthread_mutex_destroy (&mLockDecoder);
@@ -702,10 +702,10 @@ protected:
   };
 //}}}
 //{{{
-class cOmxPlayerAudio : public cOmxPlayer{
+class cOmxPlayerAudio : public cOmxPlayer {
 public:
   cOmxPlayerAudio() : cOmxPlayer() {}
-  ~cOmxPlayerAudio() {}
+  virtual ~cOmxPlayerAudio() { close(); }
 
   bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
   double getDelay() { return mOmxAudio->getDelay(); }
@@ -779,7 +779,7 @@ private:
 class cOmxPlayerVideo : public cOmxPlayer {
 public:
   cOmxPlayerVideo() : cOmxPlayer() {}
-  ~cOmxPlayerVideo() {}
+  virtual ~cOmxPlayerVideo() { close(); }
 
   bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
   double getDelay() { return mVideoDelay; }

@@ -150,8 +150,6 @@ protected:
 
       map<int,int> keymap;
 
-      keymap['q'] = ACT_EXIT;
-      keymap['Q'] = ACT_EXIT;
       keymap[KEY_ESC] = ACT_EXIT;
 
       keymap[KEY_UP]    = ACT_PREV_FILE;
