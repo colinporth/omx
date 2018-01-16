@@ -228,7 +228,7 @@ void cOmxAudio::setCodingType (AVCodecID codec) {
 
 // actions
 //{{{
-bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
+bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
                       uint64_t channelMap, unsigned int uiBitsPerSample) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -292,10 +292,9 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   //{{{  set passthru
   OMX_CONFIG_BOOLEANTYPE boolType;
   OMX_INIT_STRUCTURE(boolType);
-  if (mConfig.mPassthrough)
-    boolType.bEnabled = OMX_TRUE;
-  else
-    boolType.bEnabled = OMX_FALSE;
+
+  // set passthru
+  boolType.bEnabled = mConfig.mPassthrough ? OMX_TRUE : OMX_FALSE;
   if (mDecoder.setParameter (OMX_IndexParamBrcmDecoderPassThrough, &boolType) != OMX_ErrorNone) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " set PassThru");
@@ -311,6 +310,8 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
 
   OMX_PARAM_PORTDEFINITIONTYPE port;
   OMX_INIT_STRUCTURE(port);
+
+  // get port param
   port.nPortIndex = mDecoder.getInputPort();
   if (mDecoder.getParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
     // error, return
@@ -318,6 +319,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
     return false;
     }
 
+  // set port param
   port.format.audio.eEncoding = mEncoding;
   port.nBufferSize = mChunkLen;
   port.nBufferCountActual = max (port.nBufferCountMin, 16U);
@@ -329,6 +331,8 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   //}}}
   //{{{  set number/size of buffers for decoder output
   OMX_INIT_STRUCTURE(port);
+
+  // get port param
   port.nPortIndex = mDecoder.getOutputPort();
   if (mDecoder.getParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
     // error, return
@@ -336,6 +340,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
     return false;
     }
 
+  // set port param
   port.nBufferCountActual = max ((unsigned int)port.nBufferCountMin, mBufferLen / port.nBufferSize);
   if (mDecoder.setParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
     // error, return
@@ -346,6 +351,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   //{{{  set input port format
   OMX_AUDIO_PARAM_PORTFORMATTYPE format;
   OMX_INIT_STRUCTURE(format);
+
   format.nPortIndex = mDecoder.getInputPort();
   format.eEncoding = mEncoding;
   if (mDecoder.setParameter (OMX_IndexParamAudioPortFormat, &format) != OMX_ErrorNone) {
@@ -356,7 +362,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   //}}}
   if (mDecoder.allocInputBuffers() != OMX_ErrorNone) {
     //{{{  error, return
-    cLog::log (LOGERROR, string(__func__) + " alloc buffers");
+    cLog::log (LOGERROR, string(__func__) + " allocInputBuffers");
     return false;
     }
     //}}}
@@ -428,7 +434,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   if (mDecoder.badState())
     return false;
 
-  //{{{  set pcmInput
+  //{{{  set mPcmInput
   OMX_INIT_STRUCTURE(mPcmInput);
   mPcmInput.nPortIndex = mDecoder.getInputPort();
   memcpy (mPcmInput.eChannelMapping, mInputChannels, sizeof(mInputChannels));
@@ -440,14 +446,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   mPcmInput.nChannels = mNumInputChannels;
   mPcmInput.nSamplingRate = mConfig.mHints.samplerate;
 
-  mSettingsChanged = false;
-  mSetStartTime  = true;
-  mSubmittedEos = false;
-  mFailedEos = false;
-  mLastPts = DVD_NOPTS_VALUE;
-  mSubmitted = 0.f;
-  mMaxLevel = 0.f;
-
   cLog::log (LOGINFO1, "cOmxAudio::init - bitsPer:%d rate:%d ch:%d buffer size:%d bytesPer:%d",
                        (int)mPcmInput.nBitPerSample, (int)mPcmInput.nSamplingRate,
                        (int)mPcmInput.nChannels, mBufferLen, mInputBytesPerSec);
@@ -456,6 +454,14 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   //}}}
   cLog::log (LOGINFO1, "cOmxAudio::init - dev:%s pass:%d hw:%d",
                        mConfig.mDevice.c_str(), mConfig.mPassthrough, mConfig.mHwDecode);
+
+  mSettingsChanged = false;
+  mSetStartTime  = true;
+  mSubmittedEos = false;
+  mFailedEos = false;
+  mLastPts = DVD_NOPTS_VALUE;
+  mSubmitted = 0.f;
+  mMaxLevel = 0.f;
 
   return true;
   }
@@ -1193,41 +1199,15 @@ void cOmxAudio::printChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
 
   for (int i = 0; i < OMX_AUDIO_MAXCHANNELS; i++) {
     switch (eChannelMapping[i]) {
-      case OMX_AUDIO_ChannelLF:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLF");
-        break;
-
-      case OMX_AUDIO_ChannelRF:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRF");
-        break;
-
-      case OMX_AUDIO_ChannelCF:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCF");
-        break;
-
-      case OMX_AUDIO_ChannelLS:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLS");
-        break;
-
-      case OMX_AUDIO_ChannelRS:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRS");
-        break;
-
-      case OMX_AUDIO_ChannelLFE:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLFE");
-        break;
-
-      case OMX_AUDIO_ChannelCS:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCS");
-        break;
-
-      case OMX_AUDIO_ChannelLR:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLR");
-        break;
-
-      case OMX_AUDIO_ChannelRR:
-        cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRR");
-        break;
+      case OMX_AUDIO_ChannelLF: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLF"); break;
+      case OMX_AUDIO_ChannelRF: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRF"); break;
+      case OMX_AUDIO_ChannelCF: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCF"); break;
+      case OMX_AUDIO_ChannelLS: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLS"); break;
+      case OMX_AUDIO_ChannelRS: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRS"); break;
+      case OMX_AUDIO_ChannelLFE: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLFE"); break;
+      case OMX_AUDIO_ChannelCS: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCS"); break;
+      case OMX_AUDIO_ChannelLR: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLR"); break;
+      case OMX_AUDIO_ChannelRR: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRR"); break;
 
       case OMX_AUDIO_ChannelNone:
       case OMX_AUDIO_ChannelKhronosExtensions:
