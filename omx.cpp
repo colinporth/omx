@@ -419,8 +419,8 @@ private:
             }
             //}}}
 
-          //{{{  pts, fifos
           auto clockPts = mClock.getMediaTime();
+          //{{{  pts, fifos
           auto threshold = mPlayerAudio ? min (0.1f, (float)mPlayerAudio->getCacheTotal() * 0.1f) : 0.1f;
 
           // audio
@@ -446,7 +446,8 @@ private:
             video_fifo_high = !mPlayerVideo ||
                               ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
             }
-          // debug
+          //}}}
+          //{{{  debugStr
           auto aLevel = mPlayerAudio ? mPlayerAudio->getPacketCacheSize()/1024 : 0;
           auto vLevel = mPlayerVideo ? mPlayerVideo->getPacketCacheSize()/1024 : 0;
           auto aDelay = mPlayerAudio ? mPlayerAudio->getDelay() : 0;
@@ -461,8 +462,10 @@ private:
                      " :" + dec(vLevel,4) +
                      " ad:" + dec(aDelay) +
                      " ac:" + dec(aCache);
-          mDebugStr = str;
-          changed();
+          if (mDebugStr != str) {
+            mDebugStr = str;
+            changed();
+            }
           //}}}
 
           if (mAudioConfig.mIsLive) {
@@ -541,16 +544,14 @@ private:
             //}}}
 
           if (!sentStarted) {
-            //{{{  omx reset
+            //{{{  clock reset
             mClock.reset (mPlayerVideo, mPlayerAudio);
             sentStarted = true;
             }
             //}}}
 
-          // packet reader
           if (!packet)
             packet = mReader.readPacket();
-
           if (packet) {
             //{{{  got packet
             submitEos = false;
