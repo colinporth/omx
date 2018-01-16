@@ -618,6 +618,19 @@ protected:
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
   virtual bool decode (OMXPacket* packet) = 0;
+  //{{{
+  void flushPlayer() {
+    mFlush = true;
+    while (!mPackets.empty()) {
+      auto packet = mPackets.front();
+      mPackets.pop_front();
+      cOmxReader::freePacket (packet);
+      }
+    mPacketCacheSize = 0;
+
+    mCurrentPts = DVD_NOPTS_VALUE;
+    }
+  //}}}
 
   // vars
   pthread_mutex_t mLock;
@@ -637,7 +650,6 @@ protected:
 
   bool mAbort;
   bool mFlush = false;
-  std::atomic<bool> mFlushRequested;
   std::deque<OMXPacket*> mPackets;
   int mPacketCacheSize = 0;
   int mPacketMaxCacheSize = 0;

@@ -11,13 +11,11 @@ using namespace std;
 //}}}
 
 //{{{
-cOmxPlayerAudio::cOmxPlayerAudio() : cOmxPlayer(){
+cOmxPlayerAudio::cOmxPlayerAudio() : cOmxPlayer() {
 
   pthread_mutex_init (&mLock, nullptr);
   pthread_mutex_init (&mLockDecoder, nullptr);
   pthread_cond_init (&mPacketCond, nullptr);
-
-  mFlushRequested = false;
   }
 //}}}
 //{{{
@@ -60,7 +58,6 @@ bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config, c
 
   mAbort = false;
   mFlush = false;
-  mFlushRequested = false;
   mPassthrough = false;
   mHwDecode = false;
   mCurrentPts = DVD_NOPTS_VALUE;
@@ -85,24 +82,14 @@ void cOmxPlayerAudio::submitEOS() {
 //{{{
 void cOmxPlayerAudio::flush() {
 
-  mFlushRequested = true;
-
   lock();
   lockDecoder();
 
   if (mSwAudio)
     mSwAudio->reset();
 
-  mFlushRequested = false;
-  mFlush = true;
-  while (!mPackets.empty()) {
-    auto packet = mPackets.front();
-    mPackets.pop_front();
-    cOmxReader::freePacket (packet);
-    }
+  flushPlayer();
 
-  mCurrentPts = DVD_NOPTS_VALUE;
-  mPacketCacheSize = 0;
   mOmxAudio->flush();
 
   unLockDecoder();
@@ -233,7 +220,7 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
     auto dts = packet->dts;
     auto pts = packet->pts;
     while (data_len > 0) {
-      int len = mSwAudio->decode((unsigned char*)data_dec, data_len, dts, pts);
+      int len = mSwAudio->decode ((unsigned char*)data_dec, data_len, dts, pts);
       if ((len < 0) || (len > data_len)) {
         mSwAudio->reset();
         break;
@@ -246,11 +233,8 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
       if (decoded_size <= 0)
         continue;
 
-      while ((int)mOmxAudio->getSpace() < decoded_size) {
+      while ((int)mOmxAudio->getSpace() < decoded_size) 
         cOmxClock::sleep (10);
-        if (mFlushRequested)
-          return true;
-        }
 
       int ret = mOmxAudio->addPackets (decoded, decoded_size, dts, pts, mSwAudio->getFrameSize());
       if (ret != decoded_size)
@@ -258,11 +242,8 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
       }
     }
   else {
-    while (mOmxAudio->getSpace() < packet->size) {
+    while (mOmxAudio->getSpace() < packet->size) 
       cOmxClock::sleep (10);
-      if (mFlushRequested)
-        return true;
-      }
 
     mOmxAudio->addPackets (packet->data, packet->size, packet->dts, packet->pts, 0);
     }

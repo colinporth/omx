@@ -161,7 +161,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
   auto codec = mAvCodec.avcodec_find_decoder (hints.codec);
   if (!codec) {
     //{{{  error return
-    cLog::log (LOGINFO1,"cSwAudio::open no codec %d", hints.codec);
+    cLog::log (LOGINFO1, string(__func__) + " no codec");
     return false;
     }
     //}}}
@@ -212,7 +212,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
 
   if (mAvCodec.avcodec_open2 (mCodecContext, codec, NULL) < 0) {
     //{{{  error return
-    cLog::log (LOGERROR, "cSwAudio::open cannot open codec");
+    cLog::log (LOGERROR, string(__func__) + " cannot open codec");
     dispose();
     return false;
     }
