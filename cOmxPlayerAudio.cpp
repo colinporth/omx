@@ -11,27 +11,6 @@ using namespace std;
 //}}}
 
 //{{{
-cOmxPlayerAudio::cOmxPlayerAudio() : cOmxPlayer(){
-
-  pthread_mutex_init (&mLock, nullptr);
-  pthread_mutex_init (&mLockDecoder, nullptr);
-  pthread_cond_init (&mPacketCond, nullptr);
-
-  mFlushRequested = false;
-  }
-//}}}
-//{{{
-cOmxPlayerAudio::~cOmxPlayerAudio() {
-
-  close();
-
-  pthread_cond_destroy (&mPacketCond);
-  pthread_mutex_destroy (&mLock);
-  pthread_mutex_destroy (&mLockDecoder);
-  }
-//}}}
-
-//{{{
 bool cOmxPlayerAudio::isPassThru (cOmxStreamInfo hints) {
 
   if (mConfig.mDevice == "omx:local")
@@ -50,10 +29,10 @@ bool cOmxPlayerAudio::isPassThru (cOmxStreamInfo hints) {
 //{{{
 bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
 
+  mAvClock = avClock;
+
   mConfig = config;
   mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
-
-  mAvClock = avClock;
 
   mAvFormat.av_register_all();
 
@@ -198,7 +177,7 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
 
       // add decoded data to hw
       uint8_t* decodedData;
-      int decodedSize = mSwAudio->getData (&decodedData, dts, pts);
+      auto decodedSize = mSwAudio->getData (&decodedData, dts, pts);
       if (decodedSize > 0) {
         while (mOmxAudio->getSpace() < decodedSize) {
           cOmxClock::sleep (10);

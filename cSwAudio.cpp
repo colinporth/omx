@@ -14,9 +14,9 @@ using namespace std;
 // local
 const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
-unsigned countBits (int64_t value) {
+int countBits (int64_t value) {
 
-  unsigned bits = 0;
+  int bits = 0;
   for (; value; ++bits)
     value &= value - 1;
   return bits;
@@ -39,14 +39,13 @@ cSwAudio::~cSwAudio() {
 //{{{
 uint64_t cSwAudio::getChannelMap() {
 
-  int bits = countBits (mCodecContext->channel_layout);
+  auto bits = countBits (mCodecContext->channel_layout);
 
   uint64_t layout;
   if (bits == mCodecContext->channels)
     layout = mCodecContext->channel_layout;
   else {
-    cLog::log (LOGINFO, "cSwAudio - GetChannelMap channels:%d layout:%d",
-                        mCodecContext->channels, bits);
+    cLog::log (LOGINFO, "cSwAudio - GgtChannelMap chans:%d layout:%x", mCodecContext->channels, bits);
     layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
     }
 
@@ -54,7 +53,7 @@ uint64_t cSwAudio::getChannelMap() {
   }
 //}}}
 //{{{
-int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
+int cSwAudio::getData (uint8_t** dst, double& dts, double& pts) {
 
   if (!mGotFrame)
     return 0;

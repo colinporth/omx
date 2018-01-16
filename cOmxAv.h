@@ -381,13 +381,13 @@ public:
 
   uint64_t getChannelMap();
   unsigned int getFrameSize() { return mFrameSize; }
-  int getData (unsigned char** dst, double &dts, double &pts);
+  int getData (uint8_t** dst, double &dts, double &pts);
   int getChannels() { return mCodecContext->channels; }
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
 
-  bool open (cOmxStreamInfo &hints, enum PCMLayout layout);
+  bool open (cOmxStreamInfo& hints, enum PCMLayout layout);
   int decode (uint8_t* data, int size, double dts, double pts);
   void reset();
   void dispose();
@@ -404,7 +404,7 @@ protected:
   enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
   enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
 
-  unsigned char* mBufferOutput = nullptr;
+  uint8_t* mBufferOutput = nullptr;
   int mBufferOutputUsed = 0;
   int mBufferOutputAlloced = 0;
 
@@ -540,8 +540,22 @@ private:
 //{{{
 class cOmxPlayer {
 public:
-  cOmxPlayer() {}
-  virtual ~cOmxPlayer() {}
+  //{{{
+  cOmxPlayer() {
+    pthread_mutex_init (&mLock, nullptr);
+    pthread_mutex_init (&mLockDecoder, nullptr);
+    pthread_cond_init (&mPacketCond, nullptr);
+    mFlushRequested = false;
+    }
+  //}}}
+  //{{{
+  virtual ~cOmxPlayer() {
+    close();
+    pthread_cond_destroy (&mPacketCond);
+    pthread_mutex_destroy (&mLock);
+    pthread_mutex_destroy (&mLockDecoder);
+    }
+  //}}}
 
   int getNumPackets() { return mPackets.size(); };
   int getPacketCacheSize() { return mPacketCacheSize; };
@@ -690,8 +704,8 @@ protected:
 //{{{
 class cOmxPlayerAudio : public cOmxPlayer{
 public:
-  cOmxPlayerAudio();
-  ~cOmxPlayerAudio();
+  cOmxPlayerAudio() : cOmxPlayer() {}
+  ~cOmxPlayerAudio() {}
 
   bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
   double getDelay() { return mOmxAudio->getDelay(); }
@@ -764,8 +778,8 @@ private:
 //{{{
 class cOmxPlayerVideo : public cOmxPlayer {
 public:
-  cOmxPlayerVideo();
-  ~cOmxPlayerVideo();
+  cOmxPlayerVideo() : cOmxPlayer() {}
+  ~cOmxPlayerVideo() {}
 
   bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
   double getDelay() { return mVideoDelay; }

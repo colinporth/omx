@@ -1,14 +1,7 @@
 // cOmxReader.cpp
 //{{{  includes
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/sysinfo.h>
-#include <sys/time.h>
-
-#include <iostream>
 #include <string>
 
 #include "cOmxReader.h"
@@ -21,26 +14,13 @@
 using namespace std;
 //}}}
 //{{{  defines
-#define MAX_DATA_SIZE_VIDEO    8 * 1024 * 1024
-#define MAX_DATA_SIZE_AUDIO    2 * 1024 * 1024
-#define MAX_DATA_SIZE          10 * 1024 * 1024
+#define FFMPEG_FILE_BUFFER_SIZE  32768
 
-#define FFMPEG_FILE_BUFFER_SIZE   32768
-
-// can handle truncated reads where function returns before entire buffer has been filled
-#define READ_TRUNCATED 0x01
-
-// support read in the minimum defined chunk size, this disables internal cache then
-#define READ_CHUNKED   0x02
-
-// use cache to access this file
-#define READ_CACHED     0x04
-
-// open without caching. regardless to file type
-#define READ_NO_CACHE  0x08
-
-// calcuate bitrate for file while reading
-#define READ_BITRATE   0x10
+#define READ_TRUNCATED 0x01  // handle truncated reads, function returns before entire buffer filled
+#define READ_CHUNKED   0x02  // read minimum defined chunk size, this disables internal cache then
+#define READ_CACHED    0x04  // use cache to access this file
+#define READ_NO_CACHE  0x08  // open without caching. regardless to file type
+#define READ_BITRATE   0x10  // calcuate bitrate for file while reading
 
 #define RESET_TIMEOUT(x) do { \
   timeout_start = currentHostCounter(); \

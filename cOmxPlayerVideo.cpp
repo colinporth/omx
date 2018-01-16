@@ -11,34 +11,14 @@ using namespace std;
 //}}}
 
 //{{{
-cOmxPlayerVideo::cOmxPlayerVideo() : cOmxPlayer() {
-
-  pthread_mutex_init (&mLock, NULL);
-  pthread_mutex_init (&mLockDecoder, NULL);
-  pthread_cond_init (&mPacketCond, NULL);
-
-  mFlushRequested = false;
-  }
-//}}}
-//{{{
-cOmxPlayerVideo::~cOmxPlayerVideo() {
-
-  close();
-
-  pthread_cond_destroy (&mPacketCond);
-  pthread_mutex_destroy (&mLock);
-  pthread_mutex_destroy (&mLockDecoder);
-  }
-//}}}
-
-//{{{
 bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
+
+  mAvClock = avClock;
 
   mConfig = config;
   mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
 
   mAvFormat.av_register_all();
-  mAvClock = avClock;
 
   mFrametime = 0;
   mCurrentPts = DVD_NOPTS_VALUE;
