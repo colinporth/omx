@@ -618,6 +618,19 @@ protected:
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
   virtual bool decode (OMXPacket* packet) = 0;
+  //{{{
+  void flushPackets() {  
+    mFlush = true;
+    while (!mPackets.empty()) {
+      auto packet = mPackets.front();
+      mPackets.pop_front();
+      cOmxReader::freePacket (packet);
+      }
+
+    mPacketCacheSize = 0;
+    mCurrentPts = DVD_NOPTS_VALUE;
+    }
+  //}}}
 
   // vars
   pthread_mutex_t mLock;

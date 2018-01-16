@@ -89,16 +89,7 @@ void cOmxPlayerVideo::flush() {
   lockDecoder();
 
   mFlushRequested = false;
-  mFlush = true;
-  while (!mPackets.empty()) {
-    auto packet = mPackets.front();
-    mPackets.pop_front();
-    cOmxReader::freePacket (packet);
-    }
-
-  mCurrentPts = DVD_NOPTS_VALUE;
-  mPacketCacheSize = 0;
-
+  flushPackets();
   mDecoder->reset();
 
   unLockDecoder();
