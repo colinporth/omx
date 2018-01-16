@@ -26,10 +26,11 @@ unsigned countBits (int64_t value) {
 //{{{
 cSwAudio::~cSwAudio() {
 
-  mAvUtil.av_free(mBufferOutput);
+  mAvUtil.av_free (mBufferOutput);
+
   mBufferOutput = NULL;
-  mIBufferOutputAlloced = 0;
-  mIBufferOutputUsed = 0;
+  mBufferOutputAlloced = 0;
+  mBufferOutputUsed = 0;
 
   dispose();
   }
@@ -68,7 +69,7 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
   int outputSize = mAvUtil.av_samples_get_buffer_size (
     &outLineSize, mCodecContext->channels, mFrame1->nb_samples, mDesiredSampleFormat, 1);
 
-  if (!mNoConcatenate && mIBufferOutputUsed && (int)mFrameSize != outputSize) {
+  if (!mNoConcatenate && mBufferOutputUsed && (int)mFrameSize != outputSize) {
     cLog::log (LOGERROR, "cSwAudio::getData size:%d->%d", mFrameSize, outputSize);
     mNoConcatenate = true;
     }
@@ -76,9 +77,9 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
   // if this buffer won't fit then flush out what we have
   int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
     (mCodecContext->channels * getBitsPerSample()) >> (rounded_up_channels_shift[mCodecContext->channels] + 4);
-  if (mIBufferOutputUsed && (mIBufferOutputUsed + outputSize > desired_size || mNoConcatenate)) {
-    int ret = mIBufferOutputUsed;
-    mIBufferOutputUsed = 0;
+  if (mBufferOutputUsed && (mBufferOutputUsed + outputSize > desired_size || mNoConcatenate)) {
+    int ret = mBufferOutputUsed;
+    mBufferOutputUsed = 0;
     mNoConcatenate = false;
     dts = mDts;
     pts = mPts;
@@ -87,22 +88,22 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
     }
   mFrameSize = outputSize;
 
-  if (mIBufferOutputAlloced < mIBufferOutputUsed + outputSize) {
+  if (mBufferOutputAlloced < mBufferOutputUsed + outputSize) {
     mBufferOutput = (uint8_t*)mAvUtil.av_realloc (
-      mBufferOutput, mIBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
-    mIBufferOutputAlloced = mIBufferOutputUsed + outputSize;
+      mBufferOutput, mBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
+    mBufferOutputAlloced = mBufferOutputUsed + outputSize;
     }
 
   // need to convert format
   if (mCodecContext->sample_fmt != mDesiredSampleFormat) {
     if (mConvert &&
-        (mCodecContext->sample_fmt != mISampleFormat || mChannels != mCodecContext->channels)) {
+        (mCodecContext->sample_fmt != mSampleFormat || mChannels != mCodecContext->channels)) {
       mSwResample.swr_free (&mConvert);
       mChannels = mCodecContext->channels;
       }
 
     if (!mConvert) {
-      mISampleFormat = mCodecContext->sample_fmt;
+      mSampleFormat = mCodecContext->sample_fmt;
       mConvert = mSwResample.swr_alloc_set_opts (NULL,
                    mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
                    mDesiredSampleFormat, mCodecContext->sample_rate,
@@ -120,7 +121,7 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
     // use unaligned flag to keep output packed
     uint8_t* out_planes[mCodecContext->channels];
     if ((mAvUtil.av_samples_fill_arrays (
-          out_planes, NULL, mBufferOutput + mIBufferOutputUsed, mCodecContext->channels,
+          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
           mFrame1->nb_samples, mDesiredSampleFormat, 1) < 0) ||
         mSwResample.swr_convert (mConvert, out_planes,
           mFrame1->nb_samples, (const uint8_t**)mFrame1->data, mFrame1->nb_samples) < 0) {
@@ -133,7 +134,7 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
     // copy to a contiguous buffer
     uint8_t* out_planes[mCodecContext->channels];
     if (mAvUtil.av_samples_fill_arrays (
-          out_planes, NULL, mBufferOutput + mIBufferOutputUsed, mCodecContext->channels,
+          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
           mFrame1->nb_samples, mDesiredSampleFormat, 1) < 0 ||
         mAvUtil.av_samples_copy (out_planes, mFrame1->data, 0, 0, mFrame1->nb_samples,
                                  mCodecContext->channels, mDesiredSampleFormat) < 0 )
@@ -146,7 +147,7 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
                inputSize, outputSize, inLineSize, outLineSize, mBufferOutput, desired_size);
   mFirstFrame = false;
 
-  mIBufferOutputUsed += outputSize;
+  mBufferOutputUsed += outputSize;
   return 0;
   }
 //}}}
@@ -196,7 +197,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
     }
     //}}}
   if (mCodecContext->request_channel_layout)
-    cLog::log (LOGINFO, "cSwAudio::open - channel layout %x",
+    cLog::log (LOGINFO, "cSwAudio::open - channelLayout %x", 
                         (unsigned)mCodecContext->request_channel_layout);
 
   if (mCodecContext->bits_per_coded_sample == 0)
@@ -219,7 +220,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
     //}}}
 
   mFrame1 = mAvCodec.av_frame_alloc();
-  mISampleFormat = AV_SAMPLE_FMT_NONE;
+  mSampleFormat = AV_SAMPLE_FMT_NONE;
   mDesiredSampleFormat =
     (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
 
@@ -227,12 +228,10 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
   }
 //}}}
 //{{{
-int cSwAudio::decode (unsigned char* pData, int iSize, double dts, double pts) {
-
-  int iBytesUsed, got_frame;
+int cSwAudio::decode (uint8_t* data, int size, double dts, double pts) {
 
   AVPacket avpkt;
-  if (!mIBufferOutputUsed) {
+  if (!mBufferOutputUsed) {
     mDts = dts;
     mPts = pts;
     }
@@ -241,28 +240,28 @@ int cSwAudio::decode (unsigned char* pData, int iSize, double dts, double pts) {
     return 0;
 
   mAvCodec.av_init_packet (&avpkt);
-  avpkt.data = pData;
-  avpkt.size = iSize;
-  iBytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame1, &got_frame, &avpkt);
-  if (iBytesUsed < 0 || !got_frame)
-    return iBytesUsed;
+  avpkt.data = data;
+  avpkt.size = size;
+  int gotFrame;
+  int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame1, &gotFrame, &avpkt);
+  if (bytesUsed < 0 || !gotFrame)
+    return bytesUsed;
 
   // some codecs will attempt to consume more data than what we gave
-  if (iBytesUsed > iSize) {
-    cLog::log (LOGINFO1, "cSwAudio - Decode attempted to consume more data than given");
-    iBytesUsed = iSize;
+  if (bytesUsed > size) {
+    cLog::log (LOGINFO1, "cSwAudio::decode - consume more data than given");
+    bytesUsed = size;
     }
   mGotFrame = true;
 
   if (mFirstFrame)
-    cLog::log (LOGINFO, "cSwAudio - Decode %d format:%d:%d chan:%d samples:%d lineSize:%d",
-               iSize,
-               mCodecContext->sample_fmt, mDesiredSampleFormat,
-               mCodecContext->channels,
+    cLog::log (LOGINFO, "cSwAudio::decode - size:%d format:%d:%d chan:%d samples:%d lineSize:%d",
+               size,
+               mCodecContext->sample_fmt, mDesiredSampleFormat, mCodecContext->channels,
                mFrame1->nb_samples, mFrame1->linesize[0]
                );
 
-  return iBytesUsed;
+  return bytesUsed;
   }
 //}}}
 //{{{
@@ -270,7 +269,7 @@ void cSwAudio::reset() {
 
   mAvCodec.avcodec_flush_buffers (mCodecContext);
   mGotFrame = false;
-  mIBufferOutputUsed = 0;
+  mBufferOutputUsed = 0;
   }
 //}}}
 //{{{

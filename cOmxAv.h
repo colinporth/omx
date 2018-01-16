@@ -388,7 +388,7 @@ public:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
 
   bool open (cOmxStreamInfo &hints, enum PCMLayout layout);
-  int decode (unsigned char* pData, int iSize, double dts, double pts);
+  int decode (uint8_t* data, int size, double dts, double pts);
   void reset();
   void dispose();
 
@@ -401,12 +401,12 @@ protected:
   AVCodecContext* mCodecContext = nullptr;
   AVFrame* mFrame1 = nullptr;
 
-  enum AVSampleFormat mISampleFormat = AV_SAMPLE_FMT_NONE;
+  enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
   enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
 
   unsigned char* mBufferOutput = nullptr;
-  int mIBufferOutputUsed = 0;
-  int mIBufferOutputAlloced = 0;
+  int mBufferOutputUsed = 0;
+  int mBufferOutputAlloced = 0;
 
   int mChannels = 0;
 
@@ -435,7 +435,7 @@ public:
 
   static bool hwDecode (AVCodecID codec);
 
-  int getSpace() { return mOmxDecoder.getInputBufferSpace(); }
+  int getSpace() { return mDecoder.getInputBufferSpace(); }
   int getChunkLen() { return mChunkLen; }
   float getDelay();
   float getCacheTotal();
@@ -478,20 +478,20 @@ private:
   cAvUtil mAvUtil;
 
   cOmxClock* mAvClock = nullptr;
-  cOmxCoreComponent* mOmxClock = nullptr;
+  cOmxCoreComponent* mClock = nullptr;
 
-  cOmxCoreComponent mOmxRenderAnalog;
-  cOmxCoreComponent mOmxRenderHdmi;
-  cOmxCoreComponent mOmxSplitter;
-  cOmxCoreComponent mOmxMixer;
-  cOmxCoreComponent mOmxDecoder;
+  cOmxCoreComponent mRenderAnalog;
+  cOmxCoreComponent mRenderHdmi;
+  cOmxCoreComponent mSplitter;
+  cOmxCoreComponent mMixer;
+  cOmxCoreComponent mDecoder;
 
-  cOmxCoreTunnel mOmxTunnelClockAnalog;
-  cOmxCoreTunnel mOmxTunnelClockHdmi;
-  cOmxCoreTunnel mOmxTunnelMixer;
-  cOmxCoreTunnel mOmxTunnelDecoder;
-  cOmxCoreTunnel mOmxTunnelSplitterAnalog;
-  cOmxCoreTunnel mOmxTunnelSplitterHdmi;
+  cOmxCoreTunnel mTunnelClockAnalog;
+  cOmxCoreTunnel mTunnelClockHdmi;
+  cOmxCoreTunnel mTunnelMixer;
+  cOmxCoreTunnel mTunnelDecoder;
+  cOmxCoreTunnel mTunnelSplitterAnalog;
+  cOmxCoreTunnel mTunnelSplitterHdmi;
 
   OMX_AUDIO_CODINGTYPE mEncoding = OMX_AUDIO_CodingPCM;
   OMX_AUDIO_CHANNELTYPE mInputChannels[OMX_AUDIO_MAXCHANNELS];
