@@ -66,6 +66,7 @@ void cOmxVideo::setAlpha (int alpha) {
 
   OMX_CONFIG_DISPLAYREGIONTYPE display;
   OMX_INIT_STRUCTURE(display);
+
   display.nPortIndex = mRender.getInputPort();
   display.set = OMX_DISPLAY_SET_ALPHA;
   display.alpha = alpha;
@@ -78,50 +79,50 @@ void cOmxVideo::setVideoRect() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  OMX_CONFIG_DISPLAYREGIONTYPE configDisplay;
-  OMX_INIT_STRUCTURE(configDisplay);
-  configDisplay.nPortIndex = mRender.getInputPort();
-  configDisplay.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT |
-                                           OMX_DISPLAY_SET_MODE |
-                                           OMX_DISPLAY_SET_SRC_RECT |
-                                           OMX_DISPLAY_SET_FULLSCREEN |
-                                           OMX_DISPLAY_SET_PIXEL);
-  configDisplay.noaspect = (mConfig.mAspectMode == 3) ? OMX_TRUE : OMX_FALSE;
-  configDisplay.mode = (mConfig.mAspectMode == 2) ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
+  OMX_CONFIG_DISPLAYREGIONTYPE display;
+  OMX_INIT_STRUCTURE(display);
+  display.nPortIndex = mRender.getInputPort();
+  display.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT |
+                                     OMX_DISPLAY_SET_MODE |
+                                     OMX_DISPLAY_SET_SRC_RECT |
+                                     OMX_DISPLAY_SET_FULLSCREEN |
+                                     OMX_DISPLAY_SET_PIXEL);
+  display.mode = (mConfig.mAspectMode == 2) ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
+  display.noaspect = (mConfig.mAspectMode == 3) ? OMX_TRUE : OMX_FALSE;
 
-  configDisplay.src_rect.x_offset = (int)(mConfig.mSrcRect.x1 + 0.5f);
-  configDisplay.src_rect.y_offset = (int)(mConfig.mSrcRect.y1 + 0.5f);
-  configDisplay.src_rect.width = (int)(mConfig.mSrcRect.getWidth() + 0.5f);
-  configDisplay.src_rect.height = (int)(mConfig.mSrcRect.getHeight() + 0.5f);
+  display.src_rect.x_offset = (int)(mConfig.mSrcRect.x1 + 0.5f);
+  display.src_rect.y_offset = (int)(mConfig.mSrcRect.y1 + 0.5f);
+  display.src_rect.width = (int)(mConfig.mSrcRect.getWidth() + 0.5f);
+  display.src_rect.height = (int)(mConfig.mSrcRect.getHeight() + 0.5f);
 
   if ((mConfig.mDstRect.x2 > mConfig.mDstRect.x1) &&
       (mConfig.mDstRect.y2 > mConfig.mDstRect.y1)) {
-    configDisplay.set = (OMX_DISPLAYSETTYPE)(configDisplay.set | OMX_DISPLAY_SET_DEST_RECT);
-    configDisplay.fullscreen = OMX_FALSE;
+    display.set = (OMX_DISPLAYSETTYPE)(display.set | OMX_DISPLAY_SET_DEST_RECT);
+    display.fullscreen = OMX_FALSE;
     if ((mConfig.mAspectMode != 1) &&
         (mConfig.mAspectMode != 2) &&
         (mConfig.mAspectMode != 3))
-      configDisplay.noaspect = OMX_TRUE;
-    configDisplay.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
-    configDisplay.dest_rect.y_offset = (int)(mConfig.mDstRect.y1 + 0.5f);
-    configDisplay.dest_rect.width = (int)(mConfig.mDstRect.getWidth() + 0.5f);
-    configDisplay.dest_rect.height = (int)(mConfig.mDstRect.getHeight() + 0.5f);
+      display.noaspect = OMX_TRUE;
+    display.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
+    display.dest_rect.y_offset = (int)(mConfig.mDstRect.y1 + 0.5f);
+    display.dest_rect.width = (int)(mConfig.mDstRect.getWidth() + 0.5f);
+    display.dest_rect.height = (int)(mConfig.mDstRect.getHeight() + 0.5f);
     }
   else
-    configDisplay.fullscreen = OMX_TRUE;
+    display.fullscreen = OMX_TRUE;
 
-  if ((configDisplay.noaspect == OMX_FALSE) && (mPixelAspect != 0.f)) {
+  if ((display.noaspect == OMX_FALSE) && (mPixelAspect != 0.f)) {
     AVRational aspect = av_d2q (mPixelAspect, 100);
-    configDisplay.pixel_x = aspect.num;
-    configDisplay.pixel_y = aspect.den;
+    display.pixel_x = aspect.num;
+    display.pixel_y = aspect.den;
     }
   else {
-    configDisplay.pixel_x = 0;
-    configDisplay.pixel_y = 0;
+    display.pixel_x = 0;
+    display.pixel_y = 0;
     }
 
-  if (mRender.setConfig (OMX_IndexConfigDisplayRegion, &configDisplay) != OMX_ErrorNone)
-    cLog::log (LOGERROR, __func__);
+  if (mRender.setConfig (OMX_IndexConfigDisplayRegion, &display) != OMX_ErrorNone)
+    cLog::log (LOGERROR, string(__func__) + " set display");
   }
 //}}}
 //{{{
@@ -158,6 +159,7 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
   mCodingType = OMX_VIDEO_CodingUnused;
   mVideoCodecName = "";
   bool vflip = false;
+
   switch (mConfig.mHints.codec) {
     //{{{
     case AV_CODEC_ID_H264: {
@@ -286,20 +288,21 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
     break;
     //}}}
     }
+
   if (!mDecoder.init (decoderName, OMX_IndexParamVideoInit))
     return false;
   //}}}
   mAvClock = avClock;
   mClock = mAvClock->getOmxClock();
   if (!mClock->getComponent()) {
-    //{{{  no clock return
+    //{{{  no clock. return
     mAvClock = nullptr;
     mClock = nullptr;
     return false;
     }
     //}}}
   if (mDecoder.setStateForComponent (OMX_StateIdle) != OMX_ErrorNone) {
-    //{{{  error return
+    //{{{  error, return
     cLog::log (LOGERROR, string(__func__) + " setStateForComponent");
     return false;
     }
@@ -379,13 +382,13 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
 
   // alloc bufers for omx input port.
   if (mDecoder.allocInputBuffers() != OMX_ErrorNone) {
-    //{{{  error return
-    cLog::log (LOGERROR, "cOmxVideo::open - allocInputBuffers");
+    //{{{  error, return
+    cLog::log (LOGERROR, string(__func__) + " allocInputBuffers");
     return false;
     }
     //}}}
   if (mDecoder.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
-    //{{{  error return
+    //{{{  error, return
     cLog::log (LOGERROR, string(__func__) + " setStateForComponent");
     return false;
     }
@@ -434,6 +437,7 @@ bool cOmxVideo::portChanged() {
   //{{{  get port
   OMX_PARAM_PORTDEFINITIONTYPE port;
   OMX_INIT_STRUCTURE(port);
+
   port.nPortIndex = mDecoder.getOutputPort();
   if (mDecoder.getParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone)
     cLog::log (LOGERROR, string(__func__) + " get param");
@@ -441,9 +445,11 @@ bool cOmxVideo::portChanged() {
   //{{{  get aspect
   OMX_CONFIG_POINTTYPE aspect;
   OMX_INIT_STRUCTURE(aspect);
+
   aspect.nPortIndex = mDecoder.getOutputPort();
   if (mDecoder.getParameter (OMX_IndexParamBrcmPixelAspectRatio, &aspect) != OMX_ErrorNone)
     cLog::log (LOGERROR, string(__func__) + " get aspectRatio");
+
   if ((aspect.nX && aspect.nY) && !mConfig.mHints.forced_aspect)
     mPixelAspect = ((float)aspect.nX / (float)aspect.nY) / mConfig.mDisplayAspect;
   //}}}
@@ -467,6 +473,7 @@ bool cOmxVideo::portChanged() {
   //{{{  set interlace
   OMX_CONFIG_INTERLACETYPE interlace;
   OMX_INIT_STRUCTURE(interlace);
+
   interlace.nPortIndex = mDecoder.getOutputPort();
   mDecoder.getConfig (OMX_IndexConfigCommonInterlace, &interlace);
   if (mConfig.mDeinterlace == eInterlaceForce)
@@ -504,6 +511,7 @@ bool cOmxVideo::portChanged() {
     //{{{  set latency
     OMX_CONFIG_LATENCYTARGETTYPE latency;
     OMX_INIT_STRUCTURE(latency);
+
     latency.nPortIndex = mRender.getInputPort();
     latency.bEnabled = OMX_TRUE;
     latency.nFilter = 2;
@@ -528,6 +536,7 @@ bool cOmxVideo::portChanged() {
       // image_fx assumed 3 frames of context, not needed for simple deinterlace
       OMX_PARAM_U32TYPE extraBuffers;
       OMX_INIT_STRUCTURE(extraBuffers);
+
       extraBuffers.nU32 = -2;
       if (mImageFx.setParameter (OMX_IndexParamBrcmExtraBuffers, &extraBuffers) != OMX_ErrorNone) {
         // error return
@@ -538,6 +547,7 @@ bool cOmxVideo::portChanged() {
 
     OMX_CONFIG_IMAGEFILTERPARAMSTYPE filter;
     OMX_INIT_STRUCTURE(filter);
+
     filter.nPortIndex = mImageFx.getOutputPort();
     filter.nNumParams = 4;
     filter.nParams[0] = 3;
@@ -655,7 +665,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
       buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
     if (mDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " OMX_EmptyThisBuffer");
+      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
       mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), buffer);
       return false;
       }

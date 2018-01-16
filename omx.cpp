@@ -204,8 +204,7 @@ protected:
   //{{{
   void pollKeyboard() {
 
-    auto event = mKeyboard.getEvent();
-    switch (event) {
+    switch (mKeyboard.getEvent()) {
       //{{{
       case cKeyConfig::ACT_PREV_FILE:
         if (mFileNum > 0) {
@@ -269,9 +268,7 @@ protected:
       case cKeyConfig::ACT_LOG5: cLog::setLogLevel (LOGINFO2); break;
       case cKeyConfig::ACT_LOG6: cLog::setLogLevel (LOGINFO3); break;
 
-      case cKeyConfig::ACT_NONE: break;
       case cKeyConfig::ACT_EXIT: gAbort = true; mExit = true; break;
-      default: cLog::log (LOGNOTICE, "pollKeyboard - unused event %d", event); break;
       }
     }
   //}}}
@@ -282,11 +279,8 @@ private:
 
     // ftw->base - offset of base in path
     // (intmax_t)statBuf->st_size,
-    if (flag == FTW_F) {
-      cLog::log (LOGINFO, fileName);
+    if (flag == FTW_F)
       mFileNames.push_back (fileName);
-      }
-
     return 0;
     }
   //}}}
