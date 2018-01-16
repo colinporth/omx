@@ -175,9 +175,6 @@ bool cOmxPlayerAudio::openOmxAudio() {
 //{{{
 bool cOmxPlayerAudio::decode (OMXPacket* packet) {
 
-  if (!mOmxReader->isActive (OMXSTREAM_AUDIO, packet->stream_index))
-    return true;
-
   auto channels = packet->hints.channels;
   auto old_bitrate = mConfig.mHints.bitrate;
   auto new_bitrate = packet->hints.bitrate;

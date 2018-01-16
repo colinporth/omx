@@ -555,7 +555,7 @@ private:
                 cOmxClock::sleep (10);
               }
 
-            else if (mPlayerAudio && (packet->codec_type == AVMEDIA_TYPE_AUDIO)) {
+            else if (mPlayerAudio && mReader.isActive (OMXSTREAM_AUDIO, packet->stream_index)) {
               if (mPlayerAudio->addPacket (packet))
                 packet = NULL;
               else
