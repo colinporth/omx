@@ -82,15 +82,15 @@ void cOmxPlayerAudio::submitEOS() {
 //{{{
 void cOmxPlayerAudio::flush() {
 
+  mFlushing = true;
   lock();
   lockDecoder();
 
   if (mSwAudio)
     mSwAudio->reset();
-
   flushPlayer();
-
   mOmxAudio->flush();
+  mFlushing = false;
 
   unLockDecoder();
   unLock();
@@ -233,7 +233,7 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
       if (decoded_size <= 0)
         continue;
 
-      while ((int)mOmxAudio->getSpace() < decoded_size) 
+      while ((int)mOmxAudio->getSpace() < decoded_size)
         cOmxClock::sleep (10);
 
       int ret = mOmxAudio->addPackets (decoded, decoded_size, dts, pts, mSwAudio->getFrameSize());
@@ -242,8 +242,11 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
       }
     }
   else {
-    while (mOmxAudio->getSpace() < packet->size) 
+    while (mOmxAudio->getSpace() < packet->size) {
       cOmxClock::sleep (10);
+      if (mFlushing)
+        return true;
+      }
 
     mOmxAudio->addPackets (packet->data, packet->size, packet->dts, packet->pts, 0);
     }

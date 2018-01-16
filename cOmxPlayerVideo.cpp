@@ -81,11 +81,13 @@ void cOmxPlayerVideo::submitEOS() {
 //{{{
 void cOmxPlayerVideo::flush() {
 
+  mFlushing = true;
   lock();
   lockDecoder();
 
   flushPlayer();
   mDecoder->reset();
+  mFlushing = false;
 
   unLockDecoder();
   unLock();
@@ -149,8 +151,11 @@ bool cOmxPlayerVideo::decode (OMXPacket* packet) {
                        " curPts" + decFrac(mCurrentPts / 1000000.f, 6,2,' ') +
                        " size" + dec(packet->size));
 
-  while ((int)mDecoder->getInputBufferSpace() < packet->size) 
+  while ((int)mDecoder->getInputBufferSpace() < packet->size) {
     cOmxClock::sleep (10);
+    if (mFlushing)
+      return true;
+    }
 
   return mDecoder->decode (packet->data, packet->size, dts, pts);
   }

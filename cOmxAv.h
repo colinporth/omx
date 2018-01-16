@@ -2,7 +2,6 @@
 #pragma once
 
 #include <sys/types.h>
-#include <atomic>
 #include <string>
 #include <mutex>
 #include <deque>
@@ -648,8 +647,9 @@ protected:
 
   double mCurrentPts = 0.0;
 
-  bool mAbort;
+  bool mAbort = false;
   bool mFlush = false;
+  bool mFlushing = false;
   std::deque<OMXPacket*> mPackets;
   int mPacketCacheSize = 0;
   int mPacketMaxCacheSize = 0;
