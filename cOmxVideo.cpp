@@ -759,7 +759,7 @@ bool cOmxVideo::sendDecoderExtraConfig() {
 
     buffer->nOffset = 0;
     buffer->nFilledLen = min ((OMX_U32)mConfig.mHints.extrasize, buffer->nAllocLen);
-    memset (buffer->pBuffer, 0x0, buffer->nAllocLen);
+    memset (buffer->pBuffer, 0, buffer->nAllocLen);
     memcpy (buffer->pBuffer, mConfig.mHints.extradata, buffer->nFilledLen);
     buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
     if (mDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {

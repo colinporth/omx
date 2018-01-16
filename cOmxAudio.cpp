@@ -250,10 +250,10 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
     setCodingType (AV_CODEC_ID_PCM_S16LE);
 
   mNumInputChannels = countBits (channelMap);
-  memset (mInputChannels, 0x0, sizeof(mInputChannels));
-  memset (mOutputChannels, 0x0, sizeof(mOutputChannels));
+  memset (mInputChannels, 0, sizeof(mInputChannels));
+  memset (mOutputChannels, 0, sizeof(mOutputChannels));
 
-  memset (&mWaveHeader, 0x0, sizeof(mWaveHeader));
+  memset (&mWaveHeader, 0, sizeof(mWaveHeader));
   mWaveHeader.Format.nChannels = 2;
   mWaveHeader.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
 
@@ -396,7 +396,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
     buffer->nOffset = 0;
     buffer->nFilledLen = min (sizeof(mWaveHeader), buffer->nAllocLen);
-    memset (buffer->pBuffer, 0x0, buffer->nAllocLen);
+    memset (buffer->pBuffer, 0, buffer->nAllocLen);
     memcpy (buffer->pBuffer, &mWaveHeader, buffer->nFilledLen);
     buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
     if (mDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {
@@ -419,7 +419,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
       buffer->nOffset = 0;
       buffer->nFilledLen = min((OMX_U32)mConfig.mHints.extrasize, buffer->nAllocLen);
-      memset (buffer->pBuffer, 0x0, buffer->nAllocLen);
+      memset (buffer->pBuffer, 0, buffer->nAllocLen);
       memcpy (buffer->pBuffer, mConfig.mHints.extradata, buffer->nFilledLen);
       buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
       if (mDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {

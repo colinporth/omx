@@ -399,7 +399,7 @@ protected:
 
   SwrContext* mConvert = nullptr;
   AVCodecContext* mCodecContext = nullptr;
-  AVFrame* mFrame1 = nullptr;
+  AVFrame* mFrame = nullptr;
 
   enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
   enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;

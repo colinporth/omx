@@ -62,12 +62,12 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
   // input audio is aligned
   int inLineSize;
   int inputSize = mAvUtil.av_samples_get_buffer_size (
-    &inLineSize, mCodecContext->channels, mFrame1->nb_samples, mCodecContext->sample_fmt, 0);
+    &inLineSize, mCodecContext->channels, mFrame->nb_samples, mCodecContext->sample_fmt, 0);
 
   // output audio will be packed
   int outLineSize;
   int outputSize = mAvUtil.av_samples_get_buffer_size (
-    &outLineSize, mCodecContext->channels, mFrame1->nb_samples, mDesiredSampleFormat, 1);
+    &outLineSize, mCodecContext->channels, mFrame->nb_samples, mDesiredSampleFormat, 1);
 
   if (!mNoConcatenate && mBufferOutputUsed && (int)mFrameSize != outputSize) {
     cLog::log (LOGERROR, "cSwAudio::getData size:%d->%d", mFrameSize, outputSize);
@@ -122,9 +122,9 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
     uint8_t* out_planes[mCodecContext->channels];
     if ((mAvUtil.av_samples_fill_arrays (
           out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
-          mFrame1->nb_samples, mDesiredSampleFormat, 1) < 0) ||
+          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0) ||
         mSwResample.swr_convert (mConvert, out_planes,
-          mFrame1->nb_samples, (const uint8_t**)mFrame1->data, mFrame1->nb_samples) < 0) {
+          mFrame->nb_samples, (const uint8_t**)mFrame->data, mFrame->nb_samples) < 0) {
       cLog::log (LOGERROR, "cSwAudio::getData decode unable to convert format %d to %d",
                            (int)mCodecContext->sample_fmt, mDesiredSampleFormat);
       outputSize = 0;
@@ -135,8 +135,8 @@ int cSwAudio::getData (unsigned char** dst, double& dts, double& pts) {
     uint8_t* out_planes[mCodecContext->channels];
     if (mAvUtil.av_samples_fill_arrays (
           out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
-          mFrame1->nb_samples, mDesiredSampleFormat, 1) < 0 ||
-        mAvUtil.av_samples_copy (out_planes, mFrame1->data, 0, 0, mFrame1->nb_samples,
+          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0 ||
+        mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
                                  mCodecContext->channels, mDesiredSampleFormat) < 0 )
       outputSize = 0;
     }
@@ -197,7 +197,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
     }
     //}}}
   if (mCodecContext->request_channel_layout)
-    cLog::log (LOGINFO, "cSwAudio::open - channelLayout %x", 
+    cLog::log (LOGINFO, "cSwAudio::open - channelLayout %x",
                         (unsigned)mCodecContext->request_channel_layout);
 
   if (mCodecContext->bits_per_coded_sample == 0)
@@ -219,7 +219,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
     }
     //}}}
 
-  mFrame1 = mAvCodec.av_frame_alloc();
+  mFrame = mAvCodec.av_frame_alloc();
   mSampleFormat = AV_SAMPLE_FMT_NONE;
   mDesiredSampleFormat =
     (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
@@ -243,7 +243,7 @@ int cSwAudio::decode (uint8_t* data, int size, double dts, double pts) {
   avpkt.data = data;
   avpkt.size = size;
   int gotFrame;
-  int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame1, &gotFrame, &avpkt);
+  int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avpkt);
   if (bytesUsed < 0 || !gotFrame)
     return bytesUsed;
 
@@ -258,7 +258,7 @@ int cSwAudio::decode (uint8_t* data, int size, double dts, double pts) {
     cLog::log (LOGINFO, "cSwAudio::decode - size:%d format:%d:%d chan:%d samples:%d lineSize:%d",
                size,
                mCodecContext->sample_fmt, mDesiredSampleFormat, mCodecContext->channels,
-               mFrame1->nb_samples, mFrame1->linesize[0]
+               mFrame->nb_samples, mFrame->linesize[0]
                );
 
   return bytesUsed;
@@ -275,9 +275,9 @@ void cSwAudio::reset() {
 //{{{
 void cSwAudio::dispose() {
 
-  if (mFrame1)
-    mAvUtil.av_free (mFrame1);
-  mFrame1 = NULL;
+  if (mFrame)
+    mAvUtil.av_free (mFrame);
+  mFrame = NULL;
 
   if (mConvert)
     mSwResample.swr_free (&mConvert);
