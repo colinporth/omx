@@ -2,7 +2,6 @@
 //{{{  includes
 #include <stdio.h>
 #include <unistd.h>
-#include <sys/time.h>
 
 #include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
@@ -75,28 +74,6 @@ bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
   }
 //}}}
 //{{{
-void cOmxPlayerVideo::submitEOS() {
-
-  mDecoder->submitEOS();
-  }
-//}}}
-//{{{
-void cOmxPlayerVideo::flush() {
-
-  mFlushRequested = true;
-
-  lock();
-  lockDecoder();
-
-  mFlushRequested = false;
-  flushPackets();
-  mDecoder->reset();
-
-  unLockDecoder();
-  unLock();
-  }
-//}}}
-//{{{
 void cOmxPlayerVideo::reset() {
 
   flush();
@@ -114,29 +91,8 @@ void cOmxPlayerVideo::reset() {
   mVideoDelay = 0;
   }
 //}}}
-//{{{
-bool cOmxPlayerVideo::close() {
 
-  mAbort  = true;
-
-  flush();
-
-  lock();
-  pthread_cond_broadcast (&mPacketCond);
-  unLock();
-
-  delete mDecoder;
-  mDecoder = nullptr;
-
-  mStreamId = -1;
-  mCurrentPts = DVD_NOPTS_VALUE;
-  mStream = nullptr;
-
-  return true;
-  }
-//}}}
-
-// private
+// protected
 //{{{
 bool cOmxPlayerVideo::decode (OMXPacket* packet) {
 

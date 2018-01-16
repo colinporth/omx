@@ -606,20 +606,16 @@ public:
     cLog::log (LOGNOTICE, "exit");
     }
   //}}}
-  virtual void submitEOS() = 0;
-  virtual void flush() = 0;
-  virtual void reset() = 0;
-  virtual bool close() = 0;
-
-protected:
-  void lock() { pthread_mutex_lock (&mLock); }
-  void unLock() { pthread_mutex_unlock (&mLock); }
-  void lockDecoder() { pthread_mutex_lock (&mLockDecoder); }
-  void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
-
-  virtual bool decode (OMXPacket* packet) = 0;
   //{{{
-  void flushPackets() {
+  void flush() {
+
+    mFlushRequested = true;
+
+    lock();
+    lockDecoder();
+
+    mFlushRequested = false;
+
     mFlush = true;
     while (!mPackets.empty()) {
       auto packet = mPackets.front();
@@ -629,8 +625,43 @@ protected:
 
     mPacketCacheSize = 0;
     mCurrentPts = DVD_NOPTS_VALUE;
+
+    flushDecoder();
+
+    unLockDecoder();
+    unLock();
     }
   //}}}
+  //{{{
+  bool close() {
+    mAbort  = true;
+    flush();
+
+    lock();
+    pthread_cond_broadcast (&mPacketCond);
+    unLock();
+
+    deleteDecoder();
+
+    mStreamId = -1;
+    mCurrentPts = DVD_NOPTS_VALUE;
+    mStream = nullptr;
+
+    return true;
+    }
+  //}}}
+  virtual void submitEOS() = 0;
+  virtual void reset() = 0;
+
+protected:
+  void lock() { pthread_mutex_lock (&mLock); }
+  void unLock() { pthread_mutex_unlock (&mLock); }
+  void lockDecoder() { pthread_mutex_lock (&mLockDecoder); }
+  void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
+
+  virtual bool decode (OMXPacket* packet) = 0;
+  virtual void flushDecoder() = 0;
+  virtual void deleteDecoder() = 0;
 
   // vars
   pthread_mutex_t mLock;
@@ -689,15 +720,28 @@ public:
   //}}}
 
   bool open (cOmxClock* avClock, const cOmxAudioConfig& config);
-  void submitEOS();
-  void flush();
+  void submitEOS() { mOmxAudio->submitEOS(); }
   void reset() {}
-  bool close();
 
 private:
   bool openSwAudio();
   bool openOmxAudio();
   bool decode (OMXPacket* packet);
+  //{{{
+  void flushDecoder() {
+    if (mSwAudio)
+      mSwAudio->reset();
+    mOmxAudio->flush();
+    }
+  //}}}
+  //{{{
+  void deleteDecoder() {
+    delete mSwAudio;
+    mSwAudio = nullptr;
+    delete mOmxAudio;
+    mOmxAudio = nullptr;
+    }
+  //}}}
 
   //{{{  vars
   cOmxAudioConfig mConfig;
@@ -733,13 +777,13 @@ public:
   void setVideoRect (const cRect& SrcRect, const cRect& DestRect) { mDecoder->setVideoRect (SrcRect, DestRect); }
 
   bool open (cOmxClock* avClock, const cOmxVideoConfig& config);
-  void submitEOS();
-  void flush();
+  void submitEOS() { mDecoder->submitEOS(); }
   void reset();
-  bool close();
 
 private:
   bool decode (OMXPacket* packet);
+  void flushDecoder() { mDecoder->reset(); }
+  void deleteDecoder() { delete mDecoder; mDecoder = nullptr; }
 
   //{{{  vars
   cOmxVideoConfig mConfig;

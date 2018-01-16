@@ -75,53 +75,6 @@ bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
     }
   }
 //}}}
-//{{{
-void cOmxPlayerAudio::submitEOS() {
-
-  mOmxAudio->submitEOS();
-  }
-//}}}
-//{{{
-void cOmxPlayerAudio::flush() {
-
-  mFlushRequested = true;
-
-  lock();
-  lockDecoder();
-
-  if (mSwAudio)
-    mSwAudio->reset();
-
-  mFlushRequested = false;
-  flushPackets();
-  mOmxAudio->flush();
-
-  unLockDecoder();
-  unLock();
-  }
-//}}}
-//{{{
-bool cOmxPlayerAudio::close() {
-
-  mAbort = true;
-  flush();
-
-  lock();
-  pthread_cond_broadcast (&mPacketCond);
-  unLock();
-
-  delete mSwAudio;
-  mSwAudio = nullptr;
-  delete mOmxAudio;
-  mOmxAudio = nullptr;
-
-  mStreamId = -1;
-  mCurrentPts = DVD_NOPTS_VALUE;
-  mStream = nullptr;
-
-  return true;
-  }
-//}}}
 
 // private
 //{{{
