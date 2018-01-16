@@ -32,7 +32,7 @@ cOmxPlayerAudio::~cOmxPlayerAudio() {
 //}}}
 
 //{{{
-bool cOmxPlayerAudio::isPassthrough (cOmxStreamInfo hints) {
+bool cOmxPlayerAudio::isPassThru (cOmxStreamInfo hints) {
 
   if (mConfig.mDevice == "omx:local")
     return false;
@@ -60,7 +60,7 @@ bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
   mAbort = false;
   mFlush = false;
   mFlushRequested = false;
-  mPassthrough = false;
+  mPassThru = false;
   mHwDecode = false;
   mCurrentPts = DVD_NOPTS_VALUE;
   mPacketCacheSize = 0;
@@ -95,16 +95,16 @@ bool cOmxPlayerAudio::openOmxAudio() {
 
   mOmxAudio = new cOmxAudio();
 
-  if (mConfig.mPassthrough)
-    mPassthrough = isPassthrough (mConfig.mHints);
-  if (!mPassthrough && mConfig.mHwDecode)
+  if (mConfig.mPassThru)
+    mPassThru = isPassThru (mConfig.mHints);
+  if (!mPassThru && mConfig.mHwDecode)
     mHwDecode = cOmxAudio::hwDecode (mConfig.mHints.codec);
-  if (mPassthrough)
+  if (mPassThru)
     mHwDecode = false;
 
   if (mOmxAudio->init (mAvClock, mConfig, mSwAudio->getChannelMap(), mSwAudio->getBitsPerSample())) {
     cLog::log (LOGINFO, "cOmxPlayerAudio::openOmxAudio " +
-               string(mPassthrough ? " passThru" : "") +
+               string(mPassThru ? " passThru" : "") +
                " chan:" + dec(mConfig.mHints.channels) +
                " rate:" + dec(mConfig.mHints.samplerate) +
                " bps:" + dec(mConfig.mHints.bitspersample));
@@ -128,22 +128,23 @@ bool cOmxPlayerAudio::openOmxAudio() {
 bool cOmxPlayerAudio::decode (OMXPacket* packet) {
 
   auto channels = packet->hints.channels;
-  auto old_bitrate = mConfig.mHints.bitrate;
-  auto new_bitrate = packet->hints.bitrate;
+  auto oldBitrate = mConfig.mHints.bitrate;
+  auto newBitrate = packet->hints.bitrate;
 
   // only check bitrate changes on AV_CODEC_ID_DTS, AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3
   if (mConfig.mHints.codec != AV_CODEC_ID_DTS &&
-      mConfig.mHints.codec != AV_CODEC_ID_AC3 && mConfig.mHints.codec != AV_CODEC_ID_EAC3)
-    new_bitrate = old_bitrate = 0;
+      mConfig.mHints.codec != AV_CODEC_ID_AC3 &&
+      mConfig.mHints.codec != AV_CODEC_ID_EAC3)
+    newBitrate = oldBitrate = 0;
 
-  // for passthrough we only care about the codec and the samplerate
-  bool minor_change = (channels != mConfig.mHints.channels) ||
-                      (packet->hints.bitspersample != mConfig.mHints.bitspersample) ||
-                      (old_bitrate != new_bitrate);
-
-  if ((packet->hints.codec != mConfig.mHints.codec) ||
-      (packet->hints.samplerate != mConfig.mHints.samplerate) ||
-      (!mPassthrough && minor_change)) {
+  // for passThru we only care about the codec and the samplerate
+  bool minorChange = (channels != mConfig.mHints.channels) ||
+                     (packet->hints.bitspersample != mConfig.mHints.bitspersample) ||
+                     (oldBitrate != newBitrate);
+  if ((!mPassThru && minorChange) ||
+      (packet->hints.codec != mConfig.mHints.codec) ||
+      (packet->hints.samplerate != mConfig.mHints.samplerate)) {
+    //{{{  change decoders
     cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
                         mConfig.mHints.codec, mConfig.mHints.channels, mConfig.mHints.samplerate,
                         mConfig.mHints.bitrate, mConfig.mHints.bitspersample);
@@ -159,6 +160,7 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
     if (!(openSwAudio() && openOmxAudio()))
       return false;
     }
+    //}}}
 
   cLog::log (LOGINFO1, "decode - pts:%6.2f size:%d", packet->pts / 1000000.f, packet->size);
 
@@ -167,45 +169,45 @@ bool cOmxPlayerAudio::decode (OMXPacket* packet) {
   else if (packet->dts != DVD_NOPTS_VALUE)
     mCurrentPts = packet->dts;
 
-  const uint8_t* data_dec = packet->data;
-  int data_len = packet->size;
+  uint8_t* data = packet->data;
+  int size = packet->size;
 
-  if (!mPassthrough && !mHwDecode) {
-    auto dts = packet->dts;
-    auto pts = packet->pts;
-    while (data_len > 0) {
-      int len = mSwAudio->decode((unsigned char*)data_dec, data_len, dts, pts);
-      if ((len < 0) || (len > data_len)) {
-        mSwAudio->reset();
-        break;
-        }
-
-      data_dec += len;
-      data_len -= len;
-      uint8_t* decoded;
-      int decoded_size = mSwAudio->getData (&decoded, dts, pts);
-      if (decoded_size <= 0)
-        continue;
-
-      while ((int)mOmxAudio->getSpace() < decoded_size) {
-        cOmxClock::sleep (10);
-        if (mFlushRequested)
-          return true;
-        }
-
-      int ret = mOmxAudio->addPackets (decoded, decoded_size, dts, pts, mSwAudio->getFrameSize());
-      if (ret != decoded_size)
-        cLog::log (LOGERROR, "error ret %d decoded_size %d", ret, decoded_size);
-      }
-    }
-  else {
+  if (mPassThru || mHwDecode) {
+    //{{{  hw action
     while (mOmxAudio->getSpace() < packet->size) {
       cOmxClock::sleep (10);
       if (mFlushRequested)
         return true;
       }
+    mOmxAudio->addPacket (packet->data, packet->size, packet->dts, packet->pts, 0);
+    }
+    //}}}
+  else {
+    // sw decode
+    auto dts = packet->dts;
+    auto pts = packet->pts;
+    while (size > 0) {
+      // decode packet
+      int len = mSwAudio->decode (data, size, dts, pts);
+      if ((len < 0) || (len > size)) {
+        mSwAudio->reset();
+        break;
+        }
+      data += len;
+      size -= len;
 
-    mOmxAudio->addPackets (packet->data, packet->size, packet->dts, packet->pts, 0);
+      // add decoded data to hw
+      uint8_t* decodedData;
+      int decodedSize = mSwAudio->getData (&decodedData, dts, pts);
+      if (decodedSize > 0) {
+        while (mOmxAudio->getSpace() < decodedSize) {
+          cOmxClock::sleep (10);
+          if (mFlushRequested)
+            return true;
+          }
+        mOmxAudio->addPacket (decodedData, decodedSize, dts, pts, mSwAudio->getFrameSize());
+        }
+      }
     }
 
   return true;

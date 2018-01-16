@@ -1,7 +1,7 @@
 #ifndef __VERSION_H__
 #define __VERSION_H__
-#define VERSION_DATE "Sat, 06 Jan 2018 11:26:35 +0000"
-#define VERSION_HASH "8e3721f"
-#define VERSION_BRANCH "master"
-#define VERSION_REPO "https://github.com/colinporth/omx"
+#define VERSION_DATE "Tue, 16 Jan 2018 17:04:32 +0000"
+#define VERSION_HASH "UNKNOWN"
+#define VERSION_BRANCH "UNKNOWN"
+#define VERSION_REPO "UNKNOWN"
 #endif

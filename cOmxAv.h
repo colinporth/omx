@@ -368,7 +368,7 @@ public:
 
   enum PCMLayout mLayout = PCM_LAYOUT_2_0;
   bool mBoostOnDownmix = true;
-  bool mPassthrough = false;
+  bool mPassThru = false;
   bool mHwDecode = false;
   bool mIsLive = false;
   };
@@ -456,7 +456,7 @@ public:
   int buildChannelMapCEA (enum PCMChannels* channelMap, uint64_t layout);
   void buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE* channelMap, uint64_t layout);
   bool portChanged();
-  unsigned int addPackets (const void* data, unsigned int len, double dts, double pts, unsigned int frame_size);
+  int addPacket (void* data, int len, double dts, double pts, int frameSize);
   void process();
   void submitEOS();
   void flush();
@@ -480,7 +480,7 @@ private:
   cOmxClock* mAvClock = nullptr;
   cOmxCoreComponent* mClock = nullptr;
 
-  cOmxCoreComponent mRenderAnalog;
+  cOmxCoreComponent mRenderAnal;
   cOmxCoreComponent mRenderHdmi;
   cOmxCoreComponent mSplitter;
   cOmxCoreComponent mMixer;
@@ -698,7 +698,7 @@ public:
   double getCacheTotal() { return mOmxAudio->getCacheTotal(); }
 
   float getVolume() { return mCurrentVolume; }
-  bool isPassthrough (cOmxStreamInfo hints);
+  bool isPassThru (cOmxStreamInfo hints);
 
   //{{{
   void setVolume (float volume) {
@@ -751,7 +751,7 @@ private:
   cOmxStreamInfo mHints;
 
   std::string mDevice;
-  bool mPassthrough;
+  bool mPassThru;
   bool mHwDecode;
   bool mBoostOnDownmix;
 

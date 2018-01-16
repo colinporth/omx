@@ -71,7 +71,10 @@ all:    omx
 	@rm -f $@
 	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
-omx:    $(OBJS)
+version:
+	bash gen_version.sh > version.h
+
+omx:    version $(OBJS)
 	$(CXX) $(LDFLAGS) -o omx $(OBJS)
 
 clean:
