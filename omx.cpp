@@ -140,7 +140,7 @@ protected:
       ACT_SEEK_DEC_LARGE, ACT_SEEK_INC_LARGE,
       ACT_DEC_VOLUME, ACT_INC_VOLUME,
       ACT_TOGGLE_VSYNC, ACT_TOGGLE_PERF, ACT_TOGGLE_STATS, ACT_TOGGLE_TESTS,
-      ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES, ACT_TOGGLE_TEXT,
+      ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES, ACT_TOGGLE_TRIANGLES,
       ACT_LESS_FRINGE, ACT_MORE_FRINGE,
       ACT_LOG1, ACT_LOG2, ACT_LOG3, ACT_LOG4, ACT_LOG5, ACT_LOG6,
       };
@@ -179,12 +179,13 @@ protected:
       keymap['S'] = ACT_TOGGLE_STATS;
       keymap['t'] = ACT_TOGGLE_TESTS;
       keymap['T'] = ACT_TOGGLE_TESTS;
+
       keymap['s'] = ACT_TOGGLE_SOLID;
       keymap['S'] = ACT_TOGGLE_SOLID;
       keymap['a'] = ACT_TOGGLE_EDGES;
       keymap['A'] = ACT_TOGGLE_EDGES;
-      keymap['d'] = ACT_TOGGLE_TEXT;
-      keymap['D'] = ACT_TOGGLE_TEXT;
+      keymap['d'] = ACT_TOGGLE_TRIANGLES;
+      keymap['D'] = ACT_TOGGLE_TRIANGLES;
       keymap['q'] = ACT_LESS_FRINGE;
       keymap['Q'] = ACT_LESS_FRINGE;
       keymap['w'] = ACT_MORE_FRINGE;
@@ -259,7 +260,7 @@ protected:
 
       case cKeyConfig::ACT_TOGGLE_SOLID: toggleSolid(); break; // s
       case cKeyConfig::ACT_TOGGLE_EDGES: toggleEdges(); break; // a
-      case cKeyConfig::ACT_TOGGLE_TEXT:  toggleText();  break; // d
+      case cKeyConfig::ACT_TOGGLE_TRIANGLES: toggleTriangles();  break; // d
       case cKeyConfig::ACT_LESS_FRINGE:  fringeWidth (getFringeWidth() - 0.25f); break; // q
       case cKeyConfig::ACT_MORE_FRINGE:  fringeWidth (getFringeWidth() + 0.25f); break; // w
 
