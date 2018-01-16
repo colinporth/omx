@@ -229,13 +229,16 @@ void cOmxAudio::setCodingType (AVCodecID codec) {
 // actions
 //{{{
 bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
-                            uint64_t channelMap, unsigned int uiBitsPerSample) {
+                      uint64_t channelMap, unsigned int uiBitsPerSample) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   deInit();
 
   mAvClock = clock;
+  mOmxClock = mAvClock->getOmxClock();
+  mDrc = 0;
+
   mConfig = config;
   if (mConfig.mPassthrough) // passthrough overwrites hw decode
     mConfig.mHwDecode = false;
@@ -246,18 +249,16 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   else
     setCodingType (AV_CODEC_ID_PCM_S16LE);
 
-  mOmxClock = mAvClock->getOmxClock();
-  mDrc = 0;
-
   mNumInputChannels = countBits (channelMap);
   memset (mInputChannels, 0x0, sizeof(mInputChannels));
   memset (mOutputChannels, 0x0, sizeof(mOutputChannels));
+
   memset (&mWaveHeader, 0x0, sizeof(mWaveHeader));
   mWaveHeader.Format.nChannels = 2;
   mWaveHeader.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
 
   if (!mConfig.mPassthrough && channelMap) {
-    //{{{  set input format, get channelLayout 
+    //{{{  set input format, get channelLayout
     enum PCMChannels inLayout[OMX_AUDIO_MAXCHANNELS];
     enum PCMChannels outLayout[OMX_AUDIO_MAXCHANNELS];
 
@@ -285,27 +286,10 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   mBufferLen = mBytesPerSec * AUDIO_BUFFER_SECONDS;
   mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChannels >> 3;
 
-  // should be big enough that common formats (e.g. 6 channel DTS) fit in a single packet.
-  // we don't mind less common formats being split (e.g. ape/wma output large frames)
-  // 6 channel 32bpp float to 8 channel 16bpp in, so 48K input buffer will fit the output buffer
-  mChunkLen = AUDIO_DECODE_OUTPUT_BUFFER * (mNumInputChannels * mBitsPerSample)
-                 >> (rounded_up_channels_shift[mNumInputChannels] + 4);
-
-  mWaveHeader.Samples.wSamplesPerBlock = 0;
-  mWaveHeader.Format.nChannels = mNumInputChannels;
-  mWaveHeader.Format.nBlockAlign = mNumInputChannels * (mBitsPerSample >> 3);
-  // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
-  mWaveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
-  mWaveHeader.Format.nSamplesPerSec = mConfig.mHints.samplerate;
-  mWaveHeader.Format.nAvgBytesPerSec = mBytesPerSec;
-  mWaveHeader.Format.wBitsPerSample = mBitsPerSample;
-  mWaveHeader.Samples.wValidBitsPerSample = mBitsPerSample;
-  mWaveHeader.Format.cbSize = 0;
-  mWaveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
-
   if (!mOmxDecoder.init ("OMX.broadcom.audio_decode", OMX_IndexParamAudioInit))
     return false;
 
+  //{{{  set passthru
   OMX_CONFIG_BOOLEANTYPE boolType;
   OMX_INIT_STRUCTURE(boolType);
   if (mConfig.mPassthrough)
@@ -313,59 +297,63 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   else
     boolType.bEnabled = OMX_FALSE;
   if (mOmxDecoder.setParameter (OMX_IndexParamBrcmDecoderPassThrough, &boolType) != OMX_ErrorNone) {
-    //{{{  error, return
+    // error, return
     cLog::log (LOGERROR, string(__func__) + " set PassThru");
     return false;
     }
-    //}}}
+  //}}}
+  //{{{  set number/size of buffers for decoder input
+  // should be big enough that common formats (e.g. 6 channel DTS) fit in a single packet.
+  // we don't mind less common formats being split (e.g. ape/wma output large frames)
+  // 6 channel 32bpp float to 8 channel 16bpp in, so 48K input buffer will fit the output buffer
+  mChunkLen = AUDIO_DECODE_OUTPUT_BUFFER * (mNumInputChannels * mBitsPerSample)
+                 >> (rounded_up_channels_shift[mNumInputChannels] + 4);
 
-  // set up the number/size of buffers for decoder input
   OMX_PARAM_PORTDEFINITIONTYPE port;
   OMX_INIT_STRUCTURE(port);
   port.nPortIndex = mOmxDecoder.getInputPort();
   if (mOmxDecoder.getParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
-    //{{{  error, return
+    // error, return
     cLog::log (LOGERROR, string(__func__) + " get port");
     return false;
     }
-    //}}}
+
   port.format.audio.eEncoding = mEncoding;
   port.nBufferSize = mChunkLen;
   port.nBufferCountActual = max (port.nBufferCountMin, 16U);
   if (mOmxDecoder.setParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
-    //{{{  error, return
+    // error, return
     cLog::log (LOGERROR, string(__func__) + " set port");
     return false;
     }
-    //}}}
-
-  // set up the number/size of buffers for decoder output
+  //}}}
+  //{{{  set number/size of buffers for decoder output
   OMX_INIT_STRUCTURE(port);
   port.nPortIndex = mOmxDecoder.getOutputPort();
   if (mOmxDecoder.getParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
-    //{{{  error, return
+    // error, return
     cLog::log (LOGERROR, string(__func__) + " get port param");
     return false;
     }
-    //}}}
+
   port.nBufferCountActual = max ((unsigned int)port.nBufferCountMin, mBufferLen / port.nBufferSize);
   if (mOmxDecoder.setParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
-    //{{{  error, return
+    // error, return
     cLog::log (LOGERROR, string(__func__) + " set port param");
     return false;
     }
-    //}}}
-
+  //}}}
+  //{{{  set input port format
   OMX_AUDIO_PARAM_PORTFORMATTYPE format;
   OMX_INIT_STRUCTURE(format);
   format.nPortIndex = mOmxDecoder.getInputPort();
   format.eEncoding = mEncoding;
   if (mOmxDecoder.setParameter (OMX_IndexParamAudioPortFormat, &format) != OMX_ErrorNone) {
-    //{{{  error, return
+    // error, return
     cLog::log (LOGERROR, string(__func__) + " set format");
     return false;
     }
-    //}}}
+  //}}}
   if (mOmxDecoder.allocInputBuffers() != OMX_ErrorNone) {
     //{{{  error, return
     cLog::log (LOGERROR, string(__func__) + " alloc buffers");
@@ -378,24 +366,37 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
     return false;
     }
     //}}}
+
   if (mEncoding == OMX_AUDIO_CodingPCM) {
     //{{{  declare buffer
-    auto omx_buffer = mOmxDecoder.getInputBuffer();
-    if (omx_buffer == NULL) {
+    mWaveHeader.Samples.wSamplesPerBlock = 0;
+    mWaveHeader.Format.nChannels = mNumInputChannels;
+    mWaveHeader.Format.nBlockAlign = mNumInputChannels * (mBitsPerSample >> 3);
+    // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
+    mWaveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
+    mWaveHeader.Format.nSamplesPerSec = mConfig.mHints.samplerate;
+    mWaveHeader.Format.nAvgBytesPerSec = mBytesPerSec;
+    mWaveHeader.Format.wBitsPerSample = mBitsPerSample;
+    mWaveHeader.Samples.wValidBitsPerSample = mBitsPerSample;
+    mWaveHeader.Format.cbSize = 0;
+    mWaveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
+
+    auto buffer = mOmxDecoder.getInputBuffer();
+    if (buffer == NULL) {
        //  error, return
       cLog::log (LOGERROR, string(__func__) + " getInputBuffer");
       return false;
       }
 
-    omx_buffer->nOffset = 0;
-    omx_buffer->nFilledLen = min (sizeof(mWaveHeader), omx_buffer->nAllocLen);
-    memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
-    memcpy ((unsigned char*)omx_buffer->pBuffer, &mWaveHeader, omx_buffer->nFilledLen);
-    omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
-    if (mOmxDecoder.emptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
+    buffer->nOffset = 0;
+    buffer->nFilledLen = min (sizeof(mWaveHeader), buffer->nAllocLen);
+    memset (buffer->pBuffer, 0x0, buffer->nAllocLen);
+    memcpy (buffer->pBuffer, &mWaveHeader, buffer->nFilledLen);
+    buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
+    if (mOmxDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {
       //  error, return
       cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-      mOmxDecoder.decoderEmptyBufferDone (mOmxDecoder.getComponent(), omx_buffer);
+      mOmxDecoder.decoderEmptyBufferDone (mOmxDecoder.getComponent(), buffer);
       return false;
       }
     }
@@ -403,22 +404,22 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   else if (mConfig.mHwDecode) {
     //{{{  send decoder config
     if (mConfig.mHints.extrasize > 0 && mConfig.mHints.extradata != NULL) {
-      auto omx_buffer = mOmxDecoder.getInputBuffer();
-      if (omx_buffer == NULL) {
+      auto buffer = mOmxDecoder.getInputBuffer();
+      if (buffer == NULL) {
         // error, return
         cLog::log (LOGERROR, string(__func__) + " extra getInputBuffer");
         return false;
         }
 
-      omx_buffer->nOffset = 0;
-      omx_buffer->nFilledLen = min((OMX_U32)mConfig.mHints.extrasize, omx_buffer->nAllocLen);
-      memset ((unsigned char*)omx_buffer->pBuffer, 0x0, omx_buffer->nAllocLen);
-      memcpy ((unsigned char*)omx_buffer->pBuffer, mConfig.mHints.extradata, omx_buffer->nFilledLen);
-      omx_buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
-      if (mOmxDecoder.emptyThisBuffer (omx_buffer) != OMX_ErrorNone) {
+      buffer->nOffset = 0;
+      buffer->nFilledLen = min((OMX_U32)mConfig.mHints.extrasize, buffer->nAllocLen);
+      memset (buffer->pBuffer, 0x0, buffer->nAllocLen);
+      memcpy (buffer->pBuffer, mConfig.mHints.extradata, buffer->nFilledLen);
+      buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
+      if (mOmxDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {
         // error, return
         cLog::log (LOGERROR, string(__func__) + " extra emptyThisBuffer");
-        mOmxDecoder.decoderEmptyBufferDone (mOmxDecoder.getComponent(), omx_buffer);
+        mOmxDecoder.decoderEmptyBufferDone (mOmxDecoder.getComponent(), buffer);
         return false;
         }
       }
@@ -427,6 +428,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
   if (mOmxDecoder.badState())
     return false;
 
+  //{{{  set pcmInput
   OMX_INIT_STRUCTURE(mPcmInput);
   mPcmInput.nPortIndex = mOmxDecoder.getInputPort();
   memcpy (mPcmInput.eChannelMapping, mInputChannels, sizeof(mInputChannels));
@@ -451,6 +453,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig &config,
                        (int)mPcmInput.nChannels, mBufferLen, mInputBytesPerSec);
 
   printPCM (&mPcmInput, "input");
+  //}}}
   cLog::log (LOGINFO1, "cOmxAudio::init - dev:%s pass:%d hw:%d",
                        mConfig.mDevice.c_str(), mConfig.mPassthrough, mConfig.mHwDecode);
 
@@ -602,7 +605,7 @@ bool cOmxAudio::portChanged() {
     if (mOmxSplitter.isInit() ) {
       mPcmOutput.nPortIndex = mOmxSplitter.getInputPort();
       if (mOmxSplitter.setParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
-        //{{{  error return 
+        //{{{  error return
         cLog::log (LOGERROR, string(__func__) + " mOmxSplitter setParameter");
         return false;
         }
@@ -821,28 +824,28 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
   unsigned int demuxSamples_sent = 0;
   auto demuxer_content = (uint8_t *)data;
 
-  OMX_BUFFERHEADERTYPE* omxBuffer = NULL;
+  OMX_BUFFERHEADERTYPE* buffer = NULL;
   while (demuxSamples_sent < demuxSamples) {
-    omxBuffer = mOmxDecoder.getInputBuffer (200); // 200ms timeout
-    if (omxBuffer == NULL) {
+    buffer = mOmxDecoder.getInputBuffer (200); // 200ms timeout
+    if (!buffer) {
       //{{{  error return
-      cLog::log (LOGERROR, "cOmxAudio::addPackets timeout");
+      cLog::log (LOGERROR, string(__func__) + " timeout");
       return len;
       }
       //}}}
 
-    omxBuffer->nOffset = 0;
-    omxBuffer->nFlags  = 0;
+    buffer->nOffset = 0;
+    buffer->nFlags  = 0;
 
     // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
     // it will be 16-bit and rounded up to next power of 2 in channels
     unsigned int max_buffer = AUDIO_DECODE_OUTPUT_BUFFER *
       (mNumInputChannels * mBitsPerSample) >> (rounded_up_channels_shift[mNumInputChannels] + 4);
     unsigned int remaining = demuxSamples-demuxSamples_sent;
-    unsigned int samples_space = min(max_buffer, omxBuffer->nAllocLen)/pitch;
+    unsigned int samples_space = min(max_buffer, buffer->nAllocLen)/pitch;
     unsigned int samples = min(remaining, samples_space);
 
-    omxBuffer->nFilledLen = samples * pitch;
+    buffer->nFilledLen = samples * pitch;
 
     unsigned int frames = frame_size ? len/frame_size:0;
     if ((samples < demuxSamples || frames > 1) &&
@@ -857,7 +860,7 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
         unsigned int sample_in_frame = (demuxSamples_sent + sample) - frame * frame_samples;
         int out_remaining = min(min(frame_samples - sample_in_frame, samples), samples-sample);
         auto src = demuxer_content + frame*frame_size + sample_in_frame * sample_pitch;
-        auto dst = (uint8_t*)omxBuffer->pBuffer + sample * sample_pitch;
+        auto dst = (uint8_t*)buffer->pBuffer + sample * sample_pitch;
         for (unsigned int channel = 0; channel < mNumInputChannels; channel++) {
           memcpy (dst, src, out_remaining * sample_pitch);
           src += plane_size;
@@ -867,44 +870,44 @@ unsigned int cOmxAudio::addPackets (const void* data, unsigned int len,
         }
       }
     else
-      memcpy (omxBuffer->pBuffer, demuxer_content + demuxSamples_sent * pitch, omxBuffer->nFilledLen);
+      memcpy (buffer->pBuffer, demuxer_content + demuxSamples_sent * pitch, buffer->nFilledLen);
 
-    uint64_t val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
+    auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
     if (mSetStartTime) {
-      omxBuffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
+      buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
       mLastPts = pts;
       cLog::log (LOGINFO1, "cOmxAudio::addPackets setStartTime:%f", (float)val / DVD_TIME_BASE);
       mSetStartTime = false;
       }
     else {
       if (pts == DVD_NOPTS_VALUE) {
-        omxBuffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
         mLastPts = pts;
         }
       else if (mLastPts != pts) {
         if (pts > mLastPts)
           mLastPts = pts;
         else
-          omxBuffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+          buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
         }
       else if (mLastPts == pts)
-        omxBuffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
       }
 
-    omxBuffer->nTimeStamp = toOmxTime (val);
+    buffer->nTimeStamp = toOmxTime (val);
     demuxSamples_sent += samples;
     if (demuxSamples_sent == demuxSamples)
-      omxBuffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+      buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
 
-    if (mOmxDecoder.emptyThisBuffer (omxBuffer) != OMX_ErrorNone) {
-      cLog::log (LOGERROR, string(__func__) + " OMX_EmptyThisBuffer");
-      mOmxDecoder.decoderEmptyBufferDone (mOmxDecoder.getComponent(), omxBuffer);
+    if (mOmxDecoder.emptyThisBuffer (buffer) != OMX_ErrorNone) {
+      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+      mOmxDecoder.decoderEmptyBufferDone (mOmxDecoder.getComponent(), buffer);
       return 0;
       }
 
     if (mOmxDecoder.waitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone)
       if (!portChanged())
-        cLog::log (LOGERROR, "cOmxAudio::AddPackets portChanged");
+        cLog::log (LOGERROR, string(__func__) + "  portChanged");
     }
 
   mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
