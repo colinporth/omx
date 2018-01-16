@@ -1,10 +1,10 @@
-// cOmxCoreComponent.cpp
+// cOmxCore.cpp
 //{{{  includes
 #include <stdio.h>
 #include <string>
 #include <assert.h>
 
-#include "cOmxCoreComponent.h"
+#include "cOmxCore.h"
 
 #include "../shared/utils/cLog.h"
 #include "cOmxClock.h"
@@ -47,40 +47,40 @@ void addTimeSpec (struct timespec &time, long mSecs) {
   }
 //}}}
 
-// cOmxCoreComponent
+// cOmxCore
 //{{{
-cOmxCoreComponent::cOmxCoreComponent() {
+cOmxCore::cOmxCore() {
 
-  mOmxEvents.clear();
+  mEvents.clear();
 
-  pthread_mutex_init (&mOmxInputMutex, nullptr);
-  pthread_mutex_init (&mOmxOutputMutex, nullptr);
-  pthread_mutex_init (&mOmxEventMutex, nullptr);
-  pthread_mutex_init (&mOmxEosMutex, nullptr);
+  pthread_mutex_init (&mInputMutex, nullptr);
+  pthread_mutex_init (&mOutputMutex, nullptr);
+  pthread_mutex_init (&mEventMutex, nullptr);
+  pthread_mutex_init (&mEosMutex, nullptr);
   pthread_cond_init (&mInputBufferCond, nullptr);
   pthread_cond_init (&mOutputBufferCond, nullptr);
-  pthread_cond_init (&mOmxEventCond, nullptr);
+  pthread_cond_init (&mEventCond, nullptr);
 
   mOmx = cOmx::getOMX();
   }
 //}}}
 //{{{
-cOmxCoreComponent::~cOmxCoreComponent() {
+cOmxCore::~cOmxCore() {
 
   deInit();
 
-  pthread_mutex_destroy (&mOmxInputMutex);
-  pthread_mutex_destroy (&mOmxOutputMutex);
-  pthread_mutex_destroy (&mOmxEventMutex);
-  pthread_mutex_destroy (&mOmxEosMutex);
+  pthread_mutex_destroy (&mInputMutex);
+  pthread_mutex_destroy (&mOutputMutex);
+  pthread_mutex_destroy (&mEventMutex);
+  pthread_mutex_destroy (&mEosMutex);
   pthread_cond_destroy (&mInputBufferCond);
   pthread_cond_destroy (&mOutputBufferCond);
-  pthread_cond_destroy (&mOmxEventCond);
+  pthread_cond_destroy (&mEventCond);
   }
 //}}}
 
 //{{{
-bool cOmxCoreComponent::init (const string& name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks) {
+bool cOmxCore::init (const string& name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks) {
 
   mInputPort = 0;
   mOutputPort = 0;
@@ -96,16 +96,16 @@ bool cOmxCoreComponent::init (const string& name, OMX_INDEXTYPE index, OMX_CALLB
   mResourceError = false;
   mEos = false;
   mExit = false;
-  mOmxInputUseBuffers = false;
-  mOmxOutputUseBuffers = false;
+  mInputUseBuffers = false;
+  mOutputUseBuffers = false;
 
-  mOmxEvents.clear();
+  mEvents.clear();
   mIgnoreError = OMX_ErrorNone;
   mComponentName = name;
 
-  mCallbacks.EventHandler = &cOmxCoreComponent::decoderEventHandlerCallback;
-  mCallbacks.EmptyBufferDone = &cOmxCoreComponent::decoderEmptyBufferDoneCallback;
-  mCallbacks.FillBufferDone = &cOmxCoreComponent::decoderFillBufferDoneCallback;
+  mCallbacks.EventHandler = &cOmxCore::decoderEventHandlerCallback;
+  mCallbacks.EmptyBufferDone = &cOmxCore::decoderEmptyBufferDoneCallback;
+  mCallbacks.FillBufferDone = &cOmxCore::decoderFillBufferDoneCallback;
   if (callbacks && callbacks->EventHandler)
     mCallbacks.EventHandler = callbacks->EventHandler;
   if (callbacks && callbacks->EmptyBufferDone)
@@ -131,10 +131,10 @@ bool cOmxCoreComponent::init (const string& name, OMX_INDEXTYPE index, OMX_CALLB
   if (disableAllPorts() != OMX_ErrorNone)
     cLog::log (LOGERROR, "omxCoreComp::init - disable ports %s", name.c_str());
 
-  mInputPort  = port_param.nStartPortNumber;
+  mInputPort = port_param.nStartPortNumber;
   mOutputPort = mInputPort + 1;
   if (mComponentName == "OMX.broadcom.audio_mixer") {
-    mInputPort  = port_param.nStartPortNumber + 1;
+    mInputPort = port_param.nStartPortNumber + 1;
     mOutputPort = port_param.nStartPortNumber;
     }
 
@@ -152,7 +152,7 @@ bool cOmxCoreComponent::init (const string& name, OMX_INDEXTYPE index, OMX_CALLB
   }
 //}}}
 //{{{
-bool cOmxCoreComponent::deInit() {
+bool cOmxCore::deInit() {
 
   mExit = true;
   mFlushInput = true;
@@ -164,10 +164,10 @@ bool cOmxCoreComponent::deInit() {
     freeInputBuffers();
     transitionToStateLoaded();
 
-    cLog::log (LOGINFO1, "cOmxCoreComponent::deInit - %s h:%p", mComponentName.c_str(), mHandle);
+    cLog::log (LOGINFO1, "cOmxCore::deInit - %s h:%p", mComponentName.c_str(), mHandle);
 
     if (mOmx->freeHandle (mHandle) != OMX_ErrorNone)
-      cLog::log (LOGERROR, "cOmxCoreComponent::deInit - free handle %s", mComponentName.c_str());
+      cLog::log (LOGERROR, "cOmxCore::deInit - free handle %s", mComponentName.c_str());
     mHandle = nullptr;
     }
 
@@ -181,7 +181,7 @@ bool cOmxCoreComponent::deInit() {
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::enablePort (unsigned int port,  bool wait) {
+OMX_ERRORTYPE cOmxCore::enablePort (unsigned int port,  bool wait) {
 
   OMX_PARAM_PORTDEFINITIONTYPE portFormat;
   OMX_INIT_STRUCTURE(portFormat);
@@ -204,7 +204,7 @@ OMX_ERRORTYPE cOmxCoreComponent::enablePort (unsigned int port,  bool wait) {
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::disablePort (unsigned int port, bool wait) {
+OMX_ERRORTYPE cOmxCore::disablePort (unsigned int port, bool wait) {
 
   OMX_PARAM_PORTDEFINITIONTYPE portFormat;
   OMX_INIT_STRUCTURE(portFormat);
@@ -229,7 +229,7 @@ OMX_ERRORTYPE cOmxCoreComponent::disablePort (unsigned int port, bool wait) {
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::disableAllPorts() {
+OMX_ERRORTYPE cOmxCore::disableAllPorts() {
 
   OMX_INDEXTYPE idxTypes[] = {
     OMX_IndexParamAudioInit,
@@ -268,9 +268,9 @@ OMX_ERRORTYPE cOmxCoreComponent::disableAllPorts() {
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::allocInputBuffers (bool useBuffers /* = false **/) {
+OMX_ERRORTYPE cOmxCore::allocInputBuffers (bool useBuffers /* = false **/) {
 
-  mOmxInputUseBuffers = useBuffers;
+  mInputUseBuffers = useBuffers;
 
   OMX_PARAM_PORTDEFINITIONTYPE portFormat;
   OMX_INIT_STRUCTURE(portFormat);
@@ -303,7 +303,7 @@ OMX_ERRORTYPE cOmxCoreComponent::allocInputBuffers (bool useBuffers /* = false *
   for (size_t i = 0; i < portFormat.nBufferCountActual; i++) {
     OMX_BUFFERHEADERTYPE* buffer = nullptr;
     OMX_U8* data = nullptr;
-    if (mOmxInputUseBuffers) {
+    if (mInputUseBuffers) {
       data = (OMX_U8*)alignedMalloc (portFormat.nBufferSize, mInputAlignment);
       omxErr = OMX_UseBuffer (mHandle, &buffer, mInputPort, nullptr, portFormat.nBufferSize, data);
       }
@@ -311,7 +311,7 @@ OMX_ERRORTYPE cOmxCoreComponent::allocInputBuffers (bool useBuffers /* = false *
       omxErr = OMX_AllocateBuffer (mHandle, &buffer, mInputPort, nullptr, portFormat.nBufferSize);
     if (omxErr != OMX_ErrorNone) {
       cLog::log (LOGERROR, "%s %s OMX_UseBuffer 0x%x", __func__, mComponentName.c_str(), omxErr);
-      if (mOmxInputUseBuffers && data)
+      if (mInputUseBuffers && data)
         alignedFree (data);
       return omxErr;
       }
@@ -320,8 +320,8 @@ OMX_ERRORTYPE cOmxCoreComponent::allocInputBuffers (bool useBuffers /* = false *
     buffer->nFilledLen = 0;
     buffer->nOffset = 0;
     buffer->pAppPrivate = (void*)i;
-    mOmxInputBuffers.push_back (buffer);
-    mOmxInputAvaliable.push (buffer);
+    mInputBuffers.push_back (buffer);
+    mInputAvaliable.push (buffer);
     }
 
   omxErr = waitForCommand (OMX_CommandPortEnable, mInputPort);
@@ -337,9 +337,9 @@ OMX_ERRORTYPE cOmxCoreComponent::allocInputBuffers (bool useBuffers /* = false *
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::allocOutputBuffers (bool useBuffers /* = false */) {
+OMX_ERRORTYPE cOmxCore::allocOutputBuffers (bool useBuffers /* = false */) {
 
-  mOmxOutputUseBuffers = useBuffers;
+  mOutputUseBuffers = useBuffers;
 
   OMX_PARAM_PORTDEFINITIONTYPE portFormat;
   OMX_INIT_STRUCTURE(portFormat);
@@ -372,7 +372,7 @@ OMX_ERRORTYPE cOmxCoreComponent::allocOutputBuffers (bool useBuffers /* = false 
   for (size_t i = 0; i < portFormat.nBufferCountActual; i++) {
     OMX_BUFFERHEADERTYPE* buffer = nullptr;
     OMX_U8* data = nullptr;
-    if (mOmxOutputUseBuffers) {
+    if (mOutputUseBuffers) {
       data = (OMX_U8*)alignedMalloc (portFormat.nBufferSize, mOutputAlignment);
       omxErr = OMX_UseBuffer (mHandle, &buffer, mOutputPort, nullptr, portFormat.nBufferSize, data);
       }
@@ -381,7 +381,7 @@ OMX_ERRORTYPE cOmxCoreComponent::allocOutputBuffers (bool useBuffers /* = false 
 
     if (omxErr != OMX_ErrorNone) {
       cLog::log (LOGERROR, "%s %OMX_UseBuffer 0x%x", __func__, mComponentName.c_str(), omxErr);
-      if (mOmxOutputUseBuffers && data)
+      if (mOutputUseBuffers && data)
        alignedFree(data);
       return omxErr;
       }
@@ -390,8 +390,8 @@ OMX_ERRORTYPE cOmxCoreComponent::allocOutputBuffers (bool useBuffers /* = false 
     buffer->nFilledLen = 0;
     buffer->nOffset = 0;
     buffer->pAppPrivate = (void*)i;
-    mOmxOutputBuffers.push_back (buffer);
-    mOmxOutputAvailable.push (buffer);
+    mOutputBuffers.push_back (buffer);
+    mOutputAvailable.push (buffer);
     }
 
   omxErr = waitForCommand (OMX_CommandPortEnable, mOutputPort);
@@ -409,10 +409,10 @@ OMX_ERRORTYPE cOmxCoreComponent::allocOutputBuffers (bool useBuffers /* = false 
 //}}}
 
 //{{{
-OMX_BUFFERHEADERTYPE* cOmxCoreComponent::getInputBuffer (long timeout /*=200*/) {
+OMX_BUFFERHEADERTYPE* cOmxCore::getInputBuffer (long timeout /*=200*/) {
 // timeout in milliseconds
 
-  pthread_mutex_lock (&mOmxInputMutex);
+  pthread_mutex_lock (&mInputMutex);
 
   struct timespec endtime;
   clock_gettime (CLOCK_REALTIME, &endtime);
@@ -422,27 +422,27 @@ OMX_BUFFERHEADERTYPE* cOmxCoreComponent::getInputBuffer (long timeout /*=200*/) 
   while (!mFlushInput) {
     if (mResourceError)
       break;
-    if (!mOmxInputAvaliable.empty()) {
-      omxInputBuffer = mOmxInputAvaliable.front();
-      mOmxInputAvaliable.pop();
+    if (!mInputAvaliable.empty()) {
+      omxInputBuffer = mInputAvaliable.front();
+      mInputAvaliable.pop();
       break;
     }
 
-    if (pthread_cond_timedwait (&mInputBufferCond, &mOmxInputMutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&mInputBufferCond, &mInputMutex, &endtime) != 0) {
       if (timeout != 0)
         cLog::log (LOGERROR, "%s %s wait event timeout", __func__, mComponentName.c_str());
       break;
       }
     }
 
-  pthread_mutex_unlock (&mOmxInputMutex);
+  pthread_mutex_unlock (&mInputMutex);
   return omxInputBuffer;
   }
 //}}}
 //{{{
-OMX_BUFFERHEADERTYPE* cOmxCoreComponent::getOutputBuffer (long timeout /*=200*/) {
+OMX_BUFFERHEADERTYPE* cOmxCore::getOutputBuffer (long timeout /*=200*/) {
 
-  pthread_mutex_lock (&mOmxOutputMutex);
+  pthread_mutex_lock (&mOutputMutex);
 
   struct timespec endtime;
   clock_gettime (CLOCK_REALTIME, &endtime);
@@ -452,27 +452,27 @@ OMX_BUFFERHEADERTYPE* cOmxCoreComponent::getOutputBuffer (long timeout /*=200*/)
   while (!mFlushOutput) {
     if (mResourceError)
       break;
-    if (!mOmxOutputAvailable.empty()) {
-      omxOutputBuffer = mOmxOutputAvailable.front();
-      mOmxOutputAvailable.pop();
+    if (!mOutputAvailable.empty()) {
+      omxOutputBuffer = mOutputAvailable.front();
+      mOutputAvailable.pop();
       break;
       }
 
-    if (pthread_cond_timedwait (&mOutputBufferCond, &mOmxOutputMutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&mOutputBufferCond, &mOutputMutex, &endtime) != 0) {
       if (timeout != 0)
         cLog::log (LOGERROR, "%s %s wait event timeout", __func__, mComponentName);
       break;
       }
     }
 
-  pthread_mutex_unlock (&mOmxOutputMutex);
+  pthread_mutex_unlock (&mOutputMutex);
 
   return omxOutputBuffer;
   }
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
+OMX_ERRORTYPE cOmxCore::emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
 
   auto omxErr = OMX_EmptyThisBuffer (mHandle, omxBuffer);
   if (omxErr != OMX_ErrorNone)
@@ -482,7 +482,7 @@ OMX_ERRORTYPE cOmxCoreComponent::emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffe
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
+OMX_ERRORTYPE cOmxCore::fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
 
   auto omxErr = OMX_FillThisBuffer (mHandle, omxBuffer);
   if (omxErr != OMX_ErrorNone)
@@ -493,20 +493,20 @@ OMX_ERRORTYPE cOmxCoreComponent::fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::waitForInputDone (long timeout /*=200*/) {
+OMX_ERRORTYPE cOmxCore::waitForInputDone (long timeout /*=200*/) {
 
   auto omxErr = OMX_ErrorNone;
 
-  pthread_mutex_lock (&mOmxInputMutex);
+  pthread_mutex_lock (&mInputMutex);
 
   struct timespec endtime;
   clock_gettime (CLOCK_REALTIME, &endtime);
   addTimeSpec (endtime, timeout);
 
-  while (mInputBufferCount != mOmxInputAvaliable.size()) {
+  while (mInputBufferCount != mInputAvaliable.size()) {
     if (mResourceError)
       break;
-    if (pthread_cond_timedwait (&mInputBufferCond, &mOmxInputMutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&mInputBufferCond, &mInputMutex, &endtime) != 0) {
       if (timeout != 0)
         cLog::log (LOGERROR, string(__func__) + " " + mComponentName);
       omxErr = OMX_ErrorTimeout;
@@ -514,25 +514,25 @@ OMX_ERRORTYPE cOmxCoreComponent::waitForInputDone (long timeout /*=200*/) {
     }
   }
 
-  pthread_mutex_unlock (&mOmxInputMutex);
+  pthread_mutex_unlock (&mInputMutex);
   return omxErr;
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::waitForOutputDone (long timeout /*=200*/) {
+OMX_ERRORTYPE cOmxCore::waitForOutputDone (long timeout /*=200*/) {
 
   auto omxErr = OMX_ErrorNone;
 
-  pthread_mutex_lock (&mOmxOutputMutex);
+  pthread_mutex_lock (&mOutputMutex);
 
   struct timespec endtime;
   clock_gettime (CLOCK_REALTIME, &endtime);
   addTimeSpec (endtime, timeout);
 
-  while (mOutputBufferCount != mOmxOutputAvailable.size()) {
+  while (mOutputBufferCount != mOutputAvailable.size()) {
     if (mResourceError)
       break;
-    if (pthread_cond_timedwait (&mOutputBufferCond, &mOmxOutputMutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&mOutputBufferCond, &mOutputMutex, &endtime) != 0) {
       if (timeout != 0)
         cLog::log (LOGERROR, string(__func__) + " " + mComponentName);
       omxErr = OMX_ErrorTimeout;
@@ -540,13 +540,13 @@ OMX_ERRORTYPE cOmxCoreComponent::waitForOutputDone (long timeout /*=200*/) {
       }
     }
 
-  pthread_mutex_unlock (&mOmxOutputMutex);
+  pthread_mutex_unlock (&mOutputMutex);
   return omxErr;
   }
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
+OMX_ERRORTYPE cOmxCore::freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer) {
 
   auto omxErr = OMX_FreeBuffer (mHandle, mOutputPort, omxBuffer);
   if (omxErr != OMX_ErrorNone)
@@ -556,26 +556,26 @@ OMX_ERRORTYPE cOmxCoreComponent::freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuff
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::freeInputBuffers() {
+OMX_ERRORTYPE cOmxCore::freeInputBuffers() {
 
-  if (mOmxInputBuffers.empty())
+  if (mInputBuffers.empty())
     return OMX_ErrorNone;
 
   mFlushInput = true;
   auto omxErr = disablePort (mInputPort, false);
 
-  pthread_mutex_lock (&mOmxInputMutex);
+  pthread_mutex_lock (&mInputMutex);
   pthread_cond_broadcast (&mInputBufferCond);
 
-  for (size_t i = 0; i < mOmxInputBuffers.size(); i++) {
-    uint8_t* buf = mOmxInputBuffers[i]->pBuffer;
-    omxErr = OMX_FreeBuffer (mHandle, mInputPort, mOmxInputBuffers[i]);
-    if(mOmxInputUseBuffers && buf)
+  for (size_t i = 0; i < mInputBuffers.size(); i++) {
+    uint8_t* buf = mInputBuffers[i]->pBuffer;
+    omxErr = OMX_FreeBuffer (mHandle, mInputPort, mInputBuffers[i]);
+    if(mInputUseBuffers && buf)
       alignedFree(buf);
     if (omxErr != OMX_ErrorNone)
       cLog::log (LOGERROR, string(__func__) + " deallocate " + mComponentName);
     }
-  pthread_mutex_unlock (&mOmxInputMutex);
+  pthread_mutex_unlock (&mInputMutex);
 
   omxErr = waitForCommand (OMX_CommandPortDisable, mInputPort);
   if (omxErr != OMX_ErrorNone)
@@ -583,42 +583,42 @@ OMX_ERRORTYPE cOmxCoreComponent::freeInputBuffers() {
 
   waitForInputDone (1000);
 
-  pthread_mutex_lock(&mOmxInputMutex);
-  assert (mOmxInputBuffers.size() == mOmxInputAvaliable.size());
+  pthread_mutex_lock(&mInputMutex);
+  assert (mInputBuffers.size() == mInputAvaliable.size());
 
-  mOmxInputBuffers.clear();
+  mInputBuffers.clear();
 
-  while (!mOmxInputAvaliable.empty())
-    mOmxInputAvaliable.pop();
+  while (!mInputAvaliable.empty())
+    mInputAvaliable.pop();
 
   mInputAlignment     = 0;
   mInputBufferSize   = 0;
   mInputBufferCount  = 0;
 
-  pthread_mutex_unlock (&mOmxInputMutex);
+  pthread_mutex_unlock (&mInputMutex);
   return omxErr;
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::freeOutputBuffers() {
+OMX_ERRORTYPE cOmxCore::freeOutputBuffers() {
 
-  if(mOmxOutputBuffers.empty())
+  if(mOutputBuffers.empty())
     return OMX_ErrorNone;
 
   mFlushOutput = true;
   auto omxErr = disablePort (mOutputPort, false);
-  pthread_mutex_lock (&mOmxOutputMutex);
+  pthread_mutex_lock (&mOutputMutex);
   pthread_cond_broadcast (&mOutputBufferCond);
 
-  for (size_t i = 0; i < mOmxOutputBuffers.size(); i++) {
-    uint8_t* buf = mOmxOutputBuffers[i]->pBuffer;
-    omxErr = OMX_FreeBuffer (mHandle, mOutputPort, mOmxOutputBuffers[i]);
-    if (mOmxOutputUseBuffers && buf)
+  for (size_t i = 0; i < mOutputBuffers.size(); i++) {
+    uint8_t* buf = mOutputBuffers[i]->pBuffer;
+    omxErr = OMX_FreeBuffer (mHandle, mOutputPort, mOutputBuffers[i]);
+    if (mOutputUseBuffers && buf)
       alignedFree (buf);
     if (omxErr != OMX_ErrorNone)
       cLog::log (LOGERROR, string(__func__) + " deallocate " + mComponentName);
     }
-  pthread_mutex_unlock (&mOmxOutputMutex);
+  pthread_mutex_unlock (&mOutputMutex);
 
   omxErr = waitForCommand (OMX_CommandPortDisable, mOutputPort);
   if (omxErr != OMX_ErrorNone)
@@ -626,30 +626,30 @@ OMX_ERRORTYPE cOmxCoreComponent::freeOutputBuffers() {
 
   waitForOutputDone (1000);
 
-  pthread_mutex_lock (&mOmxOutputMutex);
-  assert (mOmxOutputBuffers.size() == mOmxOutputAvailable.size());
+  pthread_mutex_lock (&mOutputMutex);
+  assert (mOutputBuffers.size() == mOutputAvailable.size());
 
-  mOmxOutputBuffers.clear();
-  while (!mOmxOutputAvailable.empty())
-    mOmxOutputAvailable.pop();
+  mOutputBuffers.clear();
+  while (!mOutputAvailable.empty())
+    mOutputAvailable.pop();
 
   mOutputAlignment    = 0;
   mOutputBufferSize  = 0;
   mOutputBufferCount = 0;
 
-  pthread_mutex_unlock (&mOmxOutputMutex);
+  pthread_mutex_unlock (&mOutputMutex);
   return omxErr;
   }
 //}}}
 
 //{{{
-void cOmxCoreComponent::flushAll() {
+void cOmxCore::flushAll() {
   flushInput();
   flushOutput();
   }
 //}}}
 //{{{
-void cOmxCoreComponent::flushInput() {
+void cOmxCore::flushInput() {
 
   if (!mHandle || mResourceError)
     return;
@@ -662,7 +662,7 @@ void cOmxCoreComponent::flushInput() {
   }
 //}}}
 //{{{
-void cOmxCoreComponent::flushOutput() {
+void cOmxCore::flushOutput() {
 
   if (!mHandle || mResourceError)
     return;
@@ -676,31 +676,31 @@ void cOmxCoreComponent::flushOutput() {
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::addEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2) {
+OMX_ERRORTYPE cOmxCore::addEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2) {
 
-  omx_event event;
+  omxEvent event;
   event.eEvent = eEvent;
   event.nData1 = nData1;
   event.nData2 = nData2;
 
-  pthread_mutex_lock (&mOmxEventMutex);
+  pthread_mutex_lock (&mEventMutex);
   removeEvent (eEvent, nData1, nData2);
-  mOmxEvents.push_back (event);
+  mEvents.push_back (event);
 
   // this allows (all) blocked tasks to be awoken
-  pthread_cond_broadcast (&mOmxEventCond);
-  pthread_mutex_unlock (&mOmxEventMutex);
+  pthread_cond_broadcast (&mEventCond);
+  pthread_mutex_unlock (&mEventMutex);
 
   return OMX_ErrorNone;
   }
 //}}}
 //{{{
-void cOmxCoreComponent::removeEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2) {
+void cOmxCore::removeEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2) {
 
-  for (auto it = mOmxEvents.begin(); it != mOmxEvents.end(); ) {
+  for (auto it = mEvents.begin(); it != mEvents.end(); ) {
     auto event = *it;
     if (event.eEvent == eEvent && event.nData1 == nData1 && event.nData2 == nData2) {
-      it = mOmxEvents.erase(it);
+      it = mEvents.erase(it);
       continue;
       }
     ++it;
@@ -708,50 +708,50 @@ void cOmxCoreComponent::removeEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::waitForEvent (OMX_EVENTTYPE eventType, long timeout) {
+OMX_ERRORTYPE cOmxCore::waitForEvent (OMX_EVENTTYPE eventType, long timeout) {
 // timeout in milliseconds
 
-  pthread_mutex_lock (&mOmxEventMutex);
+  pthread_mutex_lock (&mEventMutex);
 
   struct timespec endtime;
   clock_gettime (CLOCK_REALTIME, &endtime);
   addTimeSpec (endtime, timeout);
 
   while (true) {
-    for (auto it = mOmxEvents.begin(); it != mOmxEvents.end(); it++) {
+    for (auto it = mEvents.begin(); it != mEvents.end(); it++) {
       auto event = *it;
       if (event.eEvent == OMX_EventError && event.nData1 == (OMX_U32)OMX_ErrorSameState && event.nData2 == 1) {
-        mOmxEvents.erase (it);
-        pthread_mutex_unlock (&mOmxEventMutex);
+        mEvents.erase (it);
+        pthread_mutex_unlock (&mEventMutex);
         return OMX_ErrorNone;
         }
       else if (event.eEvent == OMX_EventError) {
-        mOmxEvents.erase (it);
-        pthread_mutex_unlock (&mOmxEventMutex);
+        mEvents.erase (it);
+        pthread_mutex_unlock (&mEventMutex);
         return (OMX_ERRORTYPE)event.nData1;
       }
       else if (event.eEvent == eventType) {
-        mOmxEvents.erase (it);
-        pthread_mutex_unlock (&mOmxEventMutex);
+        mEvents.erase (it);
+        pthread_mutex_unlock (&mEventMutex);
         return OMX_ErrorNone;
         }
       }
 
     if (mResourceError)
       break;
-    if (pthread_cond_timedwait (&mOmxEventCond, &mOmxEventMutex, &endtime) != 0) {
-      pthread_mutex_unlock (&mOmxEventMutex);
+    if (pthread_cond_timedwait (&mEventCond, &mEventMutex, &endtime) != 0) {
+      pthread_mutex_unlock (&mEventMutex);
       return OMX_ErrorTimeout;
       }
     }
 
-  pthread_mutex_unlock (&mOmxEventMutex);
+  pthread_mutex_unlock (&mEventMutex);
   return OMX_ErrorNone;
   }
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::sendCommand (OMX_COMMANDTYPE cmd, OMX_U32 cmdParam, OMX_PTR cmdParamData) {
+OMX_ERRORTYPE cOmxCore::sendCommand (OMX_COMMANDTYPE cmd, OMX_U32 cmdParam, OMX_PTR cmdParamData) {
 
   auto omxErr = OMX_SendCommand (mHandle, cmd, cmdParam, cmdParamData);
   if (omxErr != OMX_ErrorNone)
@@ -761,36 +761,36 @@ OMX_ERRORTYPE cOmxCoreComponent::sendCommand (OMX_COMMANDTYPE cmd, OMX_U32 cmdPa
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::waitForCommand (OMX_U32 command, OMX_U32 nData2, long timeout) {
+OMX_ERRORTYPE cOmxCore::waitForCommand (OMX_U32 command, OMX_U32 nData2, long timeout) {
 // timeout in milliseconds
 
-  pthread_mutex_lock (&mOmxEventMutex);
+  pthread_mutex_lock (&mEventMutex);
 
   struct timespec endtime;
   clock_gettime (CLOCK_REALTIME, &endtime);
   addTimeSpec (endtime, timeout);
 
   while (true) {
-    for (auto it = mOmxEvents.begin(); it != mOmxEvents.end(); it++) {
+    for (auto it = mEvents.begin(); it != mEvents.end(); it++) {
       auto event = *it;
       if (event.eEvent == OMX_EventError &&
           event.nData1 == (OMX_U32)OMX_ErrorSameState &&
           event.nData2 == 1) {
-        mOmxEvents.erase (it);
-        pthread_mutex_unlock (&mOmxEventMutex);
+        mEvents.erase (it);
+        pthread_mutex_unlock (&mEventMutex);
         return OMX_ErrorNone;
         }
 
       else if (event.eEvent == OMX_EventError) {
-        mOmxEvents.erase(it);
-        pthread_mutex_unlock (&mOmxEventMutex);
+        mEvents.erase(it);
+        pthread_mutex_unlock (&mEventMutex);
         return (OMX_ERRORTYPE)event.nData1;
         }
 
       else if (event.eEvent == OMX_EventCmdComplete &&
                event.nData1 == command && event.nData2 == nData2) {
-        mOmxEvents.erase (it);
-        pthread_mutex_unlock (&mOmxEventMutex);
+        mEvents.erase (it);
+        pthread_mutex_unlock (&mEventMutex);
         return OMX_ErrorNone;
         }
       }
@@ -798,23 +798,23 @@ OMX_ERRORTYPE cOmxCoreComponent::waitForCommand (OMX_U32 command, OMX_U32 nData2
     if (mResourceError)
       break;
 
-    if (pthread_cond_timedwait (&mOmxEventCond, &mOmxEventMutex, &endtime) != 0) {
+    if (pthread_cond_timedwait (&mEventCond, &mEventMutex, &endtime) != 0) {
       cLog::log (LOGERROR, "%s %s wait timeout event.eEvent 0x%08x event.command 0x%08x event.nData2 %d",
                            __func__, mComponentName.c_str(),
                            (int)OMX_EventCmdComplete, (int)command, (int)nData2);
 
-      pthread_mutex_unlock (&mOmxEventMutex);
+      pthread_mutex_unlock (&mEventMutex);
       return OMX_ErrorTimeout;
       }
     }
 
-  pthread_mutex_unlock (&mOmxEventMutex);
+  pthread_mutex_unlock (&mEventMutex);
   return OMX_ErrorNone;
   }
 //}}}
 
 //{{{
-OMX_STATETYPE cOmxCoreComponent::getState() const {
+OMX_STATETYPE cOmxCore::getState() const {
 
   OMX_STATETYPE state;
   if (OMX_GetState (mHandle, &state) != OMX_ErrorNone)
@@ -824,7 +824,7 @@ OMX_STATETYPE cOmxCoreComponent::getState() const {
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::setStateForComponent (OMX_STATETYPE state) {
+OMX_ERRORTYPE cOmxCore::setStateForComponent (OMX_STATETYPE state) {
 
   OMX_STATETYPE state_actual = OMX_StateMax;
   if (state == state_actual)
@@ -850,7 +850,7 @@ OMX_ERRORTYPE cOmxCoreComponent::setStateForComponent (OMX_STATETYPE state) {
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::getParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct) const {
+OMX_ERRORTYPE cOmxCore::getParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct) const {
 
   auto omxErr = OMX_GetParameter (mHandle, paramIndex, paramStruct);
   if (omxErr != OMX_ErrorNone)
@@ -860,7 +860,7 @@ OMX_ERRORTYPE cOmxCoreComponent::getParameter (OMX_INDEXTYPE paramIndex, OMX_PTR
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::setParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct) {
+OMX_ERRORTYPE cOmxCore::setParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct) {
 
   auto omxErr = OMX_SetParameter (mHandle, paramIndex, paramStruct);
   if (omxErr != OMX_ErrorNone)
@@ -871,7 +871,7 @@ OMX_ERRORTYPE cOmxCoreComponent::setParameter (OMX_INDEXTYPE paramIndex, OMX_PTR
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::getConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) const {
+OMX_ERRORTYPE cOmxCore::getConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) const {
 
   auto omxErr = OMX_GetConfig (mHandle, configIndex, configStruct);
   if (omxErr != OMX_ErrorNone)
@@ -881,7 +881,7 @@ OMX_ERRORTYPE cOmxCoreComponent::getConfig (OMX_INDEXTYPE configIndex, OMX_PTR c
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::setConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) {
+OMX_ERRORTYPE cOmxCore::setConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) {
 
   auto omxErr = OMX_SetConfig (mHandle, configIndex, configStruct);
   if (omxErr != OMX_ErrorNone)
@@ -892,77 +892,77 @@ OMX_ERRORTYPE cOmxCoreComponent::setConfig (OMX_INDEXTYPE configIndex, OMX_PTR c
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandlerCallback (OMX_HANDLETYPE component,
+OMX_ERRORTYPE cOmxCore::decoderEventHandlerCallback (OMX_HANDLETYPE component,
     OMX_PTR appData, OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2, OMX_PTR eventData) {
 
   if (!appData)
     return OMX_ErrorNone;
 
-  auto omxCoreComponent = static_cast<cOmxCoreComponent*>(appData);
-  return omxCoreComponent->decoderEventHandler (component, eEvent, nData1, nData2, eventData);
+  auto OmxCore = static_cast<cOmxCore*>(appData);
+  return OmxCore->decoderEventHandler (component, eEvent, nData1, nData2, eventData);
   }
 //}}}
 //{{{
 // DecoderEmptyBufferDone -- OMXCore input buffer has been emptied
-OMX_ERRORTYPE cOmxCoreComponent::decoderEmptyBufferDoneCallback (OMX_HANDLETYPE component,
+OMX_ERRORTYPE cOmxCore::decoderEmptyBufferDoneCallback (OMX_HANDLETYPE component,
                                                                  OMX_PTR appData,
                                                                  OMX_BUFFERHEADERTYPE* buffer) {
   if (!appData)
     return OMX_ErrorNone;
 
-  auto omxCoreComponent = static_cast<cOmxCoreComponent*>(appData);
-  return omxCoreComponent->decoderEmptyBufferDone (component, buffer);
+  auto OmxCore = static_cast<cOmxCore*>(appData);
+  return OmxCore->decoderEmptyBufferDone (component, buffer);
   }
 //}}}
 //{{{
 // DecoderFillBufferDone -- OMXCore output buffer has been filled
-OMX_ERRORTYPE cOmxCoreComponent::decoderFillBufferDoneCallback (OMX_HANDLETYPE component,
+OMX_ERRORTYPE cOmxCore::decoderFillBufferDoneCallback (OMX_HANDLETYPE component,
                                                                 OMX_PTR appData,
                                                                 OMX_BUFFERHEADERTYPE* buffer) {
   if (!appData)
     return OMX_ErrorNone;
 
-  auto omxCoreComponent = static_cast<cOmxCoreComponent*>(appData);
-  return omxCoreComponent->decoderFillBufferDone (component, buffer);
+  auto OmxCore = static_cast<cOmxCore*>(appData);
+  return OmxCore->decoderFillBufferDone (component, buffer);
   }
 //}}}
 
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::decoderEmptyBufferDone (OMX_HANDLETYPE component,
+OMX_ERRORTYPE cOmxCore::decoderEmptyBufferDone (OMX_HANDLETYPE component,
                                                          OMX_BUFFERHEADERTYPE* buffer) {
 
   if (mExit)
     return OMX_ErrorNone;
 
-  pthread_mutex_lock (&mOmxInputMutex);
-  mOmxInputAvaliable.push (buffer);
+  pthread_mutex_lock (&mInputMutex);
+  mInputAvaliable.push (buffer);
 
   // this allows (all) blocked tasks to be awoken
   pthread_cond_broadcast (&mInputBufferCond);
-  pthread_mutex_unlock (&mOmxInputMutex);
+  pthread_mutex_unlock (&mInputMutex);
 
   return OMX_ErrorNone;
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::decoderFillBufferDone (OMX_HANDLETYPE component,
+OMX_ERRORTYPE cOmxCore::decoderFillBufferDone (OMX_HANDLETYPE component,
                                                         OMX_BUFFERHEADERTYPE* buffer) {
 
   if (mExit)
     return OMX_ErrorNone;
 
-  pthread_mutex_lock (&mOmxOutputMutex);
-  mOmxOutputAvailable.push (buffer);
+  pthread_mutex_lock (&mOutputMutex);
+  mOutputAvailable.push (buffer);
 
   // this allows (all) blocked tasks to be awoken
   pthread_cond_broadcast (&mOutputBufferCond);
-  pthread_mutex_unlock (&mOmxOutputMutex);
+  pthread_mutex_unlock (&mOutputMutex);
 
   return OMX_ErrorNone;
   }
 //}}}
 //{{{
-OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandler (OMX_HANDLETYPE component,
+OMX_ERRORTYPE cOmxCore::decoderEventHandler (OMX_HANDLETYPE component,
   OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2, OMX_PTR eventData) {
 
   // if the error is expected, then we can skip it
@@ -979,9 +979,9 @@ OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandler (OMX_HANDLETYPE component,
     //{{{
     case OMX_EventBufferFlag:
       if (nData2 & OMX_BUFFERFLAG_EOS) {
-        pthread_mutex_lock (&mOmxEosMutex);
+        pthread_mutex_lock (&mEosMutex);
         mEos = true;
-        pthread_mutex_unlock (&mOmxEosMutex);
+        pthread_mutex_unlock (&mEosMutex);
         }
       break;
     //}}}
@@ -1039,7 +1039,7 @@ OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandler (OMX_HANDLETYPE component,
       if (mResourceError) {
         pthread_cond_broadcast (&mOutputBufferCond);
         pthread_cond_broadcast (&mInputBufferCond);
-        pthread_cond_broadcast (&mOmxEventCond);
+        pthread_cond_broadcast (&mEventCond);
        }
     break;
     //}}}
@@ -1073,17 +1073,17 @@ OMX_ERRORTYPE cOmxCoreComponent::decoderEventHandler (OMX_HANDLETYPE component,
 //}}}
 
 //{{{
-void cOmxCoreComponent::resetEos() {
+void cOmxCore::resetEos() {
 
-  pthread_mutex_lock (&mOmxEosMutex);
+  pthread_mutex_lock (&mEosMutex);
   mEos = false;
-  pthread_mutex_unlock (&mOmxEosMutex);
+  pthread_mutex_unlock (&mEosMutex);
   }
 //}}}
 
 // private
 //{{{
-void cOmxCoreComponent::transitionToStateLoaded() {
+void cOmxCore::transitionToStateLoaded() {
 
   if (getState() != OMX_StateLoaded && getState() != OMX_StateIdle)
     setStateForComponent (OMX_StateIdle);

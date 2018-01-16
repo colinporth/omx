@@ -19,18 +19,17 @@
 #define OMX_MAX_PORTS 10
 
 //{{{
-typedef struct omx_event {
+typedef struct omxEvent {
   OMX_EVENTTYPE eEvent;
   OMX_U32 nData1;
   OMX_U32 nData2;
-  } omx_event;
+  } omxEvent;
 //}}}
 
-class cOmxCoreClock;
-class cOmxCoreComponent {
+class cOmxCore {
 public:
-  cOmxCoreComponent();
-  ~cOmxCoreComponent();
+  cOmxCore();
+  ~cOmxCore();
 
   bool init (const std::string& name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks = NULL);
   bool isInit() const { return mHandle != NULL; }
@@ -51,8 +50,8 @@ public:
   OMX_BUFFERHEADERTYPE* getOutputBuffer (long timeout=200);
   unsigned int getInputBufferSize() const { return mInputBufferCount * mInputBufferSize; }
   unsigned int getOutputBufferSize() const { return mOutputBufferCount * mOutputBufferSize; }
-  unsigned int getInputBufferSpace() const { return mOmxInputAvaliable.size() * mInputBufferSize; }
-  unsigned int getOutputBufferSpace() const { return mOmxOutputAvailable.size() * mOutputBufferSize; }
+  unsigned int getInputBufferSpace() const { return mInputAvaliable.size() * mInputBufferSize; }
+  unsigned int getOutputBufferSpace() const { return mOutputAvailable.size() * mOutputBufferSize; }
   OMX_ERRORTYPE freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
   OMX_ERRORTYPE freeInputBuffers();
   OMX_ERRORTYPE freeOutputBuffers();
@@ -110,35 +109,35 @@ private:
   unsigned int mInputPort = 0;
   unsigned int mOutputPort = 0;
   std::string mComponentName;
-  pthread_mutex_t mOmxEventMutex;
-  pthread_mutex_t mOmxEosMutex;
-  std::vector<omx_event> mOmxEvents;
+  pthread_mutex_t mEventMutex;
+  pthread_mutex_t mEosMutex;
+  std::vector<omxEvent> mEvents;
   OMX_S32 mIgnoreError = OMX_ErrorNone;
 
   OMX_CALLBACKTYPE mCallbacks;
 
   // OMXCore input buffers (demuxer packets)
-  pthread_mutex_t mOmxInputMutex;
-  std::queue<OMX_BUFFERHEADERTYPE*> mOmxInputAvaliable;
-  std::vector<OMX_BUFFERHEADERTYPE*> mOmxInputBuffers;
+  pthread_mutex_t mInputMutex;
+  std::queue<OMX_BUFFERHEADERTYPE*> mInputAvaliable;
+  std::vector<OMX_BUFFERHEADERTYPE*> mInputBuffers;
   unsigned int mInputAlignment = 0;
   unsigned int mInputBufferSize = 0;
   unsigned int mInputBufferCount = 0;
-  bool mOmxInputUseBuffers = false;
+  bool mInputUseBuffers = false;
 
   // OMXCore output buffers (video frames)
-  pthread_mutex_t mOmxOutputMutex;
-  std::queue<OMX_BUFFERHEADERTYPE*> mOmxOutputAvailable;
-  std::vector<OMX_BUFFERHEADERTYPE*> mOmxOutputBuffers;
+  pthread_mutex_t mOutputMutex;
+  std::queue<OMX_BUFFERHEADERTYPE*> mOutputAvailable;
+  std::vector<OMX_BUFFERHEADERTYPE*> mOutputBuffers;
   unsigned int mOutputAlignment = 0;
   unsigned int mOutputBufferSize = 0;
   unsigned int mOutputBufferCount = 0;
-  bool mOmxOutputUseBuffers = false;
+  bool mOutputUseBuffers = false;
   cOmx* mOmx;
 
   pthread_cond_t mInputBufferCond;
   pthread_cond_t mOutputBufferCond;
-  pthread_cond_t mOmxEventCond;
+  pthread_cond_t mEventCond;
 
   bool mFlushInput = false;
   bool mFlushOutput = false;

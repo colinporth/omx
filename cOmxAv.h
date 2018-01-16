@@ -11,8 +11,8 @@
 #include "../shared/utils/cLog.h"
 
 #include "avLibs.h"
-#include "cOmxCoreComponent.h"
-#include "cOmxCoreTunnel.h"
+#include "cOmxCore.h"
+#include "cOmxTunnel.h"
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
@@ -331,16 +331,16 @@ private:
   OMX_VIDEO_CODINGTYPE mCodingType;
 
   cOmxClock* mAvClock = nullptr;
-  cOmxCoreComponent* mClock = nullptr;
-  cOmxCoreComponent mDecoder;
-  cOmxCoreComponent mRender;
-  cOmxCoreComponent mScheduler;
-  cOmxCoreComponent mImageFx;
+  cOmxCore* mClock = nullptr;
+  cOmxCore mDecoder;
+  cOmxCore mRender;
+  cOmxCore mScheduler;
+  cOmxCore mImageFx;
 
-  cOmxCoreTunnel mTunnelDecoder;
-  cOmxCoreTunnel mTunnelClock;
-  cOmxCoreTunnel mTunnelSched;
-  cOmxCoreTunnel mTunnelImageFx;
+  cOmxTunnel mTunnelDecoder;
+  cOmxTunnel mTunnelClock;
+  cOmxTunnel mTunnelSched;
+  cOmxTunnel mTunnelImageFx;
 
   std::string mVideoCodecName;
 
@@ -479,20 +479,20 @@ private:
   cAvUtil mAvUtil;
 
   cOmxClock* mAvClock = nullptr;
-  cOmxCoreComponent* mClock = nullptr;
+  cOmxCore* mClock = nullptr;
 
-  cOmxCoreComponent mRenderAnal;
-  cOmxCoreComponent mRenderHdmi;
-  cOmxCoreComponent mSplitter;
-  cOmxCoreComponent mMixer;
-  cOmxCoreComponent mDecoder;
+  cOmxCore mRenderAnal;
+  cOmxCore mRenderHdmi;
+  cOmxCore mSplitter;
+  cOmxCore mMixer;
+  cOmxCore mDecoder;
 
-  cOmxCoreTunnel mTunnelClockAnalog;
-  cOmxCoreTunnel mTunnelClockHdmi;
-  cOmxCoreTunnel mTunnelMixer;
-  cOmxCoreTunnel mTunnelDecoder;
-  cOmxCoreTunnel mTunnelSplitterAnalog;
-  cOmxCoreTunnel mTunnelSplitterHdmi;
+  cOmxTunnel mTunnelClockAnalog;
+  cOmxTunnel mTunnelClockHdmi;
+  cOmxTunnel mTunnelMixer;
+  cOmxTunnel mTunnelDecoder;
+  cOmxTunnel mTunnelSplitterAnalog;
+  cOmxTunnel mTunnelSplitterHdmi;
 
   OMX_AUDIO_CODINGTYPE mEncoding = OMX_AUDIO_CodingPCM;
   OMX_AUDIO_CHANNELTYPE mInputChannels[OMX_AUDIO_MAXCHANNELS];

@@ -1,5 +1,5 @@
-SRC=       cOmxCoreComponent.cpp \
-	   cOmxCoreTunnel.cpp \
+SRC=       cOmxCore.cpp \
+	   cOmxTunnel.cpp \
 	   cOmxClock.cpp \
 	   cOmxReader.cpp \
 	   cOmxPlayerVideo.cpp \

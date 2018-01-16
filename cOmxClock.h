@@ -3,7 +3,7 @@
 
 #include <mutex>
 #include "avLibs.h"
-#include "cOmxCoreComponent.h"
+#include "cOmxCore.h"
 //}}}
 //{{{  defines
 #define DVD_TIME_BASE        1000000
@@ -44,7 +44,7 @@ public:
   bool stateExecute();
   bool hdmiClockSync();
 
-  cOmxCoreComponent* getOmxClock() { return &mOmxClock; }
+  cOmxCore* getOmxClock() { return &mOmxClock; }
   int64_t getAbsoluteClock();
   double getClock (bool interpolated = true) { return getAbsoluteClock(); }
 
@@ -70,7 +70,7 @@ private:
   std::recursive_mutex mMutex;
 
   cAvFormat mAvFormat;
-  cOmxCoreComponent mOmxClock;
+  cOmxCore mOmxClock;
 
   bool mPause = false;
   int mOmxSpeed = DVD_PLAYSPEED_NORMAL;
