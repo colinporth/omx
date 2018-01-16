@@ -17,6 +17,8 @@ cOmxPlayerVideo::cOmxPlayerVideo() : cOmxPlayer() {
   pthread_mutex_init (&mLock, NULL);
   pthread_mutex_init (&mLockDecoder, NULL);
   pthread_cond_init (&mPacketCond, NULL);
+
+  mFlushRequested = false;
   }
 //}}}
 //{{{
@@ -81,13 +83,23 @@ void cOmxPlayerVideo::submitEOS() {
 //{{{
 void cOmxPlayerVideo::flush() {
 
-  mFlushing = true;
+  mFlushRequested = true;
+
   lock();
   lockDecoder();
 
-  flushPlayer();
+  mFlushRequested = false;
+  mFlush = true;
+  while (!mPackets.empty()) {
+    auto packet = mPackets.front();
+    mPackets.pop_front();
+    cOmxReader::freePacket (packet);
+    }
+
+  mCurrentPts = DVD_NOPTS_VALUE;
+  mPacketCacheSize = 0;
+
   mDecoder->reset();
-  mFlushing = false;
 
   unLockDecoder();
   unLock();
@@ -105,6 +117,7 @@ void cOmxPlayerVideo::reset() {
 
   mAbort = false;
   mFlush = false;
+  mFlushRequested = false;
 
   mPacketCacheSize = 0;
   mVideoDelay = 0;
@@ -153,7 +166,7 @@ bool cOmxPlayerVideo::decode (OMXPacket* packet) {
 
   while ((int)mDecoder->getInputBufferSpace() < packet->size) {
     cOmxClock::sleep (10);
-    if (mFlushing)
+    if (mFlushRequested)
       return true;
     }
 

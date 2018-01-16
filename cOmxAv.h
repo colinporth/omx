@@ -2,6 +2,7 @@
 #pragma once
 
 #include <sys/types.h>
+#include <atomic>
 #include <string>
 #include <mutex>
 #include <deque>
@@ -617,19 +618,6 @@ protected:
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
   virtual bool decode (OMXPacket* packet) = 0;
-  //{{{
-  void flushPlayer() {
-    mFlush = true;
-    while (!mPackets.empty()) {
-      auto packet = mPackets.front();
-      mPackets.pop_front();
-      cOmxReader::freePacket (packet);
-      }
-    mPacketCacheSize = 0;
-
-    mCurrentPts = DVD_NOPTS_VALUE;
-    }
-  //}}}
 
   // vars
   pthread_mutex_t mLock;
@@ -647,9 +635,9 @@ protected:
 
   double mCurrentPts = 0.0;
 
-  bool mAbort = false;
+  bool mAbort;
   bool mFlush = false;
-  bool mFlushing = false;
+  std::atomic<bool> mFlushRequested;
   std::deque<OMXPacket*> mPackets;
   int mPacketCacheSize = 0;
   int mPacketMaxCacheSize = 0;
