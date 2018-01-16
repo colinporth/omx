@@ -14,7 +14,6 @@ extern "C" {
 //}}}
 
 #define AVSEEK_FORCE 0x20000
-#define AVFRAME_IN_LAVU
 
 typedef int64_t offset_t;
 
@@ -75,12 +74,10 @@ public:
   int av_samples_copy(uint8_t **dst, uint8_t *const *src, int dst_offset, int src_offset, int nb_samples, int nb_channels, enum AVSampleFormat sample_fmt)
     { return ::av_samples_copy(dst, src, dst_offset, src_offset, nb_samples, nb_channels, sample_fmt); }
 
-#if defined(AVFRAME_IN_LAVU)
   void av_frame_free(AVFrame **frame) { return ::av_frame_free(frame); }
   AVFrame *av_frame_alloc() { return ::av_frame_alloc(); }
   void av_frame_unref(AVFrame *frame) { return ::av_frame_unref(frame); }
   void av_frame_move_ref(AVFrame *dst, AVFrame *src) { return ::av_frame_move_ref(dst,src); }
-#endif
   };
 //}}}
 //{{{
