@@ -1,4 +1,4 @@
-// cOmxPlayerVideo.cpp
+// cOmxVideoPlayer.cpp
 //{{{  includes
 #include <stdio.h>
 #include <unistd.h>
@@ -11,7 +11,7 @@ using namespace std;
 //}}}
 
 //{{{
-bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
+bool cOmxVideoPlayer::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
 
   mAvClock = avClock;
 
@@ -54,7 +54,7 @@ bool cOmxPlayerVideo::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
   }
 //}}}
 //{{{
-void cOmxPlayerVideo::reset() {
+void cOmxVideoPlayer::reset() {
 
   flush();
 
@@ -74,7 +74,7 @@ void cOmxPlayerVideo::reset() {
 
 // protected
 //{{{
-bool cOmxPlayerVideo::decode (OMXPacket* packet) {
+bool cOmxVideoPlayer::decode (OMXPacket* packet) {
 
   double dts = packet->dts;
   if (dts != DVD_NOPTS_VALUE)

@@ -1,4 +1,4 @@
-// cOmxPlayerAudio.cpp
+// cOmxAudioPlayer.cpp
 //{{{  includes
 #include <stdio.h>
 #include <unistd.h>
@@ -11,7 +11,7 @@ using namespace std;
 //}}}
 
 //{{{
-bool cOmxPlayerAudio::isPassThru (cOmxStreamInfo hints) {
+bool cOmxAudioPlayer::isPassThru (cOmxStreamInfo hints) {
 
   if (mConfig.mDevice == "omx:local")
     return false;
@@ -27,7 +27,7 @@ bool cOmxPlayerAudio::isPassThru (cOmxStreamInfo hints) {
 //}}}
 
 //{{{
-bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
+bool cOmxAudioPlayer::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
 
   mAvClock = avClock;
 
@@ -57,7 +57,7 @@ bool cOmxPlayerAudio::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
 
 // private
 //{{{
-bool cOmxPlayerAudio::openSwAudio() {
+bool cOmxAudioPlayer::openSwAudio() {
 
   mSwAudio = new cSwAudio();
   if (!mSwAudio->open (mConfig.mHints, mConfig.mLayout)) {
@@ -70,7 +70,7 @@ bool cOmxPlayerAudio::openSwAudio() {
   }
 //}}}
 //{{{
-bool cOmxPlayerAudio::openOmxAudio() {
+bool cOmxAudioPlayer::openOmxAudio() {
 
   mOmxAudio = new cOmxAudio();
 
@@ -104,7 +104,7 @@ bool cOmxPlayerAudio::openOmxAudio() {
 //}}}
 
 //{{{
-bool cOmxPlayerAudio::decode (OMXPacket* packet) {
+bool cOmxAudioPlayer::decode (OMXPacket* packet) {
 
   auto channels = packet->hints.channels;
   auto oldBitrate = mConfig.mHints.bitrate;

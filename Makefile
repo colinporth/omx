@@ -2,11 +2,11 @@ SRC=       cOmxCore.cpp \
 	   cOmxTunnel.cpp \
 	   cOmxClock.cpp \
 	   cOmxReader.cpp \
-	   cOmxPlayerVideo.cpp \
 	   cOmxVideo.cpp \
-	   cOmxPlayerAudio.cpp \
 	   cOmxAudio.cpp \
 	   cSwAudio.cpp \
+	   cOmxVideoPlayer.cpp \
+	   cOmxAudioPlayer.cpp \
 	   cPcmRemap.cpp \
 	   ../shared/utils/cLog.cpp \
 	   ../shared/utils/cKeyboard.cpp \

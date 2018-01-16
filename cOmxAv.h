@@ -702,10 +702,10 @@ protected:
   };
 //}}}
 //{{{
-class cOmxPlayerAudio : public cOmxPlayer {
+class cOmxAudioPlayer : public cOmxPlayer {
 public:
-  cOmxPlayerAudio() : cOmxPlayer() {}
-  virtual ~cOmxPlayerAudio() { close(); }
+  cOmxAudioPlayer() : cOmxPlayer() {}
+  virtual ~cOmxAudioPlayer() { close(); }
 
   bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
   double getDelay() { return mOmxAudio->getDelay(); }
@@ -776,10 +776,10 @@ private:
   };
 //}}}
 //{{{
-class cOmxPlayerVideo : public cOmxPlayer {
+class cOmxVideoPlayer : public cOmxPlayer {
 public:
-  cOmxPlayerVideo() : cOmxPlayer() {}
-  virtual ~cOmxPlayerVideo() { close(); }
+  cOmxVideoPlayer() : cOmxPlayer() {}
+  virtual ~cOmxVideoPlayer() { close(); }
 
   bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
   double getDelay() { return mVideoDelay; }
