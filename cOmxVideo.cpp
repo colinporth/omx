@@ -91,8 +91,8 @@ void cOmxVideo::setVideoRect() {
 
   configDisplay.src_rect.x_offset = (int)(mConfig.mSrcRect.x1 + 0.5f);
   configDisplay.src_rect.y_offset = (int)(mConfig.mSrcRect.y1 + 0.5f);
-  configDisplay.src_rect.width = (int)(mConfig.mSrcRect.Width() + 0.5f);
-  configDisplay.src_rect.height = (int)(mConfig.mSrcRect.Height() + 0.5f);
+  configDisplay.src_rect.width = (int)(mConfig.mSrcRect.getWidth() + 0.5f);
+  configDisplay.src_rect.height = (int)(mConfig.mSrcRect.getHeight() + 0.5f);
 
   if ((mConfig.mDstRect.x2 > mConfig.mDstRect.x1) &&
       (mConfig.mDstRect.y2 > mConfig.mDstRect.y1)) {
@@ -104,8 +104,8 @@ void cOmxVideo::setVideoRect() {
       configDisplay.noaspect = OMX_TRUE;
     configDisplay.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
     configDisplay.dest_rect.y_offset = (int)(mConfig.mDstRect.y1 + 0.5f);
-    configDisplay.dest_rect.width = (int)(mConfig.mDstRect.Width() + 0.5f);
-    configDisplay.dest_rect.height = (int)(mConfig.mDstRect.Height() + 0.5f);
+    configDisplay.dest_rect.width = (int)(mConfig.mDstRect.getWidth() + 0.5f);
+    configDisplay.dest_rect.height = (int)(mConfig.mDstRect.getHeight() + 0.5f);
     }
   else
     configDisplay.fullscreen = OMX_TRUE;
@@ -132,7 +132,7 @@ void cOmxVideo::setVideoRect (int aspectMode) {
   }
 //}}}
 //{{{
-void cOmxVideo::setVideoRect (const CRect& srcRect, const CRect& dstRect) {
+void cOmxVideo::setVideoRect (const cRect& srcRect, const cRect& dstRect) {
 
   mConfig.mSrcRect = srcRect;
   mConfig.mDstRect = dstRect;
@@ -469,9 +469,9 @@ bool cOmxVideo::portChanged() {
   OMX_INIT_STRUCTURE(interlace);
   interlace.nPortIndex = mDecoder.getOutputPort();
   mDecoder.getConfig (OMX_IndexConfigCommonInterlace, &interlace);
-  if (mConfig.mDeinterlace == VS_DEINTERLACEMODE_FORCE)
+  if (mConfig.mDeinterlace == eInterlaceForce)
     mDeinterlace = true;
-  else if (mConfig.mDeinterlace == VS_DEINTERLACEMODE_OFF)
+  else if (mConfig.mDeinterlace == eInterlaceOff)
     mDeinterlace = false;
   else
     mDeinterlace = (interlace.eMode != OMX_InterlaceProgressive);
