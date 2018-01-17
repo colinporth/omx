@@ -162,11 +162,11 @@ private:
 class cOmxTunnel {
 public:
   //{{{
-  void init (cOmxCore* srcComponent, int srcPort, cOmxCore* dstComponent, int dstPort) {
+  void init (cOmxCore* src, int srcPort, cOmxCore* dst, int dstPort) {
 
-    mSrcComponent = srcComponent;
+    mSrcComponent = src;
     mSrcPort = srcPort;
-    mDstComponent = dstComponent;
+    mDstComponent = dst;
     mDstPort = dstPort;
     }
   //}}}
@@ -186,7 +186,7 @@ public:
       //{{{
       omxErr = mSrcComponent->setState (OMX_StateIdle);
       if (omxErr) {
-        cLog::log (LOGERROR, "cOmxTunnel::Establish  setting state to idle %s 0x%08x",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - setting state to idle %s 0x%08x",
                    mSrcComponent->getName().c_str(), (int)omxErr);
         return omxErr;
         }
@@ -196,7 +196,7 @@ public:
       //{{{
       omxErr = mSrcComponent->disablePort (mSrcPort, false);
       if (omxErr)
-        cLog::log (LOGERROR, "cOmxTunnel::Establish disable port %d %s 0x%08x",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - disable port %d %s 0x%08x",
                    mSrcPort, mSrcComponent->getName().c_str(), (int)omxErr);
       }
       //}}}
@@ -204,7 +204,7 @@ public:
       //{{{
       omxErr = mDstComponent->disablePort (mDstPort, false);
       if (omxErr)
-        cLog::log (LOGERROR, "cOmxTunnel::Establish disable port %d %s 0x%08x",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - disable port %d %s 0x%08x",
                    mDstPort, mDstComponent->getName().c_str(), (int)omxErr);
       }
       //}}}
@@ -212,7 +212,7 @@ public:
       //{{{
       omxErr = mSrcComponent->waitCommand (OMX_CommandPortDisable, mSrcPort);
       if (omxErr) {
-        cLog::log (LOGERROR, "cOmxTunnel::Establish  waitCommand port %d %s 0x%08x",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - waitCommand port %d %s 0x%08x",
                    mDstPort, mSrcComponent->getName().c_str(), (int)omxErr);
         return omxErr;
         }
@@ -222,7 +222,7 @@ public:
       //{{{
       omxErr = mDstComponent->waitCommand (OMX_CommandPortDisable, mDstPort);
       if (omxErr) {
-        cLog::log (LOGERROR, "cOmxTunnel::Establish  waitCommand port %d %s 0x%08x",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - waitCommand port %d %s 0x%08x",
                    mDstPort, mDstComponent->getName().c_str(), (int)omxErr);
         return omxErr;
         }
@@ -233,7 +233,7 @@ public:
       omxErr = OMX_SetupTunnel (mSrcComponent->getComponent(), mSrcPort,
                                 mDstComponent->getComponent(), mDstPort);
       if (omxErr) {
-        cLog::log (LOGERROR, "cOmxTunnel::Establish setup tunnel src %s port %d dst %s port %d 0x%08x\n",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - setup tunnel src %s port %d dst %s port %d 0x%08x\n",
                    mSrcComponent->getName().c_str(), mSrcPort,
                    mDstComponent->getName().c_str(), mDstPort, (int)omxErr);
         return omxErr;
@@ -241,9 +241,11 @@ public:
       }
       //}}}
     else {
+      //{{{  error return
       cLog::log (LOGERROR, "cOmxTunnel::Establish could not setup tunnel\n");
       return OMX_ErrorUndefined;
       }
+      //}}}
 
     mTunnelSet = true;
 
@@ -251,7 +253,7 @@ public:
       //{{{
       omxErr = mSrcComponent->enablePort (mSrcPort, false);
       if (omxErr) {
-        cLog::log (LOGERROR, "cOmxTunnel::Establish  enable port %d %s 0x%08x",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - enable port %d %s 0x%08x",
                              mSrcPort, mSrcComponent->getName().c_str(), (int)omxErr);
         return omxErr;
         }
@@ -261,7 +263,7 @@ public:
       //{{{
       omxErr = mDstComponent->enablePort (mDstPort, false);
       if (omxErr) {
-        cLog::log (LOGERROR, "cOmxTunnel::Establish  enable port %d %s 0x%08x",
+        cLog::log (LOGERROR, "cOmxTunnel::establish - enable port %d %s 0x%08x",
                              mDstPort, mDstComponent->getName().c_str(), (int)omxErr);
         return omxErr;
         }
@@ -276,7 +278,7 @@ public:
       if (mDstComponent->getState() == OMX_StateLoaded) {
         omxErr = mDstComponent->setState (OMX_StateIdle);
         if (omxErr) {
-          cLog::log (LOGERROR, "cOmxCore::Establish  setting state to idle %s 0x%08x",
+          cLog::log (LOGERROR, "cOmxCore::establish - setting state to idle %s 0x%08x",
                                mSrcComponent->getName().c_str(), (int)omxErr);
           return omxErr;
           }
@@ -286,8 +288,11 @@ public:
     if (mSrcComponent->getComponent() && enablePorts) {
       //{{{
       omxErr = mSrcComponent->waitCommand (OMX_CommandPortEnable, mSrcPort);
-      if (omxErr)
+      if (omxErr) {
+       cLog::log (LOGERROR, "cOmxCore::establish - %s waitCommand srcPort %d 0x%08x",
+                            mSrcComponent->getName().c_str(), mSrcPort, (int)omxErr);
         return omxErr;
+        }
       }
       //}}}
 
