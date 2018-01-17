@@ -1,4 +1,4 @@
-// cOmxClock.cpp
+// cOmxClock.cpp - also has main OMX_init, OMX_deinit
 //{{{  includes
 #include "cOmxClock.h"
 
@@ -11,8 +11,18 @@ using namespace std;
 #define OMX_PRE_ROLL 200
 #define TP(speed) ((speed) < 0 || (speed) > 4*DVD_PLAYSPEED_NORMAL)
 
-cOmxClock::cOmxClock() { mOmxClock.init ("OMX.broadcom.clock", OMX_IndexParamOtherInit); }
-cOmxClock::~cOmxClock() { mOmxClock.deInit(); }
+//{{{
+cOmxClock::cOmxClock() { 
+  OMX_Init();
+  mOmxClock.init ("OMX.broadcom.clock", OMX_IndexParamOtherInit); 
+  }
+//}}}
+//{{{
+cOmxClock::~cOmxClock() { 
+  mOmxClock.deInit(); 
+  OMX_Deinit();
+  }
+//}}}
 
 //{{{
 void cOmxClock::stateIdle() {

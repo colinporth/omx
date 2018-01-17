@@ -70,8 +70,8 @@ public:
 private:
   std::recursive_mutex mMutex;
 
-  cAvFormat mAvFormat;
   cOmxCore mOmxClock;
+  cAvFormat mAvFormat;
 
   bool mPause = false;
   int mOmxSpeed = DVD_PLAYSPEED_NORMAL;

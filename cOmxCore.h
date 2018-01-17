@@ -31,13 +31,6 @@ typedef struct omxEvent {
 //}}}
 
 //{{{
-class cOmx {
-public:
-  cOmx() { OMX_Init(); }
-  virtual ~cOmx() { OMX_Deinit(); }
-  };
-//}}}
-//{{{
 class cOmxCore {
 public:
   cOmxCore();
