@@ -42,14 +42,8 @@ public:
   cOmxClock();
   ~cOmxClock();
 
-  void stateIdle();
-  bool stateExecute();
-  bool hdmiClockSync();
-
   cOmxCore* getOmxCore() { return &mOmxCore; }
-  int64_t getAbsoluteClock();
-  double getClock (bool interpolated = true) { return getAbsoluteClock(); }
-
+  double getAbsoluteClock();
   double getMediaTime();
   double getClockAdjustment();
   int getPlaySpeed() { return mOmxSpeed; };
@@ -59,13 +53,17 @@ public:
   bool setMediaTime (double pts);
   bool setSpeed (int speed, bool pauseResume);
 
+  void stateIdle();
+  bool stateExecute();
+  bool hdmiClockSync();
+
   bool stop();
   bool step (int steps = 1);
   bool reset (bool has_video, bool hasAudio);
   bool pause();
   bool resume();
 
-  static void msSleep (unsigned int mSecs);
+  void msSleep (unsigned int mSecs);
 
 private:
   std::recursive_mutex mMutex;

@@ -9,7 +9,6 @@
 #include <queue>
 
 #include "avLibs.h"
-
 #include "cOmxStreamInfo.h"
 //}}}
 //{{{  defines

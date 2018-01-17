@@ -24,68 +24,11 @@ cOmxClock::~cOmxClock() {
 //}}}
 
 //{{{
-void cOmxClock::stateIdle() {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  if (mOmxCore.getState() != OMX_StateIdle)
-    mOmxCore.setState (OMX_StateIdle);
-  mLastMediaTime = 0.f;
-  }
-//}}}
-//{{{
-bool cOmxClock::stateExecute() {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  if (mOmxCore.getState() != OMX_StateExecuting) {
-    stateIdle();
-    if (mOmxCore.setState (OMX_StateExecuting) != OMX_ErrorNone) {
-      //{{{  error, return
-      cLog::log (LOGERROR, "cOmxClock::stateExecute setState");
-      return false;
-      }
-      //}}}
-    }
-  mLastMediaTime = 0.f;
-
-  return true;
-  }
-//}}}
-//{{{
-bool cOmxClock::hdmiClockSync() {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  OMX_CONFIG_LATENCYTARGETTYPE latency;
-  OMX_INIT_STRUCTURE(latency);
-
-  latency.nPortIndex = OMX_ALL;
-  latency.bEnabled = OMX_TRUE;
-  latency.nFilter = 10;
-  latency.nTarget = 0;
-  latency.nShift = 3;
-  latency.nSpeedFactor = -60;
-  latency.nInterFactor = 100;
-  latency.nAdjCap = 100;
-  if (mOmxCore.setConfig (OMX_IndexConfigLatencyTarget, &latency)!= OMX_ErrorNone) {
-    // error, return
-    cLog::log (LOGERROR, __func__);
-    return false;
-    }
-
-  mLastMediaTime = 0.f;
-
-  return true;
-  }
-//}}}
-
-//{{{
-int64_t cOmxClock::getAbsoluteClock() {
+double cOmxClock::getAbsoluteClock() {
 
   struct timespec now;
   clock_gettime (CLOCK_MONOTONIC, &now);
-  return (((int64_t)now.tv_sec * 1000000000L) + now.tv_nsec) / 1000;
+  return (((int64_t)now.tv_sec * 1000000000L) + now.tv_nsec) / 1000.0;
   }
 //}}}
 //{{{
@@ -215,6 +158,63 @@ bool cOmxClock::setSpeed (int speed, bool pauseResume) {
 
   if (!pauseResume)
     mOmxSpeed = speed;
+  mLastMediaTime = 0.f;
+
+  return true;
+  }
+//}}}
+
+//{{{
+void cOmxClock::stateIdle() {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  if (mOmxCore.getState() != OMX_StateIdle)
+    mOmxCore.setState (OMX_StateIdle);
+  mLastMediaTime = 0.f;
+  }
+//}}}
+//{{{
+bool cOmxClock::stateExecute() {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  if (mOmxCore.getState() != OMX_StateExecuting) {
+    stateIdle();
+    if (mOmxCore.setState (OMX_StateExecuting) != OMX_ErrorNone) {
+      //{{{  error, return
+      cLog::log (LOGERROR, "cOmxClock::stateExecute setState");
+      return false;
+      }
+      //}}}
+    }
+  mLastMediaTime = 0.f;
+
+  return true;
+  }
+//}}}
+//{{{
+bool cOmxClock::hdmiClockSync() {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  OMX_CONFIG_LATENCYTARGETTYPE latency;
+  OMX_INIT_STRUCTURE(latency);
+
+  latency.nPortIndex = OMX_ALL;
+  latency.bEnabled = OMX_TRUE;
+  latency.nFilter = 10;
+  latency.nTarget = 0;
+  latency.nShift = 3;
+  latency.nSpeedFactor = -60;
+  latency.nInterFactor = 100;
+  latency.nAdjCap = 100;
+  if (mOmxCore.setConfig (OMX_IndexConfigLatencyTarget, &latency)!= OMX_ErrorNone) {
+    // error, return
+    cLog::log (LOGERROR, __func__);
+    return false;
+    }
+
   mLastMediaTime = 0.f;
 
   return true;

@@ -154,7 +154,7 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
   if (mPassThru || mHwDecode) {
     //{{{  hw action
     while (mOmxAudio->getSpace() < packet->mSize) {
-      cOmxClock::msSleep (10);
+      mClock->msSleep (10);
       if (mFlushRequested)
         return true;
       }
@@ -180,7 +180,7 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
       auto decodedSize = mSwAudio->getData (&decodedData, dts, pts);
       if (decodedSize > 0) {
         while (mOmxAudio->getSpace() < decodedSize) {
-          cOmxClock::msSleep (10);
+          mClock->msSleep (10);
           if (mFlushRequested)
             return true;
           }
