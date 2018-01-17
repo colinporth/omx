@@ -79,20 +79,20 @@ private:
   std::string pcmChannelStr (enum PCMChannels ename);
 
   // vars
-  bool m_inSet = false;
-  bool m_outSet = false;
-  enum PCMLayout m_channelLayout;
-  unsigned int m_inChannels = 0;
-  unsigned int m_outChannels = 0;
+  bool mInSet = false;
+  bool mOutSet = false;
+  enum PCMLayout mChannelLayout;
+  unsigned int mInChannels = 0;
+  unsigned int mOutChannels = 0;
 
-  enum PCMChannels m_inMap [PCM_MAX_CH];
-  enum PCMChannels m_outMap[PCM_MAX_CH];
-  enum PCMChannels m_layoutMap[PCM_MAX_CH + 1];
+  enum PCMChannels mInMap [PCM_MAX_CH];
+  enum PCMChannels mOutMap[PCM_MAX_CH];
+  enum PCMChannels mLayoutMap[PCM_MAX_CH + 1];
 
-  bool m_ignoreLayout = false;
-  bool m_useable [PCM_MAX_CH];
-  struct PCMMapInfo  m_lookupMap[PCM_MAX_CH + 1][PCM_MAX_CH + 1];
-  int m_counts[PCM_MAX_CH];
+  bool mIgnoreLayout = false;
+  bool mUseable [PCM_MAX_CH];
+  struct PCMMapInfo  mLookupMap[PCM_MAX_CH + 1][PCM_MAX_CH + 1];
+  int mCounts[PCM_MAX_CH];
 
-  bool m_dontnormalize = false;
+  bool mDontNormalize = false;
   };

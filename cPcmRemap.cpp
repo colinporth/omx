@@ -60,8 +60,8 @@ void cPcmRemap::getDownmixMatrix (float *downmix) {
   for (int i = 0; i < 8*8; i++)
     downmix[i] = 0.0f;
 
-  for (unsigned int ch = 0; ch < m_outChannels; ch++) {
-    struct PCMMapInfo *info = m_lookupMap[m_outMap[ch]];
+  for (unsigned int ch = 0; ch < mOutChannels; ch++) {
+    struct PCMMapInfo* info = mLookupMap[mOutMap[ch]];
     if (info->channel == PCM_INVALID)
       continue;
 
@@ -77,15 +77,15 @@ enum PCMChannels* cPcmRemap::setInputFormat (unsigned int channels, enum PCMChan
                                              enum PCMLayout channelLayout, bool dontnormalize) {
 // sets the input format, and returns the requested channel layout */
 
-  m_inChannels = channels;
-  m_inSet = channelMap != NULL;
+  mInChannels = channels;
+  mInSet = (channelMap != NULL);
   if (channelMap)
-    memcpy(m_inMap, channelMap, sizeof(enum PCMChannels) * channels);
+    memcpy(mInMap, channelMap, sizeof(enum PCMChannels) * channels);
 
   // get the audio layout, and count the channels in it
-  m_channelLayout = channelLayout;
-  m_dontnormalize = dontnormalize;
-  if (m_channelLayout >= PCM_MAX_LAYOUT) m_channelLayout = PCM_LAYOUT_2_0;
+  mChannelLayout = channelLayout;
+  mDontNormalize = dontnormalize;
+  if (mChannelLayout >= PCM_MAX_LAYOUT) mChannelLayout = PCM_LAYOUT_2_0;
 
   dumpMap ("in", channels, channelMap);
   buildMap();
@@ -95,33 +95,33 @@ enum PCMChannels* cPcmRemap::setInputFormat (unsigned int channels, enum PCMChan
   if (channelMap) {
     // Do basic channel resolving to find out the empty channels;
     // If m_outSet == true, this was done already by BuildMap() above */
-    if (!m_outSet)
+    if (!mOutSet)
       resolveChannels();
 
     int i = 0;
-    for (enum PCMChannels *chan = PCMLayoutMap[m_channelLayout]; *chan != PCM_INVALID; ++chan)
-      if (m_lookupMap[*chan][0].channel != PCM_INVALID) {
+    for (enum PCMChannels *chan = PCMLayoutMap[mChannelLayout]; *chan != PCM_INVALID; ++chan)
+      if (mLookupMap[*chan][0].channel != PCM_INVALID) {
         // something is mapped here, so add the channel
-        m_layoutMap[i++] = *chan;
+        mLayoutMap[i++] = *chan;
         }
-    m_layoutMap[i] = PCM_INVALID;
+    mLayoutMap[i] = PCM_INVALID;
     }
   else
-    memcpy(m_layoutMap, PCMLayoutMap[m_channelLayout], sizeof(PCMLayoutMap[m_channelLayout]));
+    memcpy (mLayoutMap, PCMLayoutMap[mChannelLayout], sizeof(PCMLayoutMap[mChannelLayout]));
 
-  return m_layoutMap;
+  return mLayoutMap;
   }
 //}}}
 //{{{
 void cPcmRemap::setOutputFormat (unsigned int channels, enum PCMChannels *channelMap, bool ignoreLayout) {
 /* sets the output format supported by the audio renderer */
 
-  m_outChannels = channels;
-  m_outSet= channelMap != NULL;
-  m_ignoreLayout = ignoreLayout;
+  mOutChannels = channels;
+  mOutSet = (channelMap != NULL);
+  mIgnoreLayout = ignoreLayout;
 
   if (channelMap)
-    memcpy (m_outMap, channelMap, sizeof(enum PCMChannels) * channels);
+    memcpy (mOutMap, channelMap, sizeof(enum PCMChannels) * channels);
 
   dumpMap ("out", channels, channelMap);
   buildMap();
@@ -131,8 +131,8 @@ void cPcmRemap::setOutputFormat (unsigned int channels, enum PCMChannels *channe
 //{{{
 void cPcmRemap::reset() {
 
-  m_inSet  = false;
-  m_outSet = false;
+  mInSet  = false;
+  mOutSet = false;
   }
 //}}}
 
@@ -146,9 +146,9 @@ struct PCMMapInfo* cPcmRemap::resolveChannel (enum PCMChannels channel, float le
     return tablePtr;
 
   // if its a 1 to 1 mapping, return
-  if (m_useable[channel]) {
+  if (mUseable[channel]) {
     tablePtr->channel = channel;
-    tablePtr->level   = level;
+    tablePtr->level = level;
 
     ++tablePtr;
     tablePtr->channel = PCM_INVALID;
@@ -184,48 +184,50 @@ void cPcmRemap::resolveChannels() {
 // build lookup table without extra adjustments, useful if we simply
 //  want to find out which channels are active. For final adjustments, BuildMap() is used.
 
-  unsigned int in_ch, out_ch;
+  unsigned int inCh;
+  unsigned int outCh;
   bool hasSide = false;
   bool hasBack = false;
 
-  memset (m_useable, 0, sizeof(m_useable));
+  memset (mUseable, 0, sizeof(mUseable));
 
-  if (!m_outSet) {
+  if (!mOutSet) {
     // Output format is not known yet, assume the full configured map.
     // Note that m_ignoreLayout-using callers normally ignore the result of
     // this function when !m_outSet, when it is called only for an advice for
     // the caller of SetInputFormat about the best possible output map, and
     // they can still set their output format arbitrarily in their call to SetOutputFormat
-    for (enum PCMChannels *chan = PCMLayoutMap[m_channelLayout]; *chan != PCM_INVALID; ++chan)
-      m_useable[*chan] = true;
+    for (enum PCMChannels *chan = PCMLayoutMap[mChannelLayout]; *chan != PCM_INVALID; ++chan)
+      mUseable[*chan] = true;
     }
-  else if (m_ignoreLayout) {
-    for (out_ch = 0; out_ch < m_outChannels; ++out_ch)
-      m_useable[m_outMap[out_ch]] = true;
+  else if (mIgnoreLayout) {
+    for (outCh = 0; outCh < mOutChannels; ++outCh)
+      mUseable[mOutMap[outCh]] = true;
     }
   else {
     // figure out what channels we have and can use
-    for (enum PCMChannels *chan = PCMLayoutMap[m_channelLayout]; *chan != PCM_INVALID; ++chan) {
-      for (out_ch = 0; out_ch < m_outChannels; ++out_ch)
-        if (m_outMap[out_ch] == *chan) {
-          m_useable[*chan] = true;
+    for (enum PCMChannels *chan = PCMLayoutMap[mChannelLayout]; *chan != PCM_INVALID; ++chan) {
+      for (outCh = 0; outCh < mOutChannels; ++outCh)
+        if (mOutMap[outCh] == *chan) {
+          mUseable[*chan] = true;
           break;
           }
       }
     }
 
   // force mono audio to front left and front right
-  if (!m_ignoreLayout && m_inChannels == 1 && m_inMap[0] == PCM_FRONT_CENTER
-      && m_useable[PCM_FRONT_LEFT] && m_useable[PCM_FRONT_RIGHT]) {
+  if (!mIgnoreLayout && mInChannels == 1 && 
+      mInMap[0] == PCM_FRONT_CENTER &&
+      mUseable[PCM_FRONT_LEFT] && mUseable[PCM_FRONT_RIGHT]) {
     cLog::log (LOGINFO1, "cPcmRemap - Mapping mono audio to front left and front right");
-    m_useable[PCM_FRONT_CENTER] = false;
-    m_useable[PCM_FRONT_LEFT_OF_CENTER] = false;
-    m_useable[PCM_FRONT_RIGHT_OF_CENTER] = false;
+    mUseable[PCM_FRONT_CENTER] = false;
+    mUseable[PCM_FRONT_LEFT_OF_CENTER] = false;
+    mUseable[PCM_FRONT_RIGHT_OF_CENTER] = false;
     }
 
   // see if our input has side/back channels
-  for(in_ch = 0; in_ch < m_inChannels; ++in_ch)
-    switch (m_inMap[in_ch]) {
+  for(inCh = 0; inCh < mInChannels; ++inCh)
+    switch (mInMap[inCh]) {
       case PCM_SIDE_LEFT:
       case PCM_SIDE_RIGHT:
         hasSide = true;
@@ -240,11 +242,11 @@ void cPcmRemap::resolveChannels() {
       }
 
   // if our input has side, and not back channels, and our output doesnt have side channels
-  if (hasSide && !hasBack && (!m_useable[PCM_SIDE_LEFT] || !m_useable[PCM_SIDE_RIGHT])) {
+  if (hasSide && !hasBack && (!mUseable[PCM_SIDE_LEFT] || !mUseable[PCM_SIDE_RIGHT])) {
     cLog::log (LOGINFO1, "cPcmRemap - Forcing side channel map to back channels");
-    for(in_ch = 0; in_ch < m_inChannels; ++in_ch)
-           if (m_inMap[in_ch] == PCM_SIDE_LEFT ) m_inMap[in_ch] = PCM_BACK_LEFT;
-      else if (m_inMap[in_ch] == PCM_SIDE_RIGHT) m_inMap[in_ch] = PCM_BACK_RIGHT;
+    for(inCh = 0; inCh < mInChannels; ++inCh)
+           if (mInMap[inCh] == PCM_SIDE_LEFT ) mInMap[inCh] = PCM_BACK_LEFT;
+      else if (mInMap[inCh] == PCM_SIDE_RIGHT) mInMap[inCh] = PCM_BACK_RIGHT;
     }
 
   //* resolve all the channels
@@ -253,24 +255,24 @@ void cPcmRemap::resolveChannels() {
 
   for (int i = 0; i < PCM_MAX_CH + 1; i++) {
     for (int j = 0; j < PCM_MAX_CH + 1; j++)
-      m_lookupMap[i][j].channel = PCM_INVALID;
+      mLookupMap[i][j].channel = PCM_INVALID;
     }
 
-  memset (m_counts, 0, sizeof(m_counts));
-  for (in_ch = 0; in_ch < m_inChannels; ++in_ch) {
+  memset (mCounts, 0, sizeof(mCounts));
+  for (inCh = 0; inCh < mInChannels; ++inCh) {
     for (int i = 0; i < PCM_MAX_CH + 1; i++)
       table[i].channel = PCM_INVALID;
 
-    resolveChannel(m_inMap[in_ch], 1.0f, false, path, table);
+    resolveChannel(mInMap[inCh], 1.0f, false, path, table);
     for (info = table; info->channel != PCM_INVALID; ++info) {
       // find the end of the table
-      for (dst = m_lookupMap[info->channel]; dst->channel != PCM_INVALID; ++dst);
+      for (dst = mLookupMap[info->channel]; dst->channel != PCM_INVALID; ++dst);
 
       // append it to the table and set its input offset
-      dst->channel = m_inMap[in_ch];
-      dst->in_offset = in_ch * 2;
+      dst->channel = mInMap[inCh];
+      dst->in_offset = inCh * 2;
       dst->level = info->level;
-      m_counts[dst->channel]++;
+      mCounts[dst->channel]++;
       }
     }
   }
@@ -282,13 +284,13 @@ void cPcmRemap::buildMap() {
 // mapping, this decreases the amount of work per sample to remap it
 
   struct PCMMapInfo *dst;
-  unsigned int out_ch;
-  if (!m_inSet || !m_outSet)
+  unsigned int outCh;
+  if (!mInSet || !mOutSet)
     return;
 
   /* see if we need to normalize the levels */
-  bool dontnormalize = m_dontnormalize;
-  cLog::log(LOGINFO1, "cPcmRemap - Downmix normalization is %s", 
+  bool dontnormalize = mDontNormalize;
+  cLog::log(LOGINFO1, "cPcmRemap - Downmix normalization is %s",
                       (dontnormalize ? "disabled" : "enabled"));
 
   resolveChannels();
@@ -297,24 +299,24 @@ void cPcmRemap::buildMap() {
   float loudest    = 0.0;
   bool hasLoudest = false;
 
-  for (out_ch = 0; out_ch < m_outChannels; ++out_ch) {
+  for (outCh = 0; outCh < mOutChannels; ++outCh) {
     float scale = 0;
     int count = 0;
-    for(dst = m_lookupMap[m_outMap[out_ch]]; dst->channel != PCM_INVALID; ++dst) {
-      dst->copy  = false;
-      dst->level = dst->level / sqrt((float)m_counts[dst->channel]);
-      scale     += dst->level;
+    for(dst = mLookupMap[mOutMap[outCh]]; dst->channel != PCM_INVALID; ++dst) {
+      dst->copy = false;
+      dst->level = dst->level / sqrt((float)mCounts[dst->channel]);
+      scale += dst->level;
       ++count;
       }
 
     /* if there is only 1 channel to mix, and the level is 1.0, then just copy the channel */
-    dst = m_lookupMap[m_outMap[out_ch]];
+    dst = mLookupMap[mOutMap[outCh]];
     if (count == 1 && dst->level > 0.99 && dst->level < 1.01)
       dst->copy = true;
 
     /* normalize the levels if it is turned on */
     if (!dontnormalize)
-      for(dst = m_lookupMap[m_outMap[out_ch]]; dst->channel != PCM_INVALID; ++dst) {
+      for(dst = mLookupMap[mOutMap[outCh]]; dst->channel != PCM_INVALID; ++dst) {
         dst->level /= scale;
         /* find the loudest output level we have that is not 1-1 */
         if (dst->level < 1.0 && loudest < dst->level) {
@@ -325,9 +327,9 @@ void cPcmRemap::buildMap() {
     }
 
   /* adjust the channels that are too loud */
-  for(out_ch = 0; out_ch < m_outChannels; ++out_ch) {
+  for(outCh = 0; outCh < mOutChannels; ++outCh) {
     string s = "", f;
-    for(dst = m_lookupMap[m_outMap[out_ch]]; dst->channel != PCM_INVALID; ++dst) {
+    for(dst = mLookupMap[mOutMap[outCh]]; dst->channel != PCM_INVALID; ++dst) {
       if (hasLoudest && dst->copy) {
         dst->level = loudest;
         dst->copy  = false;
@@ -336,7 +338,7 @@ void cPcmRemap::buildMap() {
       f = pcmChannelStr(dst->channel); // + dst->level, dst->copy ? "*" : "");
       s += f;
       }
-    cLog::log (LOGINFO1, "cPcmRemap - %s = %s", pcmChannelStr(m_outMap[out_ch]).c_str(), s.c_str());
+    cLog::log (LOGINFO1, "cPcmRemap - %s = %s", pcmChannelStr(mOutMap[outCh]).c_str(), s.c_str());
     }
   }
 //}}}

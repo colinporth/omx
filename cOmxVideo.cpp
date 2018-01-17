@@ -30,8 +30,8 @@ using namespace std;
 //}}}
 
 //{{{
-cOmxVideo::~cOmxVideo() { 
-  close(); 
+cOmxVideo::~cOmxVideo() {
+  close();
   }
 //}}}
 
@@ -806,8 +806,7 @@ void cOmxVideo::logPortChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlace
   cLog::log (LOGINFO, "port %dx%d %.2f intMode:%d deint:%d par:%.2f dis:%d lay:%d alp:%d asp:%d",
                       port.format.video.nFrameWidth, port.format.video.nFrameHeight,
                       port.format.video.xFramerate / (float)(1<<16),
-                      interlaceMode, mDeinterlace,
-                      mPixelAspect,
+                      interlaceMode, mDeinterlace, mPixelAspect,
                       mConfig.mDisplay, mConfig.mLayer, mConfig.mAlpha, mConfig.mAspectMode);
   }
 //}}}

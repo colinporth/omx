@@ -439,20 +439,18 @@ public:
 
   static bool hwDecode (AVCodecID codec);
 
+  bool isEOS();
   int getSpace() { return mDecoder.getInputBufferSpace(); }
   int getChunkLen() { return mChunkLen; }
   float getDelay();
   float getCacheTotal();
-
   unsigned int getAudioRenderingLatency();
-  float getMaxLevel (double &pts);
+
   uint64_t getChannelLayout (enum PCMLayout layout);
-  float getVolume() { return mMute ? 0.f : mCurrentVolume; }
-  bool isEOS();
+  float getVolume() { return mMute ? 0.f : mCurVolume; }
 
   void setMute (bool mute);
   void setVolume (float volume);
-  void setDynamicRangeCompression (float drc);
   void setCodingType (AVCodecID codec);
 
   bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
@@ -467,9 +465,9 @@ public:
 
 private:
   bool canHwDecode (AVCodecID codec);
+  float getMaxLevel (double& pts);
 
   bool applyVolume();
-  void updateAttenuation();
 
   void printChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
   void printPCM (OMX_AUDIO_PARAM_PCMMODETYPE* pcm, const std::string& direction);
@@ -505,7 +503,6 @@ private:
   unsigned int mNumOutputChannels = 0;
   unsigned int mBitsPerSample = 0;
 
-  bool mInitialized = false;
   unsigned int mBytesPerSec = 0;
   unsigned int mInputBytesPerSec = 0;
   unsigned int mBufferLen = 0;
@@ -513,27 +510,17 @@ private:
 
   float mSubmitted = 0.f;
   bool mPortChanged = false;
-  bool  mSetStartTime = false;
-  double mLastPts = DVD_NOPTS_VALUE;
   bool mSubmittedEos = false;
   bool mFailedEos = false;
 
-  float mCurrentVolume = 0.f;
+  bool mSetStartTime = false;
+  double mLastPts = DVD_NOPTS_VALUE;
+
   bool mMute = false;
-  float mMaxLevel = 0.f;
-  float mAttenuation = 1.f;
-  float mDrc = 1.f;
+  float mCurVolume = 0.f;
+  float mLastVolume = 0.f;
 
-  OMX_AUDIO_PARAM_DTSTYPE mDtsParam;
   WAVEFORMATEXTENSIBLE mWaveHeader;
-
-  //{{{  struct amplitudes_t
-  typedef struct {
-    double pts;
-    float level;
-    } amplitudes_t;
-  //}}}
-  std::deque<amplitudes_t> mAmpQueue;
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
   //}}}
   };
@@ -722,21 +709,15 @@ public:
   bool isPassThru (cOmxStreamInfo hints);
 
   //{{{
-  void setVolume (float volume) {
-    mCurrentVolume = volume;
-    mOmxAudio->setVolume (volume);
-    }
-  //}}}
-  //{{{
   void setMute (bool mute) {
     mMute = mute;
     mOmxAudio->setMute (mute);
     }
   //}}}
   //{{{
-  void setDynamicRangeCompression (float drc) {
-    mDrc = drc;
-    mOmxAudio->setDynamicRangeCompression (drc);
+  void setVolume (float volume) {
+    mCurrentVolume = volume;
+    mOmxAudio->setVolume (volume);
     }
   //}}}
 

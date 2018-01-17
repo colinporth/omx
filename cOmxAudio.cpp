@@ -58,9 +58,6 @@ cOmxAudio::~cOmxAudio() {
     mRenderHdmi.deInit();
   if (mRenderAnal.isInit())
     mRenderAnal.deInit();
-
-  while (!mAmpQueue.empty())
-    mAmpQueue.pop_front();
   }
 //}}}
 
@@ -153,26 +150,6 @@ unsigned int cOmxAudio::getAudioRenderingLatency() {
   }
 //}}}
 //{{{
-float cOmxAudio::getMaxLevel (double& pts) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  OMX_CONFIG_BRCMAUDIOMAXSAMPLE param;
-  OMX_INIT_STRUCTURE(param);
-  if (mDecoder.isInit()) {
-    param.nPortIndex = mDecoder.getInputPort();
-    if (mDecoder.getConfig(OMX_IndexConfigBrcmAudioMaxSample, &param)) {
-      // error return
-      cLog::log (LOGERROR, string(__func__) + " getMaxLevel");
-      return 0;
-      }
-    }
-
-  pts = fromOmxTime (param.nTimeStamp);
-  return (float)param.nMaxSample * (100.f / (1<<15));
-  }
-//}}}
-//{{{
 uint64_t cOmxAudio::getChannelLayout (enum PCMLayout layout) {
 
   uint64_t layouts[] = {
@@ -221,7 +198,7 @@ void cOmxAudio::setMute (bool mute) {
 
   mMute = mute;
   if (mPortChanged)
-    updateAttenuation();
+    applyVolume();
   }
 //}}}
 //{{{
@@ -229,19 +206,9 @@ void cOmxAudio::setVolume (float volume) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  mCurrentVolume = volume;
+  mCurVolume = volume;
   if (mPortChanged)
-    updateAttenuation();
-  }
-//}}}
-//{{{
-void cOmxAudio::setDynamicRangeCompression (float drc) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  mDrc = powf (10.f, drc);
-  if (mPortChanged)
-    updateAttenuation();
+    applyVolume();
   }
 //}}}
 //{{{
@@ -275,7 +242,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mClock = clock;
-  mDrc = 0;
 
   mConfig = config;
   if (mConfig.mPassThru) // passThru overwrites hw decode
@@ -498,7 +464,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   mFailedEos = false;
   mLastPts = DVD_NOPTS_VALUE;
   mSubmitted = 0.f;
-  mMaxLevel = 0.f;
 
   return true;
   }
@@ -611,7 +576,7 @@ bool cOmxAudio::portChanged() {
     if (!mRenderHdmi.init ("OMX.broadcom.audio_render", OMX_IndexParamAudioInit))
       return false;
 
-  updateAttenuation();
+  applyVolume();
 
   if (mMixer.isInit()) {
     // setup mixer output
@@ -862,13 +827,13 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  int pitch = (mConfig.mPassThru || mConfig.mHwDecode) ? 1 : (mBitsPerSample >> 3) * mNumInputChannels;
+  int pitch = (mConfig.mPassThru || mConfig.mHwDecode) ? 1 : (mBitsPerSample>>3) * mNumInputChannels;
   int demuxSamples = len / pitch;
-  int demuxSamples_sent = 0;
-  auto demuxer_content = (uint8_t *)data;
+  int demuxSamplesSent = 0;
+  auto demuxer_content = (uint8_t*)data;
 
   OMX_BUFFERHEADERTYPE* buffer = nullptr;
-  while (demuxSamples_sent < demuxSamples) {
+  while (demuxSamplesSent < demuxSamples) {
     buffer = mDecoder.getInputBuffer (200); // 200ms timeout
     if (!buffer) {
       //{{{  error return
@@ -882,38 +847,38 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
 
     // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
     // it will be 16-bit and rounded up to next power of 2 in channels
-    int max_buffer = AUDIO_DECODE_OUTPUT_BUFFER *
+    int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
       (mNumInputChannels * mBitsPerSample) >> (rounded_up_channels_shift[mNumInputChannels] + 4);
-    int remaining = demuxSamples - demuxSamples_sent;
-    int samples_space = min (max_buffer, (int)buffer->nAllocLen) / pitch;
-    int samples = min(remaining, samples_space);
+    int remaining = demuxSamples - demuxSamplesSent;
+    int samplesSpace = min (maxBuffer, (int)buffer->nAllocLen) / pitch;
+    int samples = min(remaining, samplesSpace);
 
     buffer->nFilledLen = samples * pitch;
 
     int frames = frameSize ? (len / frameSize) : 0;
-    if ((samples < demuxSamples || frames > 1) &&
+    if (((samples < demuxSamples) || (frames > 1)) &&
         (mBitsPerSample == 32) &&
         !(mConfig.mPassThru || mConfig.mHwDecode)) {
-      int sample_pitch = mBitsPerSample >> 3;
-      int frame_samples = frameSize / pitch;
-      int plane_size = frame_samples * sample_pitch;
-      int out_plane_size = samples * sample_pitch;
+      int samplePitch = mBitsPerSample >> 3;
+      int frameSamples = frameSize / pitch;
+      int planeSize = frameSamples * samplePitch;
+      int outPlaneSize = samples * samplePitch;
       for (int sample = 0; sample < samples;) {
-        int frame = (demuxSamples_sent + sample) / frame_samples;
-        int sample_in_frame = (demuxSamples_sent + sample) - frame * frame_samples;
-        int out_remaining = min(min(frame_samples - sample_in_frame, samples), samples-sample);
-        auto src = demuxer_content + frame*frameSize + sample_in_frame * sample_pitch;
-        auto dst = (uint8_t*)buffer->pBuffer + sample * sample_pitch;
+        int frame = (demuxSamplesSent + sample) / frameSamples;
+        int sampleInFrame = (demuxSamplesSent + sample) - frame * frameSamples;
+        int outRemaining = min (min (frameSamples - sampleInFrame, samples), samples-sample);
+        auto src = demuxer_content + frame*frameSize + sampleInFrame * samplePitch;
+        auto dst = (uint8_t*)buffer->pBuffer + sample * samplePitch;
         for (auto channel = 0u; channel < mNumInputChannels; channel++) {
-          memcpy (dst, src, out_remaining * sample_pitch);
-          src += plane_size;
-          dst += out_plane_size;
+          memcpy (dst, src, outRemaining * samplePitch);
+          src += planeSize;
+          dst += outPlaneSize;
           }
-        sample += out_remaining;
+        sample += outRemaining;
         }
       }
     else
-      memcpy (buffer->pBuffer, demuxer_content + demuxSamples_sent * pitch, buffer->nFilledLen);
+      memcpy (buffer->pBuffer, demuxer_content + demuxSamplesSent * pitch, buffer->nFilledLen);
 
     auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
     if (mSetStartTime) {
@@ -938,8 +903,8 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
       }
 
     buffer->nTimeStamp = toOmxTime (val);
-    demuxSamples_sent += samples;
-    if (demuxSamples_sent == demuxSamples)
+    demuxSamplesSent += samples;
+    if (demuxSamplesSent == demuxSamples)
       buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
 
     if (mDecoder.emptyThisBuffer (buffer)) {
@@ -954,7 +919,7 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
     }
 
   mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
-  updateAttenuation();
+  applyVolume();
   return len;
   }
 //}}}
@@ -1002,9 +967,6 @@ void cOmxAudio::flush() {
   if (mRenderHdmi.isInit() )
     mRenderHdmi.flushAll();
 
-  while (!mAmpQueue.empty())
-    mAmpQueue.pop_front();
-
   if (mRenderAnal.isInit() )
     mRenderAnal.resetEos();
   if (mRenderHdmi.isInit() )
@@ -1013,8 +975,6 @@ void cOmxAudio::flush() {
   mSetStartTime  = true;
   mLastPts = DVD_NOPTS_VALUE;
   mSubmitted = 0.f;
-
-  mMaxLevel = 0.f;
   }
 //}}}
 
@@ -1065,117 +1025,77 @@ bool cOmxAudio::canHwDecode (AVCodecID codec) {
   return mConfig.mHwDecode;
   }
 //}}}
+//{{{
+float cOmxAudio::getMaxLevel (double& pts) {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  OMX_CONFIG_BRCMAUDIOMAXSAMPLE param;
+  OMX_INIT_STRUCTURE(param);
+
+  if (mDecoder.isInit()) {
+    param.nPortIndex = mDecoder.getInputPort();
+    if (mDecoder.getConfig (OMX_IndexConfigBrcmAudioMaxSample, &param)) {
+      // error return
+      cLog::log (LOGERROR, string(__func__) + " getMaxLevel");
+      return 0;
+      }
+    }
+
+  pts = fromOmxTime (param.nTimeStamp);
+  auto res = (float)param.nMaxSample * (100.f / (1<<15));
+
+  cLog::log (LOGINFO, "getMaxLevel %f %d", res, pts);
+  return res;
+  }
+//}}}
 
 //{{{
 bool cOmxAudio::applyVolume() {
 
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
   if (mConfig.mPassThru)
     return false;
 
-  float volume = mMute ? 0.f : mCurrentVolume;
-  float ac3Gain = 12.f;
-  double gain = pow (10, (ac3Gain - 12.f) / 20.0);
-  const float* coeff = mDownmixMatrix;
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  //{{{  set decoder downmix coeffs
-  OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
-  OMX_INIT_STRUCTURE(mix);
+  float volume = mMute ? 0.f : mCurVolume;
+  if (volume != mLastVolume) {
+    double gain = 1.0;
+    const float* coeff = mDownmixMatrix;
+    //{{{  set decoder downmix coeffs
+    OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
+    OMX_INIT_STRUCTURE(mix);
 
-  assert (sizeof(mix.coeff) / sizeof(mix.coeff[0]) == 64);
-  if (mDrc != 1.0) {
-    // reduce scaling so overflow can be seen
+    assert (sizeof(mix.coeff) / sizeof(mix.coeff[0]) == 64);
+    if (false) {
+      // reduce scaling so overflow can be seen
+      for (size_t i = 0; i < 8*8; ++i)
+        mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * 0.01f));
+      mix.nPortIndex = mDecoder.getInputPort();
+      if (mDecoder.setConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix)) {
+        cLog::log (LOGERROR, string(__func__) + " set downmix");
+        return false;
+        }
+      }
+    //}}}
+    //{{{  set mixer downmix coeffs
     for (size_t i = 0; i < 8*8; ++i)
-      mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * 0.01f));
-    mix.nPortIndex = mDecoder.getInputPort();
-    if (mDecoder.setConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix)) {
+      mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * volume));
+    mix.nPortIndex = mMixer.getInputPort();
+    if (mMixer.setConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix)) {
+      // error return
       cLog::log (LOGERROR, string(__func__) + " set downmix");
       return false;
       }
+    //}}}
+    cLog::log (LOGINFO, "applyVolume - changed vol:%.2f", volume);
+    mLastVolume = volume;
     }
-  //}}}
-  //{{{  set mixer downmix coeffs
-  for (size_t i = 0; i < 8*8; ++i)
-    mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * volume * mDrc * mAttenuation));
-  mix.nPortIndex = mMixer.getInputPort();
-  if (mMixer.setConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix)) {
-    // error return
-    cLog::log (LOGERROR, string(__func__) + " set downmix");
-    return false;
-    }
-  //}}}
-  cLog::log (LOGINFO2, "cOmxAudio::applyVolume vol:%.2f drc:%.2f att:%.2f",
-                       volume, mDrc, mAttenuation);
+
+  //double pts = 0.0;
+  //getMaxLevel (pts);
+
   return true;
-  }
-//}}}
-//{{{
-void cOmxAudio::updateAttenuation() {
-
-  if (mDrc == 1.f) {
-    applyVolume();
-    return;
-    }
-
-  double level_pts = 0.0;
-  float level = getMaxLevel(level_pts);
-  if (level_pts != 0.0) {
-    amplitudes_t v;
-    v.level = level;
-    v.pts = level_pts;
-    mAmpQueue.push_back(v);
-    }
-
-  double stamp = mClock->getMediaTime();
-  // discard too old data
-  while (!mAmpQueue.empty()) {
-    amplitudes_t &v = mAmpQueue.front();
-    /* we'll also consume if queue gets unexpectedly long to avoid filling memory */
-    if (v.pts == DVD_NOPTS_VALUE || v.pts < stamp || v.pts - stamp > DVD_SEC_TO_TIME(15.0))
-      mAmpQueue.pop_front();
-    else
-      break;
-    }
-
-  float maxlevel = 0.f, imminent_maxlevel = 0.f;
-  for (int i=0; i < (int)mAmpQueue.size(); i++) {
-    amplitudes_t &v = mAmpQueue[i];
-    maxlevel = max(maxlevel, v.level);
-    // check for maximum volume in next 200ms
-    if (v.pts != DVD_NOPTS_VALUE && v.pts < stamp + DVD_SEC_TO_TIME(0.2))
-      imminent_maxlevel = max (imminent_maxlevel, v.level);
-    }
-
-  if (maxlevel != 0.0) {
-    float mLimiterHold = 0.025f;
-    float mLimiterRelease = 0.1f;
-    float alpha_h = -1.f / (0.025f * log10f (0.999f));
-    float alpha_r = -1.f / (0.100f * log10f (0.900f));
-    float decay  = powf (10.f, -1.f / (alpha_h * mLimiterHold));
-    float attack = powf (10.f, -1.f / (alpha_r * mLimiterRelease));
-    // if we are going to clip imminently then deal with it now
-    if (imminent_maxlevel > mMaxLevel)
-      mMaxLevel = imminent_maxlevel;
-    // clip but not imminently can ramp up more slowly
-    else if (maxlevel > mMaxLevel)
-      mMaxLevel = attack * mMaxLevel + (1.f - attack) * maxlevel;
-    // not clipping, decay more slowly
-    else
-      mMaxLevel = decay  * mMaxLevel + (1.f - decay ) * maxlevel;
-
-    // want mMaxLevel * drc -> 1.0
-    float amp = mDrc * mAttenuation;
-
-    // We fade in the attenuation over first couple of seconds
-    float start = min (max ((mSubmitted-1.f), 0.f), 1.f);
-    float attenuation = min( 1.f, max(mAttenuation / (amp * mMaxLevel), 1.f / mDrc));
-    mAttenuation = (1.f - start) * 1.f / mDrc + start * attenuation;
-    }
-  else
-    mAttenuation = 1.f / mDrc;
-
-  applyVolume();
   }
 //}}}
 
