@@ -1,3 +1,4 @@
+// cOmxAv.h
 //{{{  includes
 #pragma once
 
@@ -9,6 +10,10 @@
 
 #include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
+
+#include <IL/OMX_Image.h>
+#include <IL/OMX_Video.h>
+#include <IL/OMX_Broadcom.h>
 
 #include "avLibs.h"
 #include "cOmxCore.h"

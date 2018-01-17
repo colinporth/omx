@@ -294,7 +294,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
   // set passthru
   boolType.bEnabled = mConfig.mPassThru ? OMX_TRUE : OMX_FALSE;
-  if (mDecoder.setParameter (OMX_IndexParamBrcmDecoderPassThrough, &boolType) != OMX_ErrorNone) {
+  if (mDecoder.setParam (OMX_IndexParamBrcmDecoderPassThrough, &boolType) != OMX_ErrorNone) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " set PassThru");
     return false;
@@ -312,7 +312,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
   // get port param
   port.nPortIndex = mDecoder.getInputPort();
-  if (mDecoder.getParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
+  if (mDecoder.getParam (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " get port");
     return false;
@@ -322,7 +322,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   port.format.audio.eEncoding = mEncoding;
   port.nBufferSize = mChunkLen;
   port.nBufferCountActual = max (port.nBufferCountMin, 16U);
-  if (mDecoder.setParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
+  if (mDecoder.setParam (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " set port");
     return false;
@@ -333,7 +333,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
   // get port param
   port.nPortIndex = mDecoder.getOutputPort();
-  if (mDecoder.getParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
+  if (mDecoder.getParam (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " get port param");
     return false;
@@ -341,7 +341,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
   // set port param
   port.nBufferCountActual = max ((unsigned int)port.nBufferCountMin, mBufferLen / port.nBufferSize);
-  if (mDecoder.setParameter (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
+  if (mDecoder.setParam (OMX_IndexParamPortDefinition, &port) != OMX_ErrorNone) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " set port param");
     return false;
@@ -353,7 +353,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
   format.nPortIndex = mDecoder.getInputPort();
   format.eEncoding = mEncoding;
-  if (mDecoder.setParameter (OMX_IndexParamAudioPortFormat, &format) != OMX_ErrorNone) {
+  if (mDecoder.setParam (OMX_IndexParamAudioPortFormat, &format) != OMX_ErrorNone) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " set format");
     return false;
@@ -365,7 +365,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
     return false;
     }
     //}}}
-  if (mDecoder.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+  if (mDecoder.setState (OMX_StateExecuting) != OMX_ErrorNone) {
     //{{{  return error
     cLog::log (LOGERROR, string(__func__) + " set state");
     return false;
@@ -579,9 +579,9 @@ bool cOmxAudio::portChanged() {
     // setup mixer output
     OMX_INIT_STRUCTURE(mPcmOutput);
     mPcmOutput.nPortIndex = mDecoder.getOutputPort();
-    if (mDecoder.getParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
+    if (mDecoder.getParam (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + "gGetParameter");
+      cLog::log (LOGERROR, string(__func__) + "getParam");
       return false;
       }
       //}}}
@@ -595,9 +595,9 @@ bool cOmxAudio::portChanged() {
     mPcmOutput.nSamplingRate = min (max ((int)mPcmOutput.nSamplingRate, 8000), 192000);
 
     mPcmOutput.nPortIndex = mMixer.getOutputPort();
-    if (mMixer.setParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
+    if (mMixer.setParam (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR,  string(__func__) + " setParameter");
+      cLog::log (LOGERROR,  string(__func__) + " setParam");
       return false;
       }
       //}}}
@@ -609,23 +609,23 @@ bool cOmxAudio::portChanged() {
 
     if (mSplitter.isInit() ) {
       mPcmOutput.nPortIndex = mSplitter.getInputPort();
-      if (mSplitter.setParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
+      if (mSplitter.setParam (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
         //{{{  error return
-        cLog::log (LOGERROR, string(__func__) + " mSplitter setParameter");
+        cLog::log (LOGERROR, string(__func__) + " mSplitter setParam");
         return false;
         }
         //}}}
       mPcmOutput.nPortIndex = mSplitter.getOutputPort();
-      if (mSplitter.setParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
+      if (mSplitter.setParam (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
         //{{{  error return
-        cLog::log (LOGERROR, string(__func__) + " mSplitter SetParameter");
+        cLog::log (LOGERROR, string(__func__) + " mSplitter setParam");
         return false;
         }
         //}}}
       mPcmOutput.nPortIndex = mSplitter.getOutputPort() + 1;
-      if (mSplitter.setParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
+      if (mSplitter.setParam (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
         //{{{  error return
-        cLog::log (LOGERROR, string(__func__) + " SetParameter");
+        cLog::log (LOGERROR, string(__func__) + " setParam");
         return false;
         }
         //}}}
@@ -633,18 +633,18 @@ bool cOmxAudio::portChanged() {
 
     if (mRenderAnal.isInit() ) {
       mPcmOutput.nPortIndex = mRenderAnal.getInputPort();
-      if (mRenderAnal.setParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
+      if (mRenderAnal.setParam (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
         //{{{  error return
-        cLog::log (LOGERROR, string(__func__) + " mRenderAnal SetParameter");
+        cLog::log (LOGERROR, string(__func__) + " mRenderAnal setParam");
         return false;
         }
         //}}}
       }
     if (mRenderHdmi.isInit() ) {
       mPcmOutput.nPortIndex = mRenderHdmi.getInputPort();
-      if (mRenderHdmi.setParameter (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
+      if (mRenderHdmi.setParam (OMX_IndexParamAudioPcm, &mPcmOutput) != OMX_ErrorNone) {
         //{{{  error return
-        cLog::log (LOGERROR, string(__func__) + " mRenderhdmi SetParameter");
+        cLog::log (LOGERROR, string(__func__) + " mRenderhdmi setParam");
         return false;
         }
         //}}}
@@ -771,9 +771,9 @@ bool cOmxAudio::portChanged() {
     }
     //}}}
   if (mMixer.isInit()) {
-    if (mMixer.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    if (mMixer.setState (OMX_StateExecuting) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " mMixer OMX_StateExecuting");
+      cLog::log (LOGERROR, string(__func__) + " mMixer setState");
       return false;
       }
       //}}}
@@ -786,23 +786,23 @@ bool cOmxAudio::portChanged() {
       }
       //}}}
   if (mSplitter.isInit())
-    if (mSplitter.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    if (mSplitter.setState (OMX_StateExecuting) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " mSplitter OMX_StateExecuting");
+      cLog::log (LOGERROR, string(__func__) + " mSplitter setState");
       return false;
       }
       //}}}
   if (mRenderAnal.isInit())
-    if (mRenderAnal.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    if (mRenderAnal.setState (OMX_StateExecuting) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " mRenderAnal OMX_StateExecuting");
+      cLog::log (LOGERROR, string(__func__) + " mRenderAnal setState");
       return false;
       }
       //}}}
   if (mRenderHdmi.isInit())
-    if (mRenderHdmi.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    if (mRenderHdmi.setState (OMX_StateExecuting) != OMX_ErrorNone) {
       //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " mRenderhdmi OMX_StateExecuting");
+      cLog::log (LOGERROR, string(__func__) + " mRenderhdmi setState");
       return false;
       }
       //}}}
@@ -903,7 +903,7 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
       return 0;
       }
 
-    if (mDecoder.waitForEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone)
+    if (mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone)
       if (!portChanged())
         cLog::log (LOGERROR, string(__func__) + "  portChanged");
     }

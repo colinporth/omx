@@ -17,8 +17,6 @@ public:
   OMX_ERRORTYPE deEstablish (bool noWait = false);
 
 private:
-  cOmx* m_OMX;
-
   cOmxCore* mSrcComponent = nullptr;
   cOmxCore* mDstComponent = nullptr;
 

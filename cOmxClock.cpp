@@ -1,7 +1,9 @@
 // cOmxClock.cpp
 //{{{  includes
 #include "cOmxClock.h"
+
 #include "../shared/utils/cLog.h"
+#include <IL/OMX_Broadcom.h>
 
 using namespace std;
 //}}}
@@ -18,7 +20,7 @@ void cOmxClock::stateIdle() {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if (mOmxClock.getState() != OMX_StateIdle)
-    mOmxClock.setStateForComponent (OMX_StateIdle);
+    mOmxClock.setState (OMX_StateIdle);
   mLastMediaTime = 0.f;
   }
 //}}}
@@ -29,9 +31,9 @@ bool cOmxClock::stateExecute() {
 
   if (mOmxClock.getState() != OMX_StateExecuting) {
     stateIdle();
-    if (mOmxClock.setStateForComponent (OMX_StateExecuting) != OMX_ErrorNone) {
+    if (mOmxClock.setState (OMX_StateExecuting) != OMX_ErrorNone) {
       //{{{  error, return
-      cLog::log (LOGERROR, "cOmxClock::stateExecute");
+      cLog::log (LOGERROR, "cOmxClock::stateExecute setState");
       return false;
       }
       //}}}

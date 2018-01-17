@@ -1,11 +1,13 @@
+// cOmxCore.h
 //{{{  includes
 #pragma once
 
+#include <semaphore.h>
 #include <string>
 #include <queue>
-#include <semaphore.h>
 
-#include "cOmx.h"
+#include <IL/OMX_Core.h>
+#include <IL/OMX_Component.h>
 //}}}
 //{{{
 #define OMX_INIT_STRUCTURE(a) \
@@ -48,29 +50,38 @@ public:
   OMX_ERRORTYPE allocOutputBuffers (bool useBffers = false);
   OMX_BUFFERHEADERTYPE* getInputBuffer (long timeout=200);
   OMX_BUFFERHEADERTYPE* getOutputBuffer (long timeout=200);
+
   unsigned int getInputBufferSize() const { return mInputBufferCount * mInputBufferSize; }
   unsigned int getOutputBufferSize() const { return mOutputBufferCount * mOutputBufferSize; }
   unsigned int getInputBufferSpace() const { return mInputAvaliable.size() * mInputBufferSize; }
   unsigned int getOutputBufferSpace() const { return mOutputAvailable.size() * mOutputBufferSize; }
+
+  OMX_ERRORTYPE emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
+  OMX_ERRORTYPE fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
+
+  OMX_ERRORTYPE waitInputDone (long timeout=200);
+  OMX_ERRORTYPE waitOutputDone (long timeout=200);
+
   OMX_ERRORTYPE freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
   OMX_ERRORTYPE freeInputBuffers();
   OMX_ERRORTYPE freeOutputBuffers();
+
   void flushAll();
   void flushInput();
   void flushOutput();
 
   OMX_ERRORTYPE addEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
   void removeEvent(OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
-  OMX_ERRORTYPE waitForEvent (OMX_EVENTTYPE event, long timeout = 300);
+  OMX_ERRORTYPE waitEvent (OMX_EVENTTYPE event, long timeout = 300);
 
   OMX_ERRORTYPE sendCommand(OMX_COMMANDTYPE cmd, OMX_U32 cmdParam, OMX_PTR cmdParamData);
-  OMX_ERRORTYPE waitForCommand (OMX_U32 command, OMX_U32 nData2, long timeout = 2000);
+  OMX_ERRORTYPE waitCommand (OMX_U32 command, OMX_U32 nData2, long timeout = 2000);
 
   OMX_STATETYPE getState() const;
-  OMX_ERRORTYPE setStateForComponent (OMX_STATETYPE state);
+  OMX_ERRORTYPE setState (OMX_STATETYPE state);
 
-  OMX_ERRORTYPE getParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct) const;
-  OMX_ERRORTYPE setParameter (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct);
+  OMX_ERRORTYPE getParam (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct) const;
+  OMX_ERRORTYPE setParam (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct);
 
   OMX_ERRORTYPE getConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct) const;
   OMX_ERRORTYPE setConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStruct);
@@ -90,12 +101,6 @@ public:
   OMX_ERRORTYPE decoderEmptyBufferDone (OMX_HANDLETYPE component, OMX_BUFFERHEADERTYPE* buffer);
   OMX_ERRORTYPE decoderFillBufferDone (OMX_HANDLETYPE component, OMX_BUFFERHEADERTYPE* buffer);
 
-  OMX_ERRORTYPE emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
-  OMX_ERRORTYPE fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
-
-  OMX_ERRORTYPE waitForInputDone (long timeout=200);
-  OMX_ERRORTYPE waitForOutputDone (long timeout=200);
-
   bool isEOS() const { return mEos; }
   bool badState() const { return mResourceError; }
   void resetEos();
@@ -106,11 +111,12 @@ private:
   void transitionToStateLoaded();
 
   OMX_HANDLETYPE mHandle = nullptr;
+  std::string mComponentName;
+
   unsigned int mInputPort = 0;
   unsigned int mOutputPort = 0;
-  std::string mComponentName;
+
   pthread_mutex_t mEventMutex;
-  pthread_mutex_t mEosMutex;
   std::vector<omxEvent> mEvents;
   OMX_S32 mIgnoreError = OMX_ErrorNone;
 
@@ -133,7 +139,6 @@ private:
   unsigned int mOutputBufferSize = 0;
   unsigned int mOutputBufferCount = 0;
   bool mOutputUseBuffers = false;
-  cOmx* mOmx;
 
   pthread_cond_t mInputBufferCond;
   pthread_cond_t mOutputBufferCond;
@@ -143,6 +148,7 @@ private:
   bool mFlushOutput = false;
   bool mResourceError = false;
 
+  pthread_mutex_t mEosMutex;
   bool mEos = false;
   bool mExit = false;
   };

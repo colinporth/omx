@@ -621,6 +621,7 @@ private:
     }
   //}}}
   //{{{  vars
+  cOmx mOmx;
   cDvb mDvb;
   string mRoot;
 
