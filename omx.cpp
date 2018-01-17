@@ -547,14 +547,14 @@ private:
           if (packet) {
             //{{{  got packet
             submitEos = false;
-            if (mVideoPlayer && mReader.isActive (OMXSTREAM_VIDEO, packet->stream_index)) {
+            if (mVideoPlayer && mReader.isActive (OMXSTREAM_VIDEO, packet->streamIndex)) {
               if (mVideoPlayer->addPacket (packet))
                 packet = NULL;
               else
                 cOmxClock::msSleep (10);
               }
 
-            else if (mAudioPlayer && mReader.isActive (OMXSTREAM_AUDIO, packet->stream_index)) {
+            else if (mAudioPlayer && mReader.isActive (OMXSTREAM_AUDIO, packet->streamIndex)) {
               if (mAudioPlayer->addPacket (packet))
                 packet = NULL;
               else

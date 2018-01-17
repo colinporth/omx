@@ -38,7 +38,7 @@ typedef enum {
   IOCTRL_SEEK_POSSIBLE = 2, /**< return 0 if known not to work, 1 if it should work */
   IOCTRL_CACHE_STATUS  = 3, /**< SCacheStatus structure */
   IOCTRL_CACHE_SETRATE = 4, /**< unsigned int with with speed limit for caching in bytes per second */
-  } EIoControl;
+  } eIoControl;
 //}}}
 //{{{
 class cFile {
@@ -48,7 +48,7 @@ public:
   {
     mFile = NULL;
     mFlags = 0;
-    mILength = 0;
+    mLength = 0;
     mPipe = false;
   }
   //}}}
@@ -60,14 +60,14 @@ public:
   //}}}
 
   //{{{
-  bool Open (const string& strFileName, unsigned int flags) {
+  bool open (const string& strFileName, unsigned int flags) {
 
     mFlags = flags;
 
     if (strFileName.compare(0, 5, "pipe:") == 0) {
       mPipe = true;
       mFile = stdin;
-      mILength = 0;
+      mLength = 0;
       return true;
       }
 
@@ -76,100 +76,57 @@ public:
       return false;
 
     fseeko64 (mFile, 0, SEEK_END);
-    mILength = ftello64 (mFile);
+    mLength = ftello64 (mFile);
     fseeko64 (mFile, 0, SEEK_SET);
 
     return true;
     }
   //}}}
   //{{{
-  unsigned int Read (void *lpBuf, int64_t uiBufSize)
-  {
-    unsigned int ret = 0;
+  unsigned int read (void* buffer, int64_t bufferSize) {
 
-    if(!mFile)
+    if (mFile)
+      return fread (buffer, 1, bufferSize, mFile);
+    else
       return 0;
-
-    ret = fread(lpBuf, 1, uiBufSize, mFile);
-
-    return ret;
-  }
+    }
   //}}}
   //{{{
-  int IoControl (EIoControl request, void* param)
-  {
-    if(request == IOCTRL_SEEK_POSSIBLE && mFile)
-    {
+  int ioControl (eIoControl request, void* param) {
+
+    if (request == IOCTRL_SEEK_POSSIBLE && mFile) {
       if (mPipe)
         return false;
 
       struct stat st;
       if (fstat(fileno(mFile), &st) == 0)
         return !S_ISFIFO(st.st_mode);
-    }
+      }
 
     return -1;
-  }
+    }
   //}}}
   //{{{
-  int64_t Seek (int64_t iFilePosition, int iWhence)
-  {
-    if (!mFile)
-      return -1;
+  int64_t seek (int64_t iFilePosition, int iWhence) {
 
-    return fseeko64(mFile, iFilePosition, iWhence);;
-  }
+    if (mFile)
+      return fseeko64 (mFile, iFilePosition, iWhence);
+    else
+      return -1;
+    }
   //}}}
   //{{{
-  void Close()
-  {
-    if(mFile && !mPipe)
-      fclose(mFile);
+  void close() {
+
+    if (mFile && !mPipe)
+      fclose (mFile);
     mFile = NULL;
-  }
+    }
   //}}}
 
   //{{{
-  bool Exists (const string& strFileName, bool bUseCache = true)
-  {
-    FILE *fp;
+  bool isEOF() {
 
-    if (strFileName.compare(0, 5, "pipe:") == 0)
-      return true;
-
-    fp = fopen64(strFileName.c_str(), "r");
-
-    if(!fp)
-      return false;
-
-    fclose(fp);
-
-    return true;
-  }
-  //}}}
-  //{{{
-  int64_t GetLength()
-  {
-    return mILength;
-  }
-  //}}}
-  //{{{
-  int64_t GetPosition()
-  {
-    if (!mFile)
-      return -1;
-
-    return ftello64(mFile);
-  }
-  //}}}
-  //{{{
-  int GetChunkSize() {
-    return 6144 /*FFMPEG_FILE_BUFFER_SIZE*/;
-    };
-  //}}}
-  //{{{
-  bool IsEOF()
-  {
     if (!mFile)
       return -1;
 
@@ -177,13 +134,38 @@ public:
       return false;
 
     return feof(mFile) != 0;
-  }
+    }
   //}}}
+  //{{{
+  bool exists (const string& strFileName, bool bUseCache = true) {
+
+    if (strFileName.compare(0, 5, "pipe:") == 0)
+      return true;
+
+    FILE* fp = fopen64(strFileName.c_str(), "r");
+    if (!fp)
+      return false;
+
+    fclose(fp);
+    return true;
+    }
+  //}}}
+  //{{{
+  int64_t getPosition() {
+
+    if (mFile)
+      return ftello64(mFile);
+    else
+      return -1;
+    }
+  //}}}
+  int64_t getLength() { return mLength; }
+  int getChunkSize() { return 6144 /*FFMPEG_FILE_BUFFER_SIZE*/; };
 
 private:
   unsigned int mFlags;
   FILE* mFile;
-  int64_t mILength;
+  int64_t mLength;
   bool mPipe;
   };
 //}}}
@@ -217,7 +199,7 @@ int fileRead (void* h, uint8_t* buf, int size) {
     return -1;
 
   auto file = (cFile*)h;
-  return file->Read (buf, size);
+  return file->read (buf, size);
   }
 //}}}
 //{{{
@@ -231,9 +213,9 @@ offset_t fileSeek (void* h, offset_t pos, int whence) {
 
   auto file = (cFile*)h;
   if (whence == AVSEEK_SIZE)
-    return file->GetLength();
+    return file->getLength();
   else
-    return file->Seek (pos, whence & ~AVSEEK_FORCE);
+    return file->seek (pos, whence & ~AVSEEK_FORCE);
   }
 //}}}
 
@@ -550,7 +532,7 @@ bool cOmxReader::getHints (OMXStreamType type, cOmxStreamInfo& hints) {
 AVMediaType cOmxReader::getPacketType (OMXPacket* packet) {
 
   return (!mAvFormatContext || !packet) ?
-    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[packet->stream_index]->codec->codec_type;
+    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[packet->streamIndex]->codec->codec_type;
   }
 //}}}
 
@@ -693,7 +675,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
   else {
     //{{{  file input
     mFile = new cFile();
-    if (!mFile->Open (mFilename, flags)) {
+    if (!mFile->open (mFilename, flags)) {
       //{{{  error, return
       cLog::log (LOGERROR, "cOmxReader::Open " + mFilename);
       close();
@@ -709,7 +691,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
     if (mIoContext->max_packet_size)
       mIoContext->max_packet_size *= FFMPEG_FILE_BUFFER_SIZE / mIoContext->max_packet_size;
 
-    if (mFile->IoControl (IOCTRL_SEEK_POSSIBLE, NULL) == 0)
+    if (mFile->ioControl (IOCTRL_SEEK_POSSIBLE, NULL) == 0)
       mIoContext->seekable = 0;
 
     mAvFormat.av_probe_input_buffer (mIoContext, &iformat, mFilename.c_str(), NULL, 0, 0);
@@ -789,21 +771,14 @@ OMXPacket* cOmxReader::readPacket() {
 
   auto stream = mAvFormatContext->streams[avPacket.stream_index];
 
-  auto packet = allocPacket (avPacket.size);
-  if (!packet) {
-    //{{{  error return
-    mEof = true;
-    mAvCodec.av_free_packet (&avPacket);
-    return NULL;
-    }
-    //}}}
-
-  packet->codec_type = stream->codec->codec_type;
+  // allocate OMXPAcket
+  auto packet = (OMXPacket*)malloc (sizeof(OMXPacket));
+  packet->data = (uint8_t*)malloc (avPacket.size + FF_INPUT_BUFFER_PADDING_SIZE);
   packet->size = avPacket.size;
-  if (avPacket.data)
-    memcpy (packet->data, avPacket.data, packet->size);
-
-  packet->stream_index = avPacket.stream_index;
+  packet->now = DVD_NOPTS_VALUE;
+  packet->codecType = stream->codec->codec_type;
+  memcpy (packet->data, avPacket.data, packet->size);
+  packet->streamIndex = avPacket.stream_index;
   getHints (stream, &packet->hints);
   packet->dts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
   packet->pts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
@@ -843,7 +818,7 @@ bool cOmxReader::seek (float time, double& startPts) {
   if (backwards)
     time = -time;
 
-  if (mFile && !mFile->IoControl (IOCTRL_SEEK_POSSIBLE, NULL)) {
+  if (mFile && !mFile->ioControl (IOCTRL_SEEK_POSSIBLE, NULL)) {
     cLog::log (LOGERROR, "cOmxReader::seek - not seekable");
     return false;
     }
@@ -1136,30 +1111,5 @@ bool cOmxReader::setActiveStreamInternal (OMXStreamType type, unsigned int index
     }
 
   return ret;
-  }
-//}}}
-
-//{{{
-OMXPacket* cOmxReader::allocPacket (int size) {
-
-  auto packet = (OMXPacket*)malloc (sizeof(OMXPacket));
-  if (packet) {
-    memset (packet, 0, sizeof(OMXPacket));
-    packet->data = (uint8_t*)malloc (size + FF_INPUT_BUFFER_PADDING_SIZE);
-    if (!packet->data) {
-      free (packet);
-      packet = NULL;
-      }
-    else {
-      memset (packet->data + size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-      packet->size = size;
-      packet->dts = DVD_NOPTS_VALUE;
-      packet->pts = DVD_NOPTS_VALUE;
-      packet->now = DVD_NOPTS_VALUE;
-      packet->duration = DVD_NOPTS_VALUE;
-      }
-    }
-
-  return packet;
   }
 //}}}

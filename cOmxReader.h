@@ -47,15 +47,16 @@ typedef struct OMXStream {
 //}}}
 //{{{
 typedef struct OMXPacket {
+  uint8_t* data;
+  int size;
   double pts; // pts in DVD_TIME_BASE
   double dts; // dts in DVD_TIME_BASE
   double now; // dts in DVD_TIME_BASE
   double duration; // duration in DVD_TIME_BASE if available
-  int size;
-  uint8_t* data;
-  int stream_index;
+
+  int streamIndex;
   cOmxStreamInfo hints;
-  enum AVMediaType codec_type;
+  enum AVMediaType codecType;
   } OMXPacket;
 //}}}
 
@@ -116,8 +117,6 @@ private:
 
   double convertTimestamp (int64_t pts, int den, int num);
   bool setActiveStreamInternal (OMXStreamType type, unsigned int index);
-
-  OMXPacket* allocPacket (int size);
 
   //{{{  vars
   std::recursive_mutex mMutex;
