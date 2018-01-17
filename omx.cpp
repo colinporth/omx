@@ -230,7 +230,7 @@ protected:
       //}}}
 
       case cKeyConfig::ACT_PLAYPAUSE: mPause = !mPause; break;
-      case cKeyConfig::ACT_STEP: mOmxClock.step(); break;
+      case cKeyConfig::ACT_STEP: mOmxClock.step (1); break;
       case cKeyConfig::ACT_SEEK_DEC_SMALL: mSeekIncSec = -10.0; break;
       case cKeyConfig::ACT_SEEK_INC_SMALL: mSeekIncSec = +10.0; break;
       case cKeyConfig::ACT_SEEK_DEC_LARGE: mSeekIncSec = -60.0; break;

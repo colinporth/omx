@@ -58,7 +58,7 @@ public:
   bool hdmiClockSync();
 
   bool stop();
-  bool step (int steps = 1);
+  bool step (int steps);
   bool reset (bool has_video, bool hasAudio);
   bool pause();
   bool resume();
