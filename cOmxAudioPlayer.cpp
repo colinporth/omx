@@ -104,11 +104,11 @@ bool cOmxAudioPlayer::openOmxAudio() {
 //}}}
 
 //{{{
-bool cOmxAudioPlayer::decode (OMXPacket* packet) {
+bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
 
-  auto channels = packet->hints.channels;
+  auto channels = packet->mHints.channels;
   auto oldBitrate = mConfig.mHints.bitrate;
-  auto newBitrate = packet->hints.bitrate;
+  auto newBitrate = packet->mHints.bitrate;
 
   // only check bitrate changes on AV_CODEC_ID_DTS, AV_CODEC_ID_AC3, AV_CODEC_ID_EAC3
   if (mConfig.mHints.codec != AV_CODEC_ID_DTS &&
@@ -118,19 +118,19 @@ bool cOmxAudioPlayer::decode (OMXPacket* packet) {
 
   // for passThru we only care about the codec and the samplerate
   bool minorChange = (channels != mConfig.mHints.channels) ||
-                     (packet->hints.bitspersample != mConfig.mHints.bitspersample) ||
+                     (packet->mHints.bitspersample != mConfig.mHints.bitspersample) ||
                      (oldBitrate != newBitrate);
   if ((!mPassThru && minorChange) ||
-      (packet->hints.codec != mConfig.mHints.codec) ||
-      (packet->hints.samplerate != mConfig.mHints.samplerate)) {
+      (packet->mHints.codec != mConfig.mHints.codec) ||
+      (packet->mHints.samplerate != mConfig.mHints.samplerate)) {
     //{{{  change decoders
     cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
                         mConfig.mHints.codec, mConfig.mHints.channels, mConfig.mHints.samplerate,
                         mConfig.mHints.bitrate, mConfig.mHints.bitspersample);
     cLog::log (LOGINFO, "Decode N : %d %d %d %d %d",
-                        packet->hints.codec, channels, packet->hints.samplerate,
-                        packet->hints.bitrate, packet->hints.bitspersample);
-    mConfig.mHints = packet->hints;
+                        packet->mHints.codec, channels, packet->mHints.samplerate,
+                        packet->mHints.bitrate, packet->mHints.bitspersample);
+    mConfig.mHints = packet->mHints;
 
     delete mSwAudio;
     mSwAudio = nullptr;
@@ -141,30 +141,30 @@ bool cOmxAudioPlayer::decode (OMXPacket* packet) {
     }
     //}}}
 
-  cLog::log (LOGINFO1, "decode - pts:%6.2f size:%d", packet->pts / 1000000.f, packet->size);
+  cLog::log (LOGINFO1, "decode - pts:%6.2f size:%d", packet->mPts / 1000000.f, packet->mSize);
 
-  if (packet->pts != DVD_NOPTS_VALUE)
-    mCurrentPts = packet->pts;
-  else if (packet->dts != DVD_NOPTS_VALUE)
-    mCurrentPts = packet->dts;
+  if (packet->mPts != DVD_NOPTS_VALUE)
+    mCurrentPts = packet->mPts;
+  else if (packet->mDts != DVD_NOPTS_VALUE)
+    mCurrentPts = packet->mDts;
 
-  uint8_t* data = packet->data;
-  int size = packet->size;
+  uint8_t* data = packet->mData;
+  int size = packet->mSize;
 
   if (mPassThru || mHwDecode) {
     //{{{  hw action
-    while (mOmxAudio->getSpace() < packet->size) {
+    while (mOmxAudio->getSpace() < packet->mSize) {
       cOmxClock::msSleep (10);
       if (mFlushRequested)
         return true;
       }
-    mOmxAudio->addPacket (packet->data, packet->size, packet->dts, packet->pts, 0);
+    mOmxAudio->addPacket (packet->mData, packet->mSize, packet->mDts, packet->mPts, 0);
     }
     //}}}
   else {
     // sw decode
-    auto dts = packet->dts;
-    auto pts = packet->pts;
+    auto dts = packet->mDts;
+    auto pts = packet->mPts;
     while (size > 0) {
       // decode packet
       int len = mSwAudio->decode (data, size, dts, pts);

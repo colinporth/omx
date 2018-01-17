@@ -26,9 +26,9 @@
 
 //{{{
 enum OMXStreamType {
-  OMXSTREAM_NONE      = 0,
-  OMXSTREAM_AUDIO     = 1,
-  OMXSTREAM_VIDEO     = 2,
+  OMXSTREAM_NONE  = 0,
+  OMXSTREAM_AUDIO = 1,
+  OMXSTREAM_VIDEO = 2,
   };
 //}}}
 //{{{
@@ -46,18 +46,30 @@ typedef struct OMXStream {
   } OMXStream;
 //}}}
 //{{{
-typedef struct OMXPacket {
-  uint8_t* data;
-  int size;
-  double pts; // pts in DVD_TIME_BASE
-  double dts; // dts in DVD_TIME_BASE
-  double now; // dts in DVD_TIME_BASE
-  double duration; // duration in DVD_TIME_BASE if available
+class cOmxPacket {
+public:
+  //{{{
+  cOmxPacket (int avPacketSize, int padding) {
+    mData = (uint8_t*)malloc (avPacketSize + padding);
+    mSize = avPacketSize;
+    }
+  //}}}
+  //{{{
+  ~cOmxPacket() {
+    free (mData);
+    }
+  //}}}
 
-  int streamIndex;
-  cOmxStreamInfo hints;
-  enum AVMediaType codecType;
-  } OMXPacket;
+  uint8_t* mData;
+  int mSize;
+  double mPts; // pts in DVD_TIME_BASE
+  double mDts; // dts in DVD_TIME_BASE
+  double mDuration; // duration in DVD_TIME_BASE if available
+
+  int mStreamIndex;
+  cOmxStreamInfo mHints;
+  enum AVMediaType mCodecType;
+  };
 //}}}
 
 class cFile;
@@ -65,9 +77,6 @@ class cOmxReader {
 public:
   cOmxReader();
   ~cOmxReader();
-
-  static void freePacket (OMXPacket*& packet);
-  static double normDur (double frameDuration);
 
   // gets
   bool isEof() { return mEof; }
@@ -94,7 +103,7 @@ public:
   bool getHints (AVStream *stream, cOmxStreamInfo *hints);
   bool getHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
   bool getHints (OMXStreamType type, cOmxStreamInfo &hints);
-  AVMediaType getPacketType (OMXPacket* packet);
+  AVMediaType getPacketType (cOmxPacket* packet);
 
   // sets
   void setSpeed (int iSpeed);
@@ -105,7 +114,7 @@ public:
   bool open (const std::string& filename, bool dumpFormat, bool live, float timeout,
              const std::string& cookie, const std::string& user_agent,
              const std::string& lavfdopts, const std::string& avdict);
-  OMXPacket* readPacket();
+  cOmxPacket* readPacket();
   bool seek (float time, double& startPts);
   void updateCurrentPTS();
   void clearStreams();

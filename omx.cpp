@@ -375,7 +375,7 @@ private:
         bool sentStarted = true;
         bool submitEos = false;
         double lastSeekPosSec = 0.0;
-        OMXPacket* packet = nullptr;
+        cOmxPacket* packet = nullptr;
         while (!mEntered && !mExit && !gAbort) {
           //{{{  play loop
           if (mSeekIncSec != 0.0) {
@@ -393,7 +393,8 @@ private:
                 mOmxVideoPlayer->flush();
               if (mOmxAudioPlayer)
                 mOmxAudioPlayer->flush();
-              mOmxReader.freePacket (packet);
+              delete (packet);
+              packet = nullptr;
 
               if (pts != DVD_NOPTS_VALUE)
                 mOmxClock.setMediaTime (seekPts);
@@ -546,22 +547,24 @@ private:
           if (packet) {
             //{{{  got packet
             submitEos = false;
-            if (mOmxVideoPlayer && mOmxReader.isActive (OMXSTREAM_VIDEO, packet->streamIndex)) {
+            if (mOmxVideoPlayer && mOmxReader.isActive (OMXSTREAM_VIDEO, packet->mStreamIndex)) {
               if (mOmxVideoPlayer->addPacket (packet))
                 packet = NULL;
               else
                 cOmxClock::msSleep (10);
               }
 
-            else if (mOmxAudioPlayer && mOmxReader.isActive (OMXSTREAM_AUDIO, packet->streamIndex)) {
+            else if (mOmxAudioPlayer && mOmxReader.isActive (OMXSTREAM_AUDIO, packet->mStreamIndex)) {
               if (mOmxAudioPlayer->addPacket (packet))
                 packet = NULL;
               else
                 cOmxClock::msSleep (10);
               }
 
-            else
-              mOmxReader.freePacket (packet);
+            else {
+              delete (packet);
+              packet = nullptr;
+              }
             }
             //}}}
           else if (mOmxReader.isEof()) {
@@ -591,7 +594,8 @@ private:
         //{{{  stop play
         mOmxClock.stop();
         mOmxClock.stateIdle();
-        mOmxReader.freePacket (packet);
+        delete (packet);
+        packet = nullptr;
         //}}}
         }
       delete (mOmxVideoPlayer);

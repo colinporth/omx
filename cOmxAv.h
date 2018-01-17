@@ -565,13 +565,13 @@ public:
   double getCurrentPTS() { return mCurrentPts; };
 
   //{{{
-  bool addPacket (OMXPacket* packet) {
+  bool addPacket (cOmxPacket* packet) {
 
-    if (mAbort || ((mPacketCacheSize + packet->size) > mPacketMaxCacheSize))
+    if (mAbort || ((mPacketCacheSize + packet->mSize) > mPacketMaxCacheSize))
       return false;
 
     lock();
-    mPacketCacheSize += packet->size;
+    mPacketCacheSize += packet->mSize;
     mPackets.push_back (packet);
     unLock();
 
@@ -584,7 +584,7 @@ public:
 
     cLog::setThreadName (name);
 
-    OMXPacket* packet = nullptr;
+    cOmxPacket* packet = nullptr;
     while (true) {
       lock();
       if (!mAbort && mPackets.empty())
@@ -596,12 +596,13 @@ public:
         }
 
       if (mFlush && packet) {
-        cOmxReader::freePacket (packet);
+        delete (packet);
+        packet = nullptr;
         mFlush = false;
         }
       else if (!packet && !mPackets.empty()) {
         packet = mPackets.front();
-        mPacketCacheSize -= packet->size;
+        mPacketCacheSize -= packet->mSize;
         mPackets.pop_front();
         }
       unLock();
@@ -609,16 +610,20 @@ public:
       lockDecoder();
       if (packet) {
         if (mFlush) {
-          cOmxReader::freePacket (packet);
+          delete (packet);
+          packet = nullptr;
           mFlush = false;
           }
-        else if (decode (packet))
-          cOmxReader::freePacket (packet);
+        else if (decode (packet)) {
+          delete (packet);
+          packet = nullptr;
+          }
         }
       unLockDecoder();
       }
 
-    cOmxReader::freePacket (packet);
+    delete (packet);
+    packet = nullptr;
 
     cLog::log (LOGNOTICE, "exit");
     }
@@ -637,7 +642,8 @@ public:
     while (!mPackets.empty()) {
       auto packet = mPackets.front();
       mPackets.pop_front();
-      cOmxReader::freePacket (packet);
+      delete (packet);
+      packet = nullptr;
       }
 
     mPacketCacheSize = 0;
@@ -676,7 +682,7 @@ protected:
   void lockDecoder() { pthread_mutex_lock (&mLockDecoder); }
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
-  virtual bool decode (OMXPacket* packet) = 0;
+  virtual bool decode (cOmxPacket* packet) = 0;
   virtual void flushDecoder() = 0;
   virtual void deleteDecoder() = 0;
 
@@ -699,7 +705,7 @@ protected:
   bool mAbort;
   bool mFlush = false;
   std::atomic<bool> mFlushRequested;
-  std::deque<OMXPacket*> mPackets;
+  std::deque<cOmxPacket*> mPackets;
   int mPacketCacheSize = 0;
   int mPacketMaxCacheSize = 0;
   };
@@ -743,7 +749,7 @@ public:
 private:
   bool openSwAudio();
   bool openOmxAudio();
-  bool decode (OMXPacket* packet);
+  bool decode (cOmxPacket* packet);
   //{{{
   void flushDecoder() {
     if (mSwAudio)
@@ -798,7 +804,7 @@ public:
   void reset();
 
 private:
-  bool decode (OMXPacket* packet);
+  bool decode (cOmxPacket* packet);
   void flushDecoder() { mDecoder->reset(); }
   void deleteDecoder() { delete mDecoder; mDecoder = nullptr; }
 

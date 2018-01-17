@@ -219,43 +219,6 @@ offset_t fileSeek (void* h, offset_t pos, int whence) {
   }
 //}}}
 
-// static
-//{{{
-void cOmxReader::freePacket (OMXPacket*& packet) {
-
-  if (packet)
-    free (packet->data);
-
-  free (packet);
-  packet = nullptr;
-  }
-//}}}
-//{{{
-double cOmxReader::normDur (double frameDuration) {
-// if the duration is within 20 microseconds of a common duration, use that
-
-  const double durations[] = {
-    DVD_TIME_BASE * 1.001 / 24.0, DVD_TIME_BASE / 24.0, DVD_TIME_BASE / 25.0,
-    DVD_TIME_BASE * 1.001 / 30.0, DVD_TIME_BASE / 30.0, DVD_TIME_BASE / 50.0,
-    DVD_TIME_BASE * 1.001 / 60.0, DVD_TIME_BASE / 60.0};
-
-  double lowestdiff = DVD_TIME_BASE;
-  int selected = -1;
-  for (size_t i = 0; i < sizeof(durations) / sizeof(durations[0]); i++) {
-    double diff = fabs (frameDuration - durations[i]);
-    if (diff < DVD_MSEC_TO_TIME(0.02) && diff < lowestdiff) {
-      selected = i;
-      lowestdiff = diff;
-      }
-    }
-
-  if (selected != -1)
-    return durations[selected];
-  else
-    return frameDuration;
-  }
-//}}}
-
 // cOmxReader
 //{{{
 cOmxReader::cOmxReader() {
@@ -529,10 +492,10 @@ bool cOmxReader::getHints (OMXStreamType type, cOmxStreamInfo& hints) {
   }
 //}}}
 //{{{
-AVMediaType cOmxReader::getPacketType (OMXPacket* packet) {
+AVMediaType cOmxReader::getPacketType (cOmxPacket* packet) {
 
   return (!mAvFormatContext || !packet) ?
-    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[packet->streamIndex]->codec->codec_type;
+    AVMEDIA_TYPE_UNKNOWN : mAvFormatContext->streams[packet->mStreamIndex]->codec->codec_type;
   }
 //}}}
 
@@ -735,7 +698,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
   }
 //}}}
 //{{{
-OMXPacket* cOmxReader::readPacket() {
+cOmxPacket* cOmxReader::readPacket() {
 
   if (mEof)
     return NULL;
@@ -771,23 +734,20 @@ OMXPacket* cOmxReader::readPacket() {
 
   auto stream = mAvFormatContext->streams[avPacket.stream_index];
 
-  // allocate OMXPAcket
-  auto packet = (OMXPacket*)malloc (sizeof(OMXPacket));
-  packet->data = (uint8_t*)malloc (avPacket.size + FF_INPUT_BUFFER_PADDING_SIZE);
-  packet->size = avPacket.size;
-  packet->now = DVD_NOPTS_VALUE;
-  packet->codecType = stream->codec->codec_type;
-  memcpy (packet->data, avPacket.data, packet->size);
-  packet->streamIndex = avPacket.stream_index;
-  getHints (stream, &packet->hints);
-  packet->dts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
-  packet->pts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
-  packet->duration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
+  // allocate cOmxPacket
+  auto packet = new cOmxPacket (avPacket.size, FF_INPUT_BUFFER_PADDING_SIZE);
+  packet->mCodecType = stream->codec->codec_type;
+  memcpy (packet->mData, avPacket.data, packet->mSize);
+  packet->mStreamIndex = avPacket.stream_index;
+  getHints (stream, &packet->mHints);
+  packet->mDts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
+  packet->mPts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
+  packet->mDuration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
 
   // used to guess streamlength
-  if ((packet->dts != DVD_NOPTS_VALUE) &&
-      (packet->dts > mICurrentPts || mICurrentPts == DVD_NOPTS_VALUE))
-    mICurrentPts = packet->dts;
+  if ((packet->mDts != DVD_NOPTS_VALUE) &&
+      (packet->mDts > mICurrentPts || mICurrentPts == DVD_NOPTS_VALUE))
+    mICurrentPts = packet->mDts;
 
   // check if stream has passed full duration, needed for live streams
   if (avPacket.dts != (int64_t)AV_NOPTS_VALUE) {
