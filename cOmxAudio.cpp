@@ -439,7 +439,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
     if (mDecoder.emptyThisBuffer (buffer)) {
       //  error, return
       cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-      mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), buffer);
+      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
       return false;
       }
     }
@@ -462,7 +462,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
       if (mDecoder.emptyThisBuffer (buffer)) {
         // error, return
         cLog::log (LOGERROR, string(__func__) + " extra emptyThisBuffer");
-        mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), buffer);
+        mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
         return false;
         }
       }
@@ -769,7 +769,7 @@ bool cOmxAudio::portChanged() {
     }
 
   if (mSplitter.isInit() ) {
-    mTunnelSplitterAnalog.init (&mSplitter, mSplitter.getOutputPort(), &mRenderAnal, 
+    mTunnelSplitterAnalog.init (&mSplitter, mSplitter.getOutputPort(), &mRenderAnal,
                                 mRenderAnal.getInputPort());
     if (mTunnelSplitterAnalog.establish()) {
       //{{{  error return
@@ -777,7 +777,7 @@ bool cOmxAudio::portChanged() {
       return false;
       }
       //}}}
-    mTunnelSplitterHdmi.init (&mSplitter, mSplitter.getOutputPort() + 1, &mRenderHdmi, 
+    mTunnelSplitterHdmi.init (&mSplitter, mSplitter.getOutputPort() + 1, &mRenderHdmi,
                               mRenderHdmi.getInputPort());
     if (mTunnelSplitterHdmi.establish()) {
       //{{{  error return
@@ -944,7 +944,7 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
 
     if (mDecoder.emptyThisBuffer (buffer)) {
       cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-      mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), buffer);
+      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
       return 0;
       }
 
@@ -981,7 +981,7 @@ void cOmxAudio::submitEOS() {
   buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
   if (mDecoder.emptyThisBuffer (buffer)) {
     cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-    mDecoder.decoderEmptyBufferDone (mDecoder.getComponent(), buffer);
+    mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
     return;
     }
   }

@@ -42,8 +42,8 @@ public:
 
   bool isInit() const { return mHandle != NULL; }
 
-  OMX_HANDLETYPE getComponent() const { return mHandle; }
-  std::string getName() const { return mComponentName; }
+  OMX_HANDLETYPE getHandle() const { return mHandle; }
+  std::string getName() const { return mName; }
 
   unsigned int getInputPort() const { return mInputPort; }
   unsigned int getOutputPort() const { return mOutputPort; }
@@ -116,7 +116,7 @@ private:
   void transitionToStateLoaded();
 
   OMX_HANDLETYPE mHandle = nullptr;
-  std::string mComponentName;
+  std::string mName;
 
   unsigned int mInputPort = 0;
   unsigned int mOutputPort = 0;
@@ -192,7 +192,7 @@ public:
         }
       }
       //}}}
-    if (mSrcComponent->getComponent() && disablePorts) {
+    if (mSrcComponent->getHandle() && disablePorts) {
       //{{{
       omxErr = mSrcComponent->disablePort (mSrcPort, false);
       if (omxErr)
@@ -200,7 +200,7 @@ public:
                    mSrcPort, mSrcComponent->getName().c_str(), (int)omxErr);
       }
       //}}}
-    if (mDstComponent->getComponent() && disablePorts) {
+    if (mDstComponent->getHandle() && disablePorts) {
       //{{{
       omxErr = mDstComponent->disablePort (mDstPort, false);
       if (omxErr)
@@ -208,7 +208,7 @@ public:
                    mDstPort, mDstComponent->getName().c_str(), (int)omxErr);
       }
       //}}}
-    if (mSrcComponent->getComponent() && disablePorts) {
+    if (mSrcComponent->getHandle() && disablePorts) {
       //{{{
       omxErr = mSrcComponent->waitCommand (OMX_CommandPortDisable, mSrcPort);
       if (omxErr) {
@@ -218,7 +218,7 @@ public:
         }
       }
       //}}}
-    if (mDstComponent->getComponent() && disablePorts) {
+    if (mDstComponent->getHandle() && disablePorts) {
       //{{{
       omxErr = mDstComponent->waitCommand (OMX_CommandPortDisable, mDstPort);
       if (omxErr) {
@@ -228,10 +228,10 @@ public:
         }
       }
       //}}}
-    if (mSrcComponent->getComponent() && mDstComponent->getComponent()) {
+    if (mSrcComponent->getHandle() && mDstComponent->getHandle()) {
       //{{{
-      omxErr = OMX_SetupTunnel (mSrcComponent->getComponent(), mSrcPort,
-                                mDstComponent->getComponent(), mDstPort);
+      omxErr = OMX_SetupTunnel (mSrcComponent->getHandle(), mSrcPort,
+                                mDstComponent->getHandle(), mDstPort);
       if (omxErr) {
         cLog::log (LOGERROR, "cOmxTunnel::establish - setup tunnel src %s port %d dst %s port %d 0x%08x\n",
                    mSrcComponent->getName().c_str(), mSrcPort,
@@ -249,7 +249,7 @@ public:
 
     mTunnelSet = true;
 
-    if (mSrcComponent->getComponent() && enablePorts) {
+    if (mSrcComponent->getHandle() && enablePorts) {
       //{{{
       omxErr = mSrcComponent->enablePort (mSrcPort, false);
       if (omxErr) {
@@ -259,7 +259,7 @@ public:
         }
       }
       //}}}
-    if (mDstComponent->getComponent() && enablePorts) {
+    if (mDstComponent->getHandle() && enablePorts) {
       //{{{
       omxErr = mDstComponent->enablePort (mDstPort, false);
       if (omxErr) {
@@ -269,7 +269,7 @@ public:
         }
       }
       //}}}
-    if (mDstComponent->getComponent() && enablePorts) {
+    if (mDstComponent->getHandle() && enablePorts) {
       //{{{
       omxErr = mDstComponent->waitCommand(OMX_CommandPortEnable, mDstPort);
       if (omxErr)
@@ -285,7 +285,7 @@ public:
         }
       }
       //}}}
-    if (mSrcComponent->getComponent() && enablePorts) {
+    if (mSrcComponent->getHandle() && enablePorts) {
       //{{{
       omxErr = mSrcComponent->waitCommand (OMX_CommandPortEnable, mSrcPort);
       if (omxErr) {
@@ -306,7 +306,7 @@ public:
       return OMX_ErrorUndefined;
 
     OMX_ERRORTYPE omxErr = OMX_ErrorNone;
-    if (mSrcComponent->getComponent()) {
+    if (mSrcComponent->getHandle()) {
       //{{{
       omxErr = mSrcComponent->disablePort (mSrcPort, false);
       if (omxErr)
@@ -314,7 +314,7 @@ public:
                              " - disable srcPort:" + dec(mSrcPort) + " " + hex(omxErr));
       }
       //}}}
-    if (mDstComponent->getComponent()) {
+    if (mDstComponent->getHandle()) {
       //{{{
       omxErr = mDstComponent->disablePort (mDstPort, false);
       if (omxErr)
@@ -322,7 +322,7 @@ public:
                              " - disable dstPort:" + dec(mDstPort) + " " + hex(omxErr));
       }
       //}}}
-    if (mSrcComponent->getComponent()) {
+    if (mSrcComponent->getHandle()) {
       //{{{
       omxErr = mSrcComponent->waitCommand (OMX_CommandPortDisable, mSrcPort);
       if (omxErr)
@@ -330,7 +330,7 @@ public:
                              " - waitCommand srcPort:" + dec(mSrcPort) + " " + hex(omxErr));
       }
       //}}}
-    if (mDstComponent->getComponent()) {
+    if (mDstComponent->getHandle()) {
       //{{{
       omxErr = mDstComponent->waitCommand (OMX_CommandPortDisable, mDstPort);
       if (omxErr)
@@ -338,17 +338,17 @@ public:
                              " - waitCommand dstPort:" + dec(mDstPort) + " " + hex(omxErr));
       }
       //}}}
-    if (mSrcComponent->getComponent()) {
+    if (mSrcComponent->getHandle()) {
       //{{{
-      omxErr = OMX_SetupTunnel (mSrcComponent->getComponent(), mSrcPort, NULL, 0);
+      omxErr = OMX_SetupTunnel (mSrcComponent->getHandle(), mSrcPort, NULL, 0);
       if (omxErr)
         cLog::log (LOGERROR, std::string(__func__) + " " + mSrcComponent->getName() +
                              " - unset tunnel srcPort:" + dec(mSrcPort) + " " + hex(omxErr));
       }
       //}}}
-    if (mDstComponent->getComponent()) {
+    if (mDstComponent->getHandle()) {
       //{{{
-      omxErr = OMX_SetupTunnel (mDstComponent->getComponent(), mDstPort, NULL, 0);
+      omxErr = OMX_SetupTunnel (mDstComponent->getHandle(), mDstPort, NULL, 0);
       if (omxErr)
         cLog::log (LOGERROR, std::string(__func__) + " " + mSrcComponent->getName() +
                              " - unset tunnel dstPort:" + dec(mDstPort) + " " + hex(omxErr));
