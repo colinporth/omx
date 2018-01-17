@@ -70,9 +70,9 @@ public:
   OMX_ERRORTYPE freeInputBuffers();
   OMX_ERRORTYPE freeOutputBuffers();
 
-  void flushAll();
   void flushInput();
   void flushOutput();
+  void flushAll();
 
   OMX_ERRORTYPE addEvent (OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);
   void removeEvent(OMX_EVENTTYPE eEvent, OMX_U32 nData1, OMX_U32 nData2);

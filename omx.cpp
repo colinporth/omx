@@ -444,14 +444,16 @@ private:
           auto vLevel = mOmxVideoPlayer ? mOmxVideoPlayer->getPacketCacheSize()/1024 : 0;
           auto aDelay = mOmxAudioPlayer ? mOmxAudioPlayer->getDelay() : 0;
           auto aCache = mOmxAudioPlayer ? mOmxAudioPlayer->getCacheTotal() : 0;
+          auto streamLength = mOmxReader.getStreamLength() / 1000;
 
           auto str = decFrac(clockPts/1000000.0,6,2,' ') +
-                     " "  + decFrac(audio_pts/1000000.0,6,2,' ') +
-                     ":"  + decFrac(video_pts/1000000.0,6,2,' ') +
-                     " "  + decFrac(audio_fifo,6,2,' ') +
-                     ":"  + decFrac(video_fifo,6,2,' ') +
-                     " "  + dec(aLevel,4) +
-                     " :" + dec(vLevel,4) +
+                     "of" + dec (streamLength) +
+                     " " + decFrac(audio_pts/1000000.0,6,2,' ') +
+                     ":" + decFrac(video_pts/1000000.0,6,2,' ') +
+                     " " + decFrac(audio_fifo,6,2,' ') +
+                     ":" + decFrac(video_fifo,6,2,' ') +
+                     " " + dec(aLevel,4) +
+                     ":" + dec(vLevel,4) +
                      " ad:" + dec(aDelay) +
                      " ac:" + dec(aCache);
           if (mDebugStr != str) {

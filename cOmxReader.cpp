@@ -237,26 +237,14 @@ cOmxReader::~cOmxReader() {
 
 // gets
 //{{{
-bool cOmxReader::isActive (int stream_index) {
-
-  if ((mAudioIndex != -1) && mStreams[mAudioIndex].id == stream_index)
-    return true;
-
-  if ((mVideoIndex != -1) && mStreams[mVideoIndex].id == stream_index)
-    return true;
-
-  return false;
-  }
-//}}}
-//{{{
 bool cOmxReader::isActive (OMXStreamType type, int stream_index) {
 
   if ((mAudioIndex != -1) &&
-      mStreams[mAudioIndex].id == stream_index && mStreams[mAudioIndex].type == type)
+      (mStreams[mAudioIndex].id == stream_index) && (mStreams[mAudioIndex].type == type))
     return true;
 
   if ((mVideoIndex != -1) &&
-      mStreams[mVideoIndex].id == stream_index && mStreams[mVideoIndex].type == type)
+      (mStreams[mVideoIndex].id == stream_index) && (mStreams[mVideoIndex].type == type))
     return true;
 
   return false;
@@ -501,13 +489,13 @@ AVMediaType cOmxReader::getPacketType (cOmxPacket* packet) {
 
 // sets
 //{{{
-void cOmxReader::setSpeed (int iSpeed) {
+void cOmxReader::setSpeed (int speed) {
 
-  if (mSpeed != DVD_PLAYSPEED_PAUSE && iSpeed == DVD_PLAYSPEED_PAUSE)
+  if ((mSpeed != DVD_PLAYSPEED_PAUSE) && (speed == DVD_PLAYSPEED_PAUSE))
     mAvFormat.av_read_pause (mAvFormatContext);
-  else if (mSpeed == DVD_PLAYSPEED_PAUSE && iSpeed != DVD_PLAYSPEED_PAUSE)
+  else if ((mSpeed == DVD_PLAYSPEED_PAUSE) && (speed != DVD_PLAYSPEED_PAUSE))
     mAvFormat.av_read_play (mAvFormatContext);
-  mSpeed = iSpeed;
+  mSpeed = speed;
 
   AVDiscard discard = AVDISCARD_NONE;
   if (mSpeed > 4*DVD_PLAYSPEED_NORMAL)
@@ -517,7 +505,7 @@ void cOmxReader::setSpeed (int iSpeed) {
   else if (mSpeed < DVD_PLAYSPEED_PAUSE)
     discard = AVDISCARD_NONKEY;
 
-  for (unsigned int i = 0; i < mAvFormatContext->nb_streams; i++)
+  for (auto i = 0u; i < mAvFormatContext->nb_streams; i++)
     if (mAvFormatContext->streams[i])
       if (mAvFormatContext->streams[i]->discard != AVDISCARD_ALL)
         mAvFormatContext->streams[i]->discard = discard;
@@ -556,7 +544,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
                        const string& lavfdopts, const string& avdict) {
 
   timeout_default_duration = (int64_t) (timeout * 1e9);
-  mICurrentPts = DVD_NOPTS_VALUE;
+  mCurPts = DVD_NOPTS_VALUE;
   mFilename = filename;
   mSpeed = DVD_PLAYSPEED_NORMAL;
   mProgram = UINT_MAX;
@@ -746,8 +734,8 @@ cOmxPacket* cOmxReader::readPacket() {
 
   // used to guess streamlength
   if ((packet->mDts != DVD_NOPTS_VALUE) &&
-      (packet->mDts > mICurrentPts || mICurrentPts == DVD_NOPTS_VALUE))
-    mICurrentPts = packet->mDts;
+      (packet->mDts > mCurPts || mCurPts == DVD_NOPTS_VALUE))
+    mCurPts = packet->mDts;
 
   // check if stream has passed full duration, needed for live streams
   if (avPacket.dts != (int64_t)AV_NOPTS_VALUE) {
@@ -809,7 +797,7 @@ bool cOmxReader::seek (float time, double& startPts) {
     }
 
   cLog::log (LOGINFO1, "cOmxReader::SeekTime %d seek ended up on time %d",
-                       time, (int)(mICurrentPts / DVD_TIME_BASE * 1000));
+                       time, (int)(mCurPts / DVD_TIME_BASE * 1000));
 
   return ret >= 0;
   }
@@ -817,14 +805,14 @@ bool cOmxReader::seek (float time, double& startPts) {
 //{{{
 void cOmxReader::updateCurrentPTS() {
 
-  mICurrentPts = DVD_NOPTS_VALUE;
+  mCurPts = DVD_NOPTS_VALUE;
 
   for (unsigned int i = 0; i < mAvFormatContext->nb_streams; i++) {
     auto stream = mAvFormatContext->streams[i];
     if (stream && stream->cur_dts != (int64_t)AV_NOPTS_VALUE) {
       double ts = convertTimestamp (stream->cur_dts, stream->time_base.den, stream->time_base.num);
-      if (mICurrentPts == DVD_NOPTS_VALUE || mICurrentPts > ts )
-        mICurrentPts = ts;
+      if (mCurPts == DVD_NOPTS_VALUE || mCurPts > ts )
+        mCurPts = ts;
       }
     }
   }
@@ -886,7 +874,7 @@ bool cOmxReader::close() {
   mAudioIndex = -1;
   mVideoIndex = -1;
   mEof = false;
-  mICurrentPts = DVD_NOPTS_VALUE;
+  mCurPts = DVD_NOPTS_VALUE;
   mSpeed = DVD_PLAYSPEED_NORMAL;
 
   clearStreams();

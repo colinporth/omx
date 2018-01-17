@@ -9,17 +9,16 @@ using namespace std;
 //}}}
 
 #define OMX_PRE_ROLL 200
-#define TP(speed) ((speed) < 0 || (speed) > 4*DVD_PLAYSPEED_NORMAL)
 
 //{{{
-cOmxClock::cOmxClock() { 
+cOmxClock::cOmxClock() {
   OMX_Init();
-  mOmxClock.init ("OMX.broadcom.clock", OMX_IndexParamOtherInit); 
+  mOmxClock.init ("OMX.broadcom.clock", OMX_IndexParamOtherInit);
   }
 //}}}
 //{{{
-cOmxClock::~cOmxClock() { 
-  mOmxClock.deInit(); 
+cOmxClock::~cOmxClock() {
+  mOmxClock.deInit();
   OMX_Deinit();
   }
 //}}}
@@ -206,10 +205,8 @@ bool cOmxClock::setSpeed (int speed, bool pauseResume) {
   if (pauseResume) {
     OMX_TIME_CONFIG_SCALETYPE scale;
     OMX_INIT_STRUCTURE(scale);
-    if (TP (speed))
-      scale.xScale = 0; // for trickplay we just pause, and single step
-    else
-      scale.xScale = (speed << 16) / DVD_PLAYSPEED_NORMAL;
+
+    scale.xScale = (speed << 16) / DVD_PLAYSPEED_NORMAL;
     if (mOmxClock.setConfig (OMX_IndexConfigTimeScale, &scale) != OMX_ErrorNone) {
       cLog::log (LOGERROR, __func__);
       return false;

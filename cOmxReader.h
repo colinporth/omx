@@ -80,33 +80,34 @@ public:
 
   // gets
   bool isEof() { return mEof; }
-  bool isActive (int stream_index);
   bool isActive (OMXStreamType type, int stream_index);
   bool canSeek();
 
   std::string getFilename() const { return mFilename; }
+
   int getWidth() { return mWidth; };
   int getHeight() { return mHeight; };
   double getAspectRatio() { return mAspect; };
-  int getAudioStreamCount() { return mAudioCount; };
-  int getVideoStreamCount() { return mVideoCount; };
+
   int getAudioIndex() { return (mAudioIndex >= 0) ? mStreams[mAudioIndex].index : -1; };
   int getVideoIndex() { return (mVideoIndex >= 0) ? mStreams[mVideoIndex].index : -1; };
-  int getRelativeIndex (size_t index) { return mStreams[index].index; }
+  int getAudioStreamCount() { return mAudioCount; };
+  int getVideoStreamCount() { return mVideoCount; };
+
   int getStreamLength() { return (int)(mAvFormatContext->duration / (AV_TIME_BASE / 1000)); }
 
   std::string getCodecName (OMXStreamType type);
   std::string getCodecName (OMXStreamType type, unsigned int index);
   std::string getStreamType (OMXStreamType type, unsigned int index);
   std::string getStreamName (OMXStreamType type, unsigned int index);
-  std::string getStreamCodecName (AVStream *stream);
-  bool getHints (AVStream *stream, cOmxStreamInfo *hints);
-  bool getHints (OMXStreamType type, unsigned int index, cOmxStreamInfo &hints);
-  bool getHints (OMXStreamType type, cOmxStreamInfo &hints);
+  std::string getStreamCodecName (AVStream* stream);
+  bool getHints (AVStream* stream, cOmxStreamInfo* hints);
+  bool getHints (OMXStreamType type, unsigned int index, cOmxStreamInfo& hints);
+  bool getHints (OMXStreamType type, cOmxStreamInfo& hints);
   AVMediaType getPacketType (cOmxPacket* packet);
 
   // sets
-  void setSpeed (int iSpeed);
+  void setSpeed (int speed);
   double selectAspect (AVStream* st, bool& forced);
   bool setActiveStream (OMXStreamType type, unsigned int index);
 
@@ -149,7 +150,7 @@ private:
   unsigned int mProgram = 0;
 
   int mSpeed = 0;
-  double mICurrentPts = 0.0;
+  double mCurPts = 0.0;
 
   double mAspect = 0.0;
   int mWidth = 0;
