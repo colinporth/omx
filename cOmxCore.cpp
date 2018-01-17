@@ -172,7 +172,6 @@ bool cOmxCore::deInit() {
 
   mInputPort = 0;
   mOutputPort = 0;
-  mComponentName = "";
   mResourceError = false;
 
   return true;

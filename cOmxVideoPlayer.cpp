@@ -54,15 +54,15 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
   mFlush = false;
   mPacketCacheSize = 0;
 
-  if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale)
+  if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
     mFps = 1000000.f / normDur (1000000.0 * mConfig.mHints.fpsscale / mConfig.mHints.fpsrate);
+    if (mFps > 100.f || mFps < 5.f) {
+      cLog::log (LOGERROR, "cOmxPlayerVideo::open invalid framerate %d", (int)mFps);
+      mFps = 25.f;
+      }
+    }
   else
     mFps = 25.f;
-
-  if (mFps > 100.f || mFps < 5.f) {
-    cLog::log (LOGERROR, "cOmxPlayerVideo::open invalid framerate %d", (int)mFps);
-    mFps = 25.f;
-    }
   mFrametime = 1000000.0 / mFps;
 
   // open decoder

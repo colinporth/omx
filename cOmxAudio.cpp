@@ -724,8 +724,12 @@ bool cOmxAudio::portChanged() {
     OMX_CONFIG_BOOLEANTYPE configBool;
     OMX_INIT_STRUCTURE(configBool);
     configBool.bEnabled = mConfig.mIsLive || mConfig.mDevice == "omx:both" ? OMX_FALSE : OMX_TRUE;
-    if (mRenderAnal.setConfig (OMX_IndexConfigBrcmClockReferenceSource, &configBool))
-       return false;
+    if (mRenderAnal.setConfig (OMX_IndexConfigBrcmClockReferenceSource, &configBool)) {
+      //{{{  error return
+      cLog::log (LOGERROR, string(__func__) + " setClockRef");
+      return false;
+      }
+      //}}}
 
     OMX_CONFIG_BRCMAUDIODESTINATIONTYPE audioDest;
     OMX_INIT_STRUCTURE(audioDest);
@@ -765,14 +769,16 @@ bool cOmxAudio::portChanged() {
     }
 
   if (mSplitter.isInit() ) {
-    mTunnelSplitterAnalog.init (&mSplitter, mSplitter.getOutputPort(), &mRenderAnal, mRenderAnal.getInputPort());
+    mTunnelSplitterAnalog.init (&mSplitter, mSplitter.getOutputPort(), &mRenderAnal, 
+                                mRenderAnal.getInputPort());
     if (mTunnelSplitterAnalog.establish()) {
       //{{{  error return
       cLog::log (LOGERROR, string(__func__) + " mTunnelSplitterAnalog.establish");
       return false;
       }
       //}}}
-    mTunnelSplitterHdmi.init (&mSplitter, mSplitter.getOutputPort() + 1, &mRenderHdmi, mRenderHdmi.getInputPort());
+    mTunnelSplitterHdmi.init (&mSplitter, mSplitter.getOutputPort() + 1, &mRenderHdmi, 
+                              mRenderHdmi.getInputPort());
     if (mTunnelSplitterHdmi.establish()) {
       //{{{  error return
       cLog::log (LOGERROR, string(__func__) + " mTunnelSplitterhdmi.establish");
