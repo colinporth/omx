@@ -143,7 +143,7 @@ void cOmxVideo::setVideoRect (const cRect& srcRect, const cRect& dstRect) {
 //}}}
 
 //{{{
-bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
+bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -294,11 +294,9 @@ bool cOmxVideo::open (cOmxClock* avClock, const cOmxVideoConfig &config) {
   if (!mDecoder.init (decoderName, OMX_IndexParamVideoInit))
     return false;
   //}}}
-  mAvClock = avClock;
-  mClock = mAvClock->getOmxClock();
-  if (!mClock->getComponent()) {
+  mClock = clock;
+  if (!mClock->getOmxCore()->getComponent()) {
     //{{{  no clock. return
-    mAvClock = nullptr;
     mClock = nullptr;
     return false;
     }
@@ -574,7 +572,8 @@ bool cOmxVideo::portChanged() {
     mTunnelDecoder.init (&mDecoder, mDecoder.getOutputPort(), &mScheduler, mScheduler.getInputPort());
 
   mTunnelSched.init (&mScheduler, mScheduler.getOutputPort(), &mRender, mRender.getInputPort());
-  mTunnelClock.init (mClock, mClock->getInputPort() + 1, &mScheduler, mScheduler.getOutputPort() + 1);
+  mTunnelClock.init (mClock->getOmxCore(), mClock->getOmxCore()->getInputPort() + 1,
+                     &mScheduler, mScheduler.getOutputPort() + 1);
   if (mTunnelClock.establish() != OMX_ErrorNone) {
     //{{{  error return
     cLog::log (LOGERROR,  string(__func__) + " mTunnelClock.establish");
@@ -750,7 +749,7 @@ void cOmxVideo::close() {
 
   mVideoCodecName = "";
   mDeinterlace = false;
-  mAvClock = NULL;
+  mClock = NULL;
   }
 //}}}
 

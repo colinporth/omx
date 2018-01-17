@@ -46,7 +46,7 @@ public:
   bool stateExecute();
   bool hdmiClockSync();
 
-  cOmxCore* getOmxClock() { return &mOmxClock; }
+  cOmxCore* getOmxCore() { return &mOmxCore; }
   int64_t getAbsoluteClock();
   double getClock (bool interpolated = true) { return getAbsoluteClock(); }
 
@@ -70,7 +70,7 @@ public:
 private:
   std::recursive_mutex mMutex;
 
-  cOmxCore mOmxClock;
+  cOmxCore mOmxCore;
   cAvFormat mAvFormat;
 
   bool mPause = false;

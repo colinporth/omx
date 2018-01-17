@@ -27,9 +27,9 @@ bool cOmxAudioPlayer::isPassThru (cOmxStreamInfo hints) {
 //}}}
 
 //{{{
-bool cOmxAudioPlayer::open (cOmxClock* avClock, const cOmxAudioConfig& config) {
+bool cOmxAudioPlayer::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
-  mAvClock = avClock;
+  mClock = clock;
 
   mConfig = config;
   mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
@@ -81,7 +81,7 @@ bool cOmxAudioPlayer::openOmxAudio() {
   if (mPassThru)
     mHwDecode = false;
 
-  if (mOmxAudio->init (mAvClock, mConfig, mSwAudio->getChannelMap(), mSwAudio->getBitsPerSample())) {
+  if (mOmxAudio->init (mClock, mConfig, mSwAudio->getChannelMap(), mSwAudio->getBitsPerSample())) {
     cLog::log (LOGINFO, "cOmxPlayerAudio::openOmxAudio " +
                string(mPassThru ? " passThru" : "") +
                " chan:" + dec(mConfig.mHints.channels) +

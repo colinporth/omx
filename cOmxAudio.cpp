@@ -21,6 +21,7 @@ int countBits (uint64_t value) {
   }
 //}}}
 
+//{{{
 cOmxAudio::~cOmxAudio() {
 
   if (mTunnelClockAnalog.isInit() )
@@ -61,6 +62,7 @@ cOmxAudio::~cOmxAudio() {
   while (!mAmpQueue.empty())
     mAmpQueue.pop_front();
   }
+//}}}
 
 // gets
 //{{{
@@ -100,8 +102,8 @@ float cOmxAudio::getDelay() {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   double stamp = DVD_NOPTS_VALUE;
-  if (mLastPts != DVD_NOPTS_VALUE && mAvClock)
-    stamp = mAvClock->getMediaTime();
+  if (mLastPts != DVD_NOPTS_VALUE && mClock)
+    stamp = mClock->getMediaTime();
 
   // if possible the delay is current media time - time of last submitted packet
   if (stamp != DVD_NOPTS_VALUE)
@@ -272,8 +274,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  mAvClock = clock;
-  mClock = mAvClock->getOmxClock();
+  mClock = clock;
   mDrc = 0;
 
   mConfig = config;
@@ -689,7 +690,8 @@ bool cOmxAudio::portChanged() {
     }
 
   if (mRenderAnal.isInit()) {
-    mTunnelClockAnalog.init (mClock, mClock->getInputPort(), &mRenderAnal, mRenderAnal.getInputPort()+1);
+    mTunnelClockAnalog.init (mClock->getOmxCore(), mClock->getOmxCore()->getInputPort(),
+                             &mRenderAnal, mRenderAnal.getInputPort() + 1);
 
     if (mTunnelClockAnalog.establish() != OMX_ErrorNone) {
       //{{{  error return
@@ -702,8 +704,8 @@ bool cOmxAudio::portChanged() {
 
   if (mRenderHdmi.isInit() ) {
     mTunnelClockHdmi.init (
-      mClock, mClock->getInputPort() + (mRenderAnal.isInit() ? 2 : 0),
-      &mRenderHdmi, mRenderHdmi.getInputPort()+1);
+      mClock->getOmxCore(), mClock->getOmxCore()->getInputPort() + (mRenderAnal.isInit() ? 2 : 0),
+      &mRenderHdmi, mRenderHdmi.getInputPort() + 1);
 
     if (mTunnelClockHdmi.establish() != OMX_ErrorNone) {
       //{{{  error return
@@ -1119,7 +1121,7 @@ void cOmxAudio::updateAttenuation() {
     mAmpQueue.push_back(v);
     }
 
-  double stamp = mAvClock->getMediaTime();
+  double stamp = mClock->getMediaTime();
   // discard too old data
   while (!mAmpQueue.empty()) {
     amplitudes_t &v = mAmpQueue.front();

@@ -37,9 +37,9 @@ double normDur (double frameDuration) {
 //}}}
 
 //{{{
-bool cOmxVideoPlayer::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
+bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
 
-  mAvClock = avClock;
+  mClock = clock;
 
   mConfig = config;
   mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
@@ -67,7 +67,7 @@ bool cOmxVideoPlayer::open (cOmxClock* avClock, const cOmxVideoConfig& config) {
 
   // open decoder
   mDecoder = new cOmxVideo();
-  if (mDecoder->open (mAvClock, mConfig)) {
+  if (mDecoder->open (mClock, mConfig)) {
     cLog::log (LOGINFO, "cOmxPlayerVideo::open %s profile:%d %dx%d %ffps",
                mDecoder->getDecoderName().c_str(), mConfig.mHints.profile,
                mConfig.mHints.width, mConfig.mHints.height, mFps);

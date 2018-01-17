@@ -280,7 +280,7 @@ class cOmxVideoConfig {
 public:
   cOmxStreamInfo mHints;
 
-  int mPacketMaxCacheSize = 2 * 1024 * 1024; // 1m
+  int mPacketMaxCacheSize = 2 * 1024 * 1024; // 2m
   int mFifoSize = 2 * 1024 * 1024; // 2m
 
   cRect mDstRect = {0, 0, 0, 0};
@@ -334,8 +334,7 @@ private:
   cOmxVideoConfig mConfig;
   OMX_VIDEO_CODINGTYPE mCodingType;
 
-  cOmxClock* mAvClock = nullptr;
-  cOmxCore* mClock = nullptr;
+  cOmxClock* mClock = nullptr;
   cOmxCore mDecoder;
   cOmxCore mRender;
   cOmxCore mScheduler;
@@ -481,8 +480,7 @@ private:
   cOmxAudioConfig mConfig;
   cAvUtil mAvUtil;
 
-  cOmxClock* mAvClock = nullptr;
-  cOmxCore* mClock = nullptr;
+  cOmxClock* mClock = nullptr;
 
   cOmxCore mRenderAnal;
   cOmxCore mRenderHdmi;
@@ -691,7 +689,7 @@ protected:
   pthread_mutex_t mLockDecoder;
   pthread_cond_t mPacketCond;
 
-  cOmxClock* mAvClock = nullptr;
+  cOmxClock* mClock = nullptr;
 
   cAvUtil mAvUtil;
   cAvCodec mAvCodec;
