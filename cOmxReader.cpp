@@ -40,18 +40,10 @@ typedef enum {
   IOCTRL_CACHE_SETRATE = 4, /**< unsigned int with with speed limit for caching in bytes per second */
   } eIoControl;
 //}}}
+
 //{{{
 class cFile {
 public:
-  //{{{
-  cFile()
-  {
-    mFile = NULL;
-    mFlags = 0;
-    mLength = 0;
-    mPipe = false;
-  }
-  //}}}
   //{{{
   ~cFile() {
     if (mFile && !mPipe)
@@ -64,7 +56,7 @@ public:
 
     mFlags = flags;
 
-    if (strFileName.compare(0, 5, "pipe:") == 0) {
+    if (strFileName.compare (0, 5, "pipe:") == 0) {
       mPipe = true;
       mFile = stdin;
       mLength = 0;
@@ -77,6 +69,7 @@ public:
 
     fseeko64 (mFile, 0, SEEK_END);
     mLength = ftello64 (mFile);
+
     fseeko64 (mFile, 0, SEEK_SET);
 
     return true;
@@ -84,11 +77,7 @@ public:
   //}}}
   //{{{
   unsigned int read (void* buffer, int64_t bufferSize) {
-
-    if (mFile)
-      return fread (buffer, 1, bufferSize, mFile);
-    else
-      return 0;
+    return mFile ? fread (buffer, 1, bufferSize, mFile) : 0;
     }
   //}}}
   //{{{
@@ -108,11 +97,7 @@ public:
   //}}}
   //{{{
   int64_t seek (int64_t iFilePosition, int iWhence) {
-
-    if (mFile)
-      return fseeko64 (mFile, iFilePosition, iWhence);
-    else
-      return -1;
+    return mFile ? fseeko64 (mFile, iFilePosition, iWhence) : -1;
     }
   //}}}
   //{{{
@@ -120,10 +105,13 @@ public:
 
     if (mFile && !mPipe)
       fclose (mFile);
+
     mFile = NULL;
     }
   //}}}
 
+  int64_t getLength() { return mLength; }
+  int getChunkSize() { return 6144 /*FFMPEG_FILE_BUFFER_SIZE*/; };
   //{{{
   bool isEOF() {
 
@@ -139,34 +127,24 @@ public:
   //{{{
   bool exists (const string& strFileName, bool bUseCache = true) {
 
-    if (strFileName.compare(0, 5, "pipe:") == 0)
+    if (strFileName.compare (0, 5, "pipe:") == 0)
       return true;
 
-    FILE* fp = fopen64(strFileName.c_str(), "r");
-    if (!fp)
+    FILE* file = fopen64 (strFileName.c_str(), "r");
+    if (!file)
       return false;
 
-    fclose(fp);
+    fclose (file);
     return true;
     }
   //}}}
-  //{{{
-  int64_t getPosition() {
-
-    if (mFile)
-      return ftello64(mFile);
-    else
-      return -1;
-    }
-  //}}}
-  int64_t getLength() { return mLength; }
-  int getChunkSize() { return 6144 /*FFMPEG_FILE_BUFFER_SIZE*/; };
+  int64_t getPosition() { return mFile ? ftello64 (mFile) : -1; }
 
 private:
-  unsigned int mFlags;
-  FILE* mFile;
-  int64_t mLength;
-  bool mPipe;
+  unsigned int mFlags = 0;
+  FILE* mFile = nullptr;
+  int64_t mLength = 0;
+  bool mPipe = false;
   };
 //}}}
 
@@ -689,7 +667,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
 cOmxPacket* cOmxReader::readPacket() {
 
   if (mEof)
-    return NULL;
+    return nullptr;
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 

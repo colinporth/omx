@@ -164,10 +164,9 @@ bool cOmxCore::deInit() {
     freeInputBuffers();
     transitionToStateLoaded();
 
-    cLog::log (LOGINFO1, "cOmxCore::deInit - %s h:%p", mName.c_str(), mHandle);
-
+    cLog::log (LOGINFO1, "cOmxCore::deInit " + mName);
     if (OMX_FreeHandle (mHandle))
-      cLog::log (LOGERROR, "cOmxCore::deInit - free handle %s", mName.c_str());
+      cLog::log (LOGERROR, __func__ + mName + " freeHandle");
     mHandle = nullptr;
     }
 
@@ -370,13 +369,13 @@ OMX_ERRORTYPE cOmxCore::allocOutputBuffers (bool useBuffers /* = false */) {
   for (size_t i = 0; i < portFormat.nBufferCountActual; i++) {
     OMX_BUFFERHEADERTYPE* buffer = nullptr;
     OMX_U8* data = nullptr;
+
     if (mOutputUseBuffers) {
       data = (OMX_U8*)alignedMalloc (portFormat.nBufferSize, mOutputAlignment);
       omxErr = OMX_UseBuffer (mHandle, &buffer, mOutputPort, nullptr, portFormat.nBufferSize, data);
       }
     else
       omxErr = OMX_AllocateBuffer (mHandle, &buffer, mOutputPort, nullptr, portFormat.nBufferSize);
-
     if (omxErr) {
       cLog::log (LOGERROR, "%s %OMX_UseBuffer 0x%x", __func__, mName.c_str(), omxErr);
       if (mOutputUseBuffers && data)
@@ -395,8 +394,8 @@ OMX_ERRORTYPE cOmxCore::allocOutputBuffers (bool useBuffers /* = false */) {
   omxErr = waitCommand (OMX_CommandPortEnable, mOutputPort);
   if (omxErr) {
     //{{{  error return
-    cLog::log (LOGERROR, "waitCommand:OMX_CommandPortEnable %s 0x%08x",
-                          mName.c_str(), omxErr);
+    cLog::log (LOGERROR, string(__func__)+ " " + mName +  
+                         " portEnable:" + dec(mOutputPort) + " " + hex(omxErr));
     return omxErr;
     }
     //}}}
@@ -848,7 +847,7 @@ OMX_ERRORTYPE cOmxCore::getParam (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct)
 
   auto omxErr = OMX_GetParameter (mHandle, paramIndex, paramStruct);
   if (omxErr)
-    cLog::log (LOGERROR, string( __func__) + " getParam " + mName);
+    cLog::log (LOGERROR, string( __func__) + " " + mName + " getParam");
 
   return omxErr;
   }
@@ -858,7 +857,7 @@ OMX_ERRORTYPE cOmxCore::setParam (OMX_INDEXTYPE paramIndex, OMX_PTR paramStruct)
 
   auto omxErr = OMX_SetParameter (mHandle, paramIndex, paramStruct);
   if (omxErr)
-    cLog::log (LOGERROR, string( __func__) + " setParam " + mName);
+    cLog::log (LOGERROR, string( __func__) + " " + mName + " setParam");
 
   return omxErr;
   }
@@ -869,7 +868,7 @@ OMX_ERRORTYPE cOmxCore::getConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStru
 
   auto omxErr = OMX_GetConfig (mHandle, configIndex, configStruct);
   if (omxErr)
-    cLog::log (LOGERROR, string( __func__) + " getConfig " + mName);
+    cLog::log (LOGERROR, string( __func__) + " " + mName + " getConfig");
 
   return omxErr;
   }
@@ -879,7 +878,7 @@ OMX_ERRORTYPE cOmxCore::setConfig (OMX_INDEXTYPE configIndex, OMX_PTR configStru
 
   auto omxErr = OMX_SetConfig (mHandle, configIndex, configStruct);
   if (omxErr)
-    cLog::log (LOGERROR, string( __func__) + " setConfig " + mName);
+    cLog::log (LOGERROR, string( __func__) + mName + " setConfig ");
 
   return omxErr;
   }
