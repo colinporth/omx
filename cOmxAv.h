@@ -465,7 +465,6 @@ public:
   void process();
   void submitEOS();
   void flush();
-  bool deInit();
 
 private:
   bool canHwDecode (AVCodecID codec);

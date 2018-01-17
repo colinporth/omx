@@ -21,7 +21,46 @@ int countBits (uint64_t value) {
   }
 //}}}
 
-cOmxAudio::~cOmxAudio() { deInit(); }
+cOmxAudio::~cOmxAudio() {
+
+  if (mTunnelClockAnalog.isInit() )
+    mTunnelClockAnalog.deEstablish();
+  if (mTunnelClockHdmi.isInit() )
+    mTunnelClockHdmi.deEstablish();
+
+  // ignore expected errors on teardown
+  if (mMixer.isInit() )
+    mMixer.ignoreNextError (OMX_ErrorPortUnpopulated);
+  else {
+    if (mRenderHdmi.isInit() )
+      mRenderHdmi.ignoreNextError (OMX_ErrorPortUnpopulated);
+    if (mRenderAnal.isInit() )
+      mRenderAnal.ignoreNextError (OMX_ErrorPortUnpopulated);
+    }
+
+  mTunnelDecoder.deEstablish();
+  if (mTunnelMixer.isInit() )
+    mTunnelMixer.deEstablish();
+  if (mTunnelSplitterHdmi.isInit() )
+    mTunnelSplitterHdmi.deEstablish();
+  if (mTunnelSplitterAnalog.isInit() )
+    mTunnelSplitterAnalog.deEstablish();
+
+  mDecoder.flushInput();
+  mDecoder.deInit();
+
+  if (mMixer.isInit())
+    mMixer.deInit();
+  if (mSplitter.isInit())
+    mSplitter.deInit();
+  if (mRenderHdmi.isInit())
+    mRenderHdmi.deInit();
+  if (mRenderAnal.isInit())
+    mRenderAnal.deInit();
+
+  while (!mAmpQueue.empty())
+    mAmpQueue.pop_front();
+  }
 
 // gets
 //{{{
@@ -232,8 +271,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
                       uint64_t channelMap, unsigned int uiBitsPerSample) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  deInit();
 
   mAvClock = clock;
   mClock = mAvClock->getOmxClock();
@@ -970,63 +1007,6 @@ void cOmxAudio::flush() {
   mSubmitted = 0.f;
 
   mMaxLevel = 0.f;
-  }
-//}}}
-//{{{
-bool cOmxAudio::deInit() {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  if (mTunnelClockAnalog.isInit() )
-    mTunnelClockAnalog.deEstablish();
-  if (mTunnelClockHdmi.isInit() )
-    mTunnelClockHdmi.deEstablish();
-
-  // ignore expected errors on teardown
-  if (mMixer.isInit() )
-    mMixer.ignoreNextError (OMX_ErrorPortUnpopulated);
-  else {
-    if (mRenderHdmi.isInit() )
-      mRenderHdmi.ignoreNextError (OMX_ErrorPortUnpopulated);
-    if (mRenderAnal.isInit() )
-      mRenderAnal.ignoreNextError (OMX_ErrorPortUnpopulated);
-    }
-
-  mTunnelDecoder.deEstablish();
-  if (mTunnelMixer.isInit() )
-    mTunnelMixer.deEstablish();
-  if (mTunnelSplitterHdmi.isInit() )
-    mTunnelSplitterHdmi.deEstablish();
-  if (mTunnelSplitterAnalog.isInit() )
-    mTunnelSplitterAnalog.deEstablish();
-
-  mDecoder.flushInput();
-
-  mDecoder.deInit();
-  if (mMixer.isInit())
-    mMixer.deInit();
-  if (mSplitter.isInit())
-    mSplitter.deInit();
-  if (mRenderHdmi.isInit())
-    mRenderHdmi.deInit();
-  if (mRenderAnal.isInit())
-    mRenderAnal.deInit();
-
-  mBytesPerSec = 0;
-  mBufferLen = 0;
-
-  mClock = nullptr;
-  mAvClock = nullptr;
-
-  while (!mAmpQueue.empty())
-    mAmpQueue.pop_front();
-
-  mLastPts = DVD_NOPTS_VALUE;
-
-  mSubmitted = 0.f;
-  mMaxLevel = 0.f;
-
-  return true;
   }
 //}}}
 
