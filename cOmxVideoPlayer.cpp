@@ -92,7 +92,7 @@ bool cOmxVideoPlayer::decode (OMXPacket* packet) {
                        " size" + dec(packet->size));
 
   while ((int)mDecoder->getInputBufferSpace() < packet->size) {
-    cOmxClock::sleep (10);
+    cOmxClock::msSleep (10);
     if (mFlushRequested)
       return true;
     }

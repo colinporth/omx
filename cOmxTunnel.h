@@ -6,9 +6,6 @@
 
 class cOmxTunnel {
 public:
-  cOmxTunnel();
-  ~cOmxTunnel();
-
   void init (cOmxCore* srcComponent, unsigned int srcPort,
              cOmxCore* dstComponent, unsigned int dstPort);
   bool isInit() const { return mTunnelSet; }

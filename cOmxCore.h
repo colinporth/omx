@@ -34,8 +34,9 @@ public:
   ~cOmxCore();
 
   bool init (const std::string& name, OMX_INDEXTYPE index, OMX_CALLBACKTYPE* callbacks = NULL);
-  bool isInit() const { return mHandle != NULL; }
   bool deInit();
+
+  bool isInit() const { return mHandle != NULL; }
 
   OMX_HANDLETYPE getComponent() const { return mHandle; }
   std::string getName() const { return mComponentName; }
@@ -59,8 +60,8 @@ public:
   OMX_ERRORTYPE emptyThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
   OMX_ERRORTYPE fillThisBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
 
-  OMX_ERRORTYPE waitInputDone (long timeout=200);
-  OMX_ERRORTYPE waitOutputDone (long timeout=200);
+  OMX_ERRORTYPE waitInputDone (long timeout = 200);
+  OMX_ERRORTYPE waitOutputDone (long timeout = 200);
 
   OMX_ERRORTYPE freeOutputBuffer (OMX_BUFFERHEADERTYPE* omxBuffer);
   OMX_ERRORTYPE freeInputBuffers();

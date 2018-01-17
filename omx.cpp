@@ -551,14 +551,14 @@ private:
               if (mVideoPlayer->addPacket (packet))
                 packet = NULL;
               else
-                cOmxClock::sleep (10);
+                cOmxClock::msSleep (10);
               }
 
             else if (mAudioPlayer && mReader.isActive (OMXSTREAM_AUDIO, packet->stream_index)) {
               if (mAudioPlayer->addPacket (packet))
                 packet = NULL;
               else
-                cOmxClock::sleep (10);
+                cOmxClock::msSleep (10);
               }
 
             else
@@ -581,11 +581,11 @@ private:
               }
 
             // wait about another frame
-            cOmxClock::sleep (20);
+            cOmxClock::msSleep (20);
             }
             //}}}
           else // wait for another packet
-            cOmxClock::sleep (10);
+            cOmxClock::msSleep (10);
           }
           //}}}
 

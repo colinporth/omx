@@ -340,7 +340,7 @@ bool cOmxClock::resume() {
 //}}}
 
 //{{{
-void cOmxClock::sleep (unsigned int mSecs) {
+void cOmxClock::msSleep (unsigned int mSecs) {
 
   struct timespec req;
   req.tv_sec = mSecs / 1000;
