@@ -9,8 +9,8 @@ using namespace std;
 //}}}
 
 //{{{
-void cOmxTunnel::init (cOmxCore* srcComponent, unsigned int srcPort,
-                                 cOmxCore* dstComponent, unsigned int dstPort) {
+void cOmxTunnel::init (cOmxCore* srcComponent, int srcPort, cOmxCore* dstComponent, int dstPort) {
+
   mSrcComponent = srcComponent;
   mSrcPort = srcPort;
   mDstComponent = dstComponent;

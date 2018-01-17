@@ -6,8 +6,7 @@
 
 class cOmxTunnel {
 public:
-  void init (cOmxCore* srcComponent, unsigned int srcPort,
-             cOmxCore* dstComponent, unsigned int dstPort);
+  void init (cOmxCore* srcComponent, int srcPort, cOmxCore* dstComponent, int dstPort);
   bool isInit() const { return mTunnelSet; }
 
   OMX_ERRORTYPE establish (bool enablePorts = true, bool disablePorts = false);
@@ -17,7 +16,7 @@ private:
   cOmxCore* mSrcComponent = nullptr;
   cOmxCore* mDstComponent = nullptr;
 
-  unsigned int mSrcPort = 0;
-  unsigned int mDstPort = 0;
+  int mSrcPort = 0;
+  int mDstPort = 0;
   bool mTunnelSet = false;
   };
