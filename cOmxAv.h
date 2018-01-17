@@ -301,7 +301,7 @@ public:
 //{{{
 class cOmxVideo {
 public:
-  ~cOmxVideo() { close(); }
+  ~cOmxVideo();
 
   std::string getDecoderName() { return mVideoCodecName; };
 

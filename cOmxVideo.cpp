@@ -30,6 +30,12 @@ using namespace std;
 //}}}
 
 //{{{
+cOmxVideo::~cOmxVideo() { 
+  close(); 
+  }
+//}}}
+
+//{{{
 bool cOmxVideo::isEOS() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -146,8 +152,6 @@ void cOmxVideo::setVideoRect (const cRect& srcRect, const cRect& dstRect) {
 bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  close();
 
   mClock = clock;
   mConfig = config;
@@ -747,7 +751,6 @@ void cOmxVideo::close() {
     mImageFx.deInit();
   mRender.deInit();
 
-  mVideoCodecName = "";
   mDeinterlace = false;
   mClock = NULL;
   }
