@@ -17,7 +17,6 @@
 
 #include "avLibs.h"
 #include "cOmxCore.h"
-#include "cOmxTunnel.h"
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"

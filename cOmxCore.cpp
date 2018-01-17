@@ -12,6 +12,7 @@
 using namespace std;
 //}}}
 
+// local
 //{{{
 void* alignedMalloc (size_t size, size_t alignTo) {
 // alloc extra space and store the original allocation in it (so that we can free later on)

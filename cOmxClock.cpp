@@ -38,8 +38,8 @@ bool cOmxClock::stateExecute() {
       }
       //}}}
     }
-
   mLastMediaTime = 0.f;
+
   return true;
   }
 //}}}
@@ -48,25 +48,25 @@ bool cOmxClock::hdmiClockSync() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  OMX_CONFIG_LATENCYTARGETTYPE latencyTarget;
-  OMX_INIT_STRUCTURE(latencyTarget);
-  latencyTarget.nPortIndex = OMX_ALL;
-  latencyTarget.bEnabled = OMX_TRUE;
-  latencyTarget.nFilter = 10;
-  latencyTarget.nTarget = 0;
-  latencyTarget.nShift = 3;
-  latencyTarget.nSpeedFactor = -60;
-  latencyTarget.nInterFactor = 100;
-  latencyTarget.nAdjCap = 100;
+  OMX_CONFIG_LATENCYTARGETTYPE latency;
+  OMX_INIT_STRUCTURE(latency);
 
-  if (mOmxClock.setConfig (OMX_IndexConfigLatencyTarget, &latencyTarget)!= OMX_ErrorNone) {
-    //{{{  error, return
-    cLog::log (LOGERROR, "cOmxClock::hdmiClockSync");
+  latency.nPortIndex = OMX_ALL;
+  latency.bEnabled = OMX_TRUE;
+  latency.nFilter = 10;
+  latency.nTarget = 0;
+  latency.nShift = 3;
+  latency.nSpeedFactor = -60;
+  latency.nInterFactor = 100;
+  latency.nAdjCap = 100;
+  if (mOmxClock.setConfig (OMX_IndexConfigLatencyTarget, &latency)!= OMX_ErrorNone) {
+    // error, return
+    cLog::log (LOGERROR, __func__);
     return false;
     }
-    //}}}
 
   mLastMediaTime = 0.f;
+
   return true;
   }
 //}}}
@@ -89,6 +89,7 @@ double cOmxClock::getMediaTime() {
 
     OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
     OMX_INIT_STRUCTURE(timeStamp);
+
     timeStamp.nPortIndex = mOmxClock.getInputPort();
     OMX_ERRORTYPE omx_err = mOmxClock.getConfig (OMX_IndexConfigTimeCurrentMediaTime, &timeStamp);
     if (omx_err != OMX_ErrorNone) {
@@ -117,6 +118,7 @@ double cOmxClock::getClockAdjustment() {
 
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
   OMX_INIT_STRUCTURE(timeStamp);
+
   timeStamp.nPortIndex = mOmxClock.getInputPort();
   if (mOmxClock.getConfig (OMX_IndexConfigClockAdjustment, &timeStamp) != OMX_ErrorNone) {
     // error, return
@@ -129,18 +131,6 @@ double cOmxClock::getClockAdjustment() {
 //}}}
 
 //{{{
-void cOmxClock::setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool hasVideo, bool hasAudio) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  clock->nWaitMask = 0;
-  if (hasAudio)
-    clock->nWaitMask |= OMX_CLOCKPORT0;
-  if (hasVideo)
-    clock->nWaitMask |= OMX_CLOCKPORT1;
-  }
-//}}}
-//{{{
 bool cOmxClock::setReferenceClock (bool hasAudio) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -149,14 +139,11 @@ bool cOmxClock::setReferenceClock (bool hasAudio) {
 
   OMX_TIME_CONFIG_ACTIVEREFCLOCKTYPE refClock;
   OMX_INIT_STRUCTURE(refClock);
-  if (hasAudio)
-    refClock.eClock = OMX_TIME_RefClockAudio;
-  else
-    refClock.eClock = OMX_TIME_RefClockVideo;
 
+  refClock.eClock = hasAudio ? OMX_TIME_RefClockAudio : OMX_TIME_RefClockVideo;
   if (refClock.eClock != mClock) {
     cLog::log (LOGINFO, "cOmxClock::setReferenceClock %s",
-                        (refClock.eClock == OMX_TIME_RefClockVideo) ? "video" : "audio");
+                        (refClock.eClock == OMX_TIME_RefClockVideo) ? "vid" : "aud");
 
     if (mOmxClock.setConfig (OMX_IndexConfigTimeActiveRefClock, &refClock) != OMX_ErrorNone) {
       // error, return
@@ -177,14 +164,12 @@ bool cOmxClock::setMediaTime (double pts) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  OMX_INDEXTYPE index;
   OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
   OMX_INIT_STRUCTURE(timeStamp);
+
   timeStamp.nPortIndex = mOmxClock.getInputPort();
-  if (mClock == OMX_TIME_RefClockAudio)
-    index = OMX_IndexConfigTimeCurrentAudioReference;
-  else
-    index = OMX_IndexConfigTimeCurrentVideoReference;
+  OMX_INDEXTYPE index = (mClock == OMX_TIME_RefClockAudio) ?
+      OMX_IndexConfigTimeCurrentAudioReference : OMX_IndexConfigTimeCurrentVideoReference;
   timeStamp.nTimestamp = toOmxTime (pts);
   if (mOmxClock.setConfig (index, &timeStamp) != OMX_ErrorNone) {
     // error return
@@ -196,6 +181,7 @@ bool cOmxClock::setMediaTime (double pts) {
   cLog::log  (LOGINFO1, "cOmxClock::setMediaTime %s %.2f",
                         index == OMX_IndexConfigTimeCurrentAudioReference ? "aud":"vid", pts);
   mLastMediaTime = 0.f;
+
   return true;
   }
 //}}}
@@ -222,8 +208,8 @@ bool cOmxClock::setSpeed (int speed, bool pauseResume) {
 
   if (!pauseResume)
     mOmxSpeed = speed;
-
   mLastMediaTime = 0.f;
+
   return true;
   }
 //}}}
@@ -237,6 +223,7 @@ bool cOmxClock::stop() {
 
   OMX_TIME_CONFIG_CLOCKSTATETYPE clock;
   OMX_INIT_STRUCTURE(clock);
+
   clock.eState = OMX_TIME_ClockStateStopped;
   clock.nOffset = toOmxTime (-1000LL * OMX_PRE_ROLL);
   if (mOmxClock.setConfig (OMX_IndexConfigTimeClockState, &clock) != OMX_ErrorNone) {
@@ -259,6 +246,7 @@ bool cOmxClock::step (int steps /* = 1 */) {
 
   OMX_PARAM_U32TYPE param;
   OMX_INIT_STRUCTURE(param);
+
   param.nPortIndex = OMX_ALL;
   param.nU32 = steps;
   if (mOmxClock.setConfig (OMX_IndexConfigSingleStep, &param) != OMX_ErrorNone) {
@@ -286,10 +274,14 @@ bool cOmxClock::reset (bool hasVideo, bool hasAudio) {
   if (mState == OMX_TIME_ClockStateStopped) {
     OMX_TIME_CONFIG_CLOCKSTATETYPE clock;
     OMX_INIT_STRUCTURE(clock);
+
     clock.eState = OMX_TIME_ClockStateWaitingForStartTime;
     clock.nOffset = toOmxTime (-1000LL * OMX_PRE_ROLL);
-    setClockPorts (&clock, hasVideo, hasAudio);
-
+    clock.nWaitMask = 0;
+    if (hasAudio)
+      clock.nWaitMask |= OMX_CLOCKPORT0;
+    if (hasVideo)
+      clock.nWaitMask |= OMX_CLOCKPORT1;
     if (clock.nWaitMask) {
       if (mOmxClock.setConfig (OMX_IndexConfigTimeClockState, &clock) != OMX_ErrorNone) {
         // error, return
@@ -331,7 +323,6 @@ bool cOmxClock::resume() {
 
     if (setSpeed (mOmxSpeed, true))
       mPause = false;
-
     mLastMediaTime = 0.f;
     }
 

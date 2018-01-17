@@ -24,7 +24,6 @@
 #define AV_NOWARN_DEPRECATED
 #include "avLibs.h"
 
-#include "cOmx.h"
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxAv.h"
@@ -622,15 +621,16 @@ private:
   //}}}
   //{{{  vars
   cOmx mOmx;
-  cDvb mDvb;
-  string mRoot;
-
-  cKeyboard mKeyboard;
   cOmxClock mClock;
   cOmxReader mReader;
 
   cOmxVideoPlayer* mVideoPlayer = nullptr;
   cOmxAudioPlayer* mAudioPlayer = nullptr;
+
+  cKeyboard mKeyboard;
+
+  cDvb mDvb;
+  string mRoot;
 
   bool mPause = false;
   double mSeekIncSec = 0.0;

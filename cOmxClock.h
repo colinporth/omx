@@ -3,8 +3,9 @@
 #pragma once
 
 #include <mutex>
-#include "avLibs.h"
+
 #include "cOmxCore.h"
+#include "avLibs.h"
 //}}}
 //{{{  defines
 #define DVD_TIME_BASE        1000000
@@ -54,7 +55,6 @@ public:
   int getPlaySpeed() { return mOmxSpeed; };
   bool isPaused() { return mPause; };
 
-  void setClockPorts (OMX_TIME_CONFIG_CLOCKSTATETYPE* clock, bool hasVideo, bool hasAudio);
   bool setReferenceClock (bool hasAudio);
   bool setMediaTime (double pts);
   bool setSpeed (int speed, bool pauseResume);
