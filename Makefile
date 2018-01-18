@@ -21,6 +21,8 @@ INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
 	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
 
 #           -g \
+#           -Og \
+#           -O2 \
 #           -O3 \
 #           -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits \
 #           -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -march=armv6zk \
