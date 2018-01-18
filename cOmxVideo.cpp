@@ -306,7 +306,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     }
     //}}}
 
-  //{{{  set portFormat fps
+  //{{{  set port format codingType,fps
   OMX_VIDEO_PARAM_PORTFORMATTYPE format;
   OMX_INIT_STRUCTURE(format);
 

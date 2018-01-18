@@ -14,20 +14,18 @@ SRC       = omx.cpp \
 	    ../shared/nanoVg/cVg.cpp \
 	    ../shared/dvb/cDvb.cpp \
 
-#           -g -O3 -Og\
-#           -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits \
-#           -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -march=armv6zk \
+#           -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -march=armv6zk
+#           -mstructure-size-boundary=32 \
 
 CFLAGS   += -std=c++0x \
-	    -O2 \
+	    -g -O2 \
 	    -fPIC -ftree-vectorize -fomit-frame-pointer \
 	    -Wall -Wno-psabi -Wno-deprecated-declarations \
-	    -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits \
 	    -mabi=aapcs-linux -mno-apcs-stack-check -mno-sched-prolog \
 	    -D PIC -D _REENTRANT \
 	    -D _LARGEFILE64_SOURCE -D _FILE_OFFSET_BITS=64 -D OMX_SKIP64BIT \
 	    -U _FORTIFY_SOURCE \
-#            -mstructure-size-boundary=32 \
+	    -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
 
 INCLUDES  = -I$(SDKSTAGE)/opt/vc/include \
 	    -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \

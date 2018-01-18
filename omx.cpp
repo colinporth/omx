@@ -75,11 +75,11 @@ public:
       add (new cTextBox (mDvb.mPacketStr, 15.f));
       add (new cTextBox (mDvb.mSignalStr, 14.f));
       add (new cTextBox (mDvb.mTuneStr, 13.f));
-      add (new cTransportStreamBox (0.f, startPlayer ? (getHeight()/2.f)-3.f : -2.f, &mDvb.mTs));
+      add (new cTransportStreamBox (0.f, startPlayer ? (getHeight()-2.f)/2.f : -2.f, &mDvb.mTs));
       }
     if (startPlayer)
       add (new cListWidget (mFileNames, mFileNum, mFileChanged,
-                            0.f, (frequency > 0) ? (getHeight()/2.f)-3.f : -2.f));
+                            0.f, frequency ? (getHeight()-2.f)/2.f : -2.f));
 
     thread dvbCaptureThread;
     thread dvbGrabThread;
@@ -350,12 +350,17 @@ private:
           mOmxAudioPlayer = new cOmxAudioPlayer();
         if (mOmxReader.getVideoStreamCount())
           mOmxVideoPlayer = new cOmxVideoPlayer();
-
         mOmxReader.getHints (OMXSTREAM_AUDIO, mAudioConfig.mHints);
         mOmxReader.getHints (OMXSTREAM_VIDEO, mVideoConfig.mHints);
 
-        if (mOmxVideoPlayer && mOmxVideoPlayer->open (&mOmxClock, mVideoConfig))
-          thread ([=]() { mOmxVideoPlayer->run ("vid "); } ).detach();
+        if (mOmxVideoPlayer) {
+          if (mOmxVideoPlayer->open (&mOmxClock, mVideoConfig))
+            thread ([=]() { mOmxVideoPlayer->run ("vid "); } ).detach();
+          else {
+            //delete (mOmxVideoPlayer);
+            mOmxVideoPlayer = nullptr;
+            }
+          }
 
         mAudioConfig.mDevice = "omx:local";
         if (mOmxAudioPlayer && mOmxAudioPlayer->open (&mOmxClock, mAudioConfig)) {
@@ -599,6 +604,8 @@ private:
         packet = nullptr;
         //}}}
         }
+      mOmxReader.close();
+
       delete (mOmxVideoPlayer);
       delete (mOmxAudioPlayer);
 
