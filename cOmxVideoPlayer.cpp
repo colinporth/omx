@@ -113,8 +113,8 @@ bool cOmxVideoPlayer::decode (cOmxPacket* packet) {
     }
 
   cLog::log (LOGINFO1, "decode pts" +
-                       (packet->mPts == DVD_NOPTS_VALUE) ? "none" : decFrac(packet->mPts / 1000000.f, 6,2,' ') +
-                       " curPts" + decFrac(mCurrentPts / 1000000.f, 6,2,' ') +
+                       (packet->mPts == DVD_NOPTS_VALUE) ? "none" : frac(packet->mPts / 1000000.f, 6,2,' ') +
+                       " curPts" + frac(mCurrentPts / 1000000.f, 6,2,' ') +
                        " size" + dec(packet->mSize));
 
   while ((int)mDecoder->getInputBufferSpace() < packet->mSize) {

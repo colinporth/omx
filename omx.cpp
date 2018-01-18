@@ -406,7 +406,7 @@ private:
               mOmxVideoPlayer->reset();
             mOmxClock.pause();
 
-            cLog::log (LOGINFO, "seekPos:"  + decFrac(seekPosSec,6,5,' '));
+            cLog::log (LOGINFO, "seekPos:"  + frac(seekPosSec,6,5,' '));
             mSeekIncSec = 0.0;
             }
             //}}}
@@ -446,12 +446,12 @@ private:
           auto aCache = mOmxAudioPlayer ? mOmxAudioPlayer->getCacheTotal() : 0;
           auto streamLength = mOmxReader.getStreamLength() / 1000;
 
-          auto str = decFrac(clockPts/1000000.0,6,2,' ') +
+          auto str = frac(clockPts/1000000.0,6,2,' ') +
                      "of" + dec (streamLength) +
-                     " " + decFrac(audio_pts/1000000.0,6,2,' ') +
-                     ":" + decFrac(video_pts/1000000.0,6,2,' ') +
-                     " " + decFrac(audio_fifo,6,2,' ') +
-                     ":" + decFrac(video_fifo,6,2,' ') +
+                     " " + frac(audio_pts/1000000.0,6,2,' ') +
+                     ":" + frac(video_pts/1000000.0,6,2,' ') +
+                     " " + frac(audio_fifo,6,2,' ') +
+                     ":" + frac(video_fifo,6,2,' ') +
                      " " + dec(aLevel,4) +
                      ":" + dec(vLevel,4) +
                      " ad:" + dec(aDelay) +

@@ -44,7 +44,7 @@ bool cOmxVideo::isEOS() {
     return false;
 
   if (mSubmittedEos) {
-    cLog::log (LOGINFO, "isEOS");
+    cLog::log (LOGINFO, __func__);
     mSubmittedEos = false;
     }
 
@@ -416,10 +416,10 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
   if (mDecoder.badState())
     return false;
 
-  cLog::log (LOGINFO, "cOmxVideo::open %s inPort:%x outPort:%x deInt:%d hdmi:%d",
-             mDecoder.getName().c_str(),
-             mDecoder.getInputPort(), mDecoder.getOutputPort(),
-             mConfig.mDeinterlace, mConfig.mHdmiClockSync);
+  cLog::log (LOGINFO, string (__func__) + " " + mDecoder.getName() +
+             " " + dec(mDecoder.getInputPort()) + "->" + dec(mDecoder.getOutputPort()) +
+             string(mConfig.mDeinterlace ? " deint" : "")  +
+             string(mConfig.mHdmiClockSync ? " hdmi":""));
 
   float aspect = mConfig.mHints.aspect ?
     (float)mConfig.mHints.aspect / mConfig.mHints.width * mConfig.mHints.height : 1.f;
@@ -803,7 +803,7 @@ bool cOmxVideo::naluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradat
 //{{{
 void cOmxVideo::logPortChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlaceMode) {
 
-  cLog::log (LOGINFO, "port %dx%d %.2f intMode:%d deint:%d par:%.2f dis:%d lay:%d alp:%d asp:%d",
+  cLog::log (LOGINFO, "portChanged - %dx%d %.2f intMode:%d deint:%d par:%.2f dis:%d lay:%d alp:%d asp:%d",
                       port.format.video.nFrameWidth, port.format.video.nFrameHeight,
                       port.format.video.xFramerate / (float)(1<<16),
                       interlaceMode, mDeinterlace, mPixelAspect,

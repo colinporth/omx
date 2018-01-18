@@ -73,7 +73,7 @@ bool cOmxAudio::isEOS() {
     return false;
 
   if (mSubmittedEos) {
-    cLog::log (LOGINFO, "isEOS");
+    cLog::log (LOGINFO, __func__);
     mSubmittedEos = false;
     }
 
@@ -337,7 +337,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t 
   if (mDecoder.badState())
     return false;
 
-  cLog::log (LOGINFO1, "cOmxAudio::init - " + mConfig.mDevice);
+  cLog::log (LOGINFO1, string(__func__) + " " + mConfig.mDevice);
 
   mPortChanged = false;
   mSetStartTime  = true;
@@ -646,14 +646,12 @@ bool cOmxAudio::portChanged() {
       if (mRenderHdmi.isInit())
         mTunnelMixer.init (&mMixer, mMixer.getOutputPort(), &mRenderHdmi, mRenderHdmi.getInputPort());
       }
-    cLog::log (LOGINFO1, "cOmxAudio::portChanged");
     }
   else {
     if (mRenderAnal.isInit())
       mTunnelDecoder.init (&mDecoder, mDecoder.getOutputPort(), &mRenderAnal, mRenderAnal.getInputPort());
     else if (mRenderHdmi.isInit())
       mTunnelDecoder.init (&mDecoder, mDecoder.getOutputPort(), &mRenderHdmi, mRenderHdmi.getInputPort());
-     cLog::log (LOGINFO1, "cOmxAudio::portChanged bits:%d mode:%d ch:%d srate:%d passThru", 0, 0, 0, 0);
      }
 
   if (mTunnelDecoder.establish()) {
@@ -764,7 +762,8 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
     if (mSetStartTime) {
       buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
       mLastPts = pts;
-      cLog::log (LOGINFO1, "cOmxAudio::addPackets - setStartTime:%f", (float)val / DVD_TIME_BASE);
+      float time = (float)val / DVD_TIME_BASE;
+      cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(time, 6,2,' '));
       mSetStartTime = false;
       }
     else {
@@ -806,7 +805,7 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
 //{{{
 void cOmxAudio::submitEOS() {
 
-  cLog::log (LOGINFO, "submitEOS");
+  cLog::log (LOGINFO, __func__);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -880,7 +879,7 @@ bool cOmxAudio::applyVolume() {
       return false;
       }
 
-    cLog::log (LOGINFO, string(__func__) + " - changed " + decFrac(volume, 3,1,' '));
+    cLog::log (LOGINFO, string(__func__) + " - changed " + frac(volume, 3,1,' '));
     mLastVolume = volume;
     }
 
@@ -893,15 +892,15 @@ void cOmxAudio::printChans (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
 
   for (int i = 0; i < OMX_AUDIO_MAXCHANNELS; i++) {
     switch (eChannelMapping[i]) {
-      case OMX_AUDIO_ChannelLF:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLF");  break;
-      case OMX_AUDIO_ChannelRF:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRF");  break;
-      case OMX_AUDIO_ChannelCF:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCF");  break;
-      case OMX_AUDIO_ChannelLS:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLS");  break;
-      case OMX_AUDIO_ChannelRS:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRS");  break;
-      case OMX_AUDIO_ChannelLFE: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLFE"); break;
-      case OMX_AUDIO_ChannelCS:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCS");  break;
-      case OMX_AUDIO_ChannelLR:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLR");  break;
-      case OMX_AUDIO_ChannelRR:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRR");  break;
+      case OMX_AUDIO_ChannelLF:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelLF");  break;
+      case OMX_AUDIO_ChannelRF:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelRF");  break;
+      case OMX_AUDIO_ChannelCF:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelCF");  break;
+      case OMX_AUDIO_ChannelLS:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelLS");  break;
+      case OMX_AUDIO_ChannelRS:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelRS");  break;
+      case OMX_AUDIO_ChannelLFE: cLog::log (LOGINFO1, "OMX_AUDIO_ChannelLFE"); break;
+      case OMX_AUDIO_ChannelCS:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelCS");  break;
+      case OMX_AUDIO_ChannelLR:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelLR");  break;
+      case OMX_AUDIO_ChannelRR:  cLog::log (LOGINFO1, "OMX_AUDIO_ChannelRR");  break;
       case OMX_AUDIO_ChannelNone:
       case OMX_AUDIO_ChannelKhronosExtensions:
       case OMX_AUDIO_ChannelVendorStartUnused:

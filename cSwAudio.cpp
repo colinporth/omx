@@ -45,7 +45,9 @@ uint64_t cSwAudio::getChanMap() {
   if (bits == mCodecContext->channels)
     layout = mCodecContext->channel_layout;
   else {
-    cLog::log (LOGINFO, "cSwAudio - GgtChannelMap chans:%d layout:%x", mCodecContext->channels, bits);
+    cLog::log (LOGINFO, string (__func__) + 
+                        " - chans:" + dec(mCodecContext->channels) + 
+                        " layout:" + hex(bits));
     layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
     }
 
