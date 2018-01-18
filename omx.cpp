@@ -324,14 +324,12 @@ private:
     vc_dispmanx_resource_write_data (resource, VC_IMAGE_ARGB8888, sizeof(rgba), &rgba, &dstRect);
 
     VC_RECT_T srcRect;
-    vc_dispmanx_rect_set (&srcRect, 0, 0, 1<<16, 1<<16);
-    vc_dispmanx_rect_set (&dstRect, 0, 0, 0, 0);
+    vc_dispmanx_rect_set (&srcRect, 0,0, 1<<16,1<<16);
+    vc_dispmanx_rect_set (&dstRect, 0,0, 0,0);
 
     auto update = vc_dispmanx_update_start (0);
-    vc_dispmanx_element_add (update, display, mVideoConfig.mLayer-1,
-                             &dstRect, resource, &srcRect,
-                             DISPMANX_PROTECTION_NONE, NULL, NULL,
-                             DISPMANX_STEREOSCOPIC_MONO);
+    vc_dispmanx_element_add (update, display, -1, &dstRect, resource, &srcRect,
+                             DISPMANX_PROTECTION_NONE, NULL, NULL, DISPMANX_STEREOSCOPIC_MONO);
 
     vc_dispmanx_update_submit_sync (update);
     //}}}
@@ -673,6 +671,8 @@ int main (int argc, char* argv[]) {
   int vFifo = 1024;
   int vCache = 2 * 1024;
   int aCache = 512;
+  eInterlaceMode deInterlace = eInterlaceAuto;
+
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
     else if (!strcmp(argv[arg], "n"))  logLevel = LOGNOTICE;
@@ -690,11 +690,13 @@ int main (int argc, char* argv[]) {
     else if (!strcmp(argv[arg], "vc")) vCache = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "vf")) vFifo = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "p")) startPlayer = false;
+    else if (!strcmp(argv[arg], "d")) deInterlace = (eInterlaceMode)atoi (argv[++arg]);
 
   cLog::init (logLevel, false, "");
   cLog::log (LOGNOTICE, "omx " + root + " " + string(VERSION_DATE));
 
   cAppWindow appWindow (root);
+  appWindow.mVideoConfig.mDeinterlace = deInterlace;
   appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
   appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
   appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;

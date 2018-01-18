@@ -496,9 +496,9 @@ bool cOmxVideo::portChanged() {
                                      OMX_DISPLAY_SET_TRANSFORM |
                                      OMX_DISPLAY_SET_LAYER |
                                      OMX_DISPLAY_SET_NUM);
-  display.alpha = mConfig.mAlpha;
+  display.alpha = 255;
   display.transform = mTransform;
-  display.layer = mConfig.mLayer;
+  display.layer = 0;
   display.num = mConfig.mDisplay;
   if (mRender.setConfig (OMX_IndexConfigDisplayRegion, &display)) {
     //{{{  error return
@@ -802,10 +802,9 @@ bool cOmxVideo::naluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradat
 //{{{
 void cOmxVideo::logPortChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlaceMode) {
 
-  cLog::log (LOGINFO, "portChanged - %dx%d %.2f intMode:%d deint:%d par:%.2f dis:%d lay:%d alp:%d asp:%d",
+  cLog::log (LOGINFO, "portChanged - %dx%d %.2f intMode:%d deint:%d par:%.2f dis:%d asp:%d",
                       port.format.video.nFrameWidth, port.format.video.nFrameHeight,
                       port.format.video.xFramerate / (float)(1<<16),
-                      interlaceMode, mDeinterlace, mPixelAspect,
-                      mConfig.mDisplay, mConfig.mLayer, mConfig.mAlpha, mConfig.mAspectMode);
+                      interlaceMode, mDeinterlace, mPixelAspect, mConfig.mDisplay, mConfig.mAspectMode);
   }
 //}}}

@@ -285,12 +285,9 @@ public:
   cRect mDstRect = {0, 0, 0, 0};
   cRect mSrcRect = {0, 0, 0, 0};
 
-  float mDisplayAspect = 0.f;
-  int mAspectMode = 0;
-  int mAlpha = 255;
   int mDisplay = 0;
-  int mLayer = 0;
-
+  int mAspectMode = 0;
+  float mDisplayAspect = 0.f;
   bool mHdmiClockSync = false;
 
   eInterlaceMode mDeinterlace = eInterlaceAuto;
@@ -358,6 +355,7 @@ private:
   //}}}
   };
 //}}}
+
 //{{{
 class cOmxAudioConfig {
 public:
@@ -373,7 +371,6 @@ public:
   bool mIsLive = false;
   };
 //}}}
-
 //{{{
 class cSwAudio {
 public:
