@@ -463,7 +463,6 @@ private:
   bool applyVolume();
 
   void printChans (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
-  void printPCM (OMX_AUDIO_PARAM_PCMMODETYPE* pcm, const std::string& direction);
 
   //{{{  vars
   std::recursive_mutex mMutex;
@@ -488,7 +487,6 @@ private:
 
   OMX_AUDIO_CHANNELTYPE mInputChans[OMX_AUDIO_MAXCHANNELS];
   OMX_AUDIO_CHANNELTYPE mOutputChans[OMX_AUDIO_MAXCHANNELS];
-  OMX_AUDIO_PARAM_PCMMODETYPE mPcmInput;
   OMX_AUDIO_PARAM_PCMMODETYPE mPcmOutput;
 
   unsigned int mNumInputChans = 0;

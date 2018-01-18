@@ -231,18 +231,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t 
   if (!mDecoder.init ("OMX.broadcom.audio_decode", OMX_IndexParamAudioInit))
     return false;
 
-  //{{{  set passthru
-  OMX_CONFIG_BOOLEANTYPE boolType;
-  OMX_INIT_STRUCTURE(boolType);
-
-  // set passthru
-  boolType.bEnabled = OMX_FALSE;
-  if (mDecoder.setParam (OMX_IndexParamBrcmDecoderPassThrough, &boolType)) {
-    // error, return
-    cLog::log (LOGERROR, string(__func__) + " set PassThru");
-    return false;
-    }
-  //}}}
   //{{{  set number/size of buffers for decoder input
   // should be big enough that common formats (e.g. 6 channel DTS) fit in a single packet.
   // we don't mind less common formats being split (e.g. ape/wma output large frames)
@@ -349,24 +337,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t 
   if (mDecoder.badState())
     return false;
 
-  //{{{  set mPcmInput
-  OMX_INIT_STRUCTURE(mPcmInput);
-  mPcmInput.nPortIndex = mDecoder.getInputPort();
-  memcpy (mPcmInput.eChannelMapping, mInputChans, sizeof(mInputChans));
-  mPcmInput.eNumData = OMX_NumericalDataSigned;
-  mPcmInput.eEndian = OMX_EndianLittle;
-  mPcmInput.bInterleaved = OMX_TRUE;
-  mPcmInput.nBitPerSample = mBitsPerSample;
-  mPcmInput.ePCMMode = OMX_AUDIO_PCMModeLinear;
-  mPcmInput.nChannels = mNumInputChans;
-  mPcmInput.nSamplingRate = mConfig.mHints.samplerate;
-
-  cLog::log (LOGINFO1, "cOmxAudio::init - bitsPer:%d rate:%d ch:%d buffer size:%d bytesPer:%d",
-                       (int)mPcmInput.nBitPerSample, (int)mPcmInput.nSamplingRate,
-                       (int)mPcmInput.nChannels, mBufferLen, mInputBytesPerSec);
-
-  printPCM (&mPcmInput, "input");
-  //}}}
   cLog::log (LOGINFO1, "cOmxAudio::init - " + mConfig.mDevice);
 
   mPortChanged = false;
@@ -466,6 +436,8 @@ void cOmxAudio::buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t l
 //{{{
 bool cOmxAudio::portChanged() {
 
+  cLog::log (LOGINFO, __func__);
+
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   if (mPortChanged) {
@@ -515,10 +487,12 @@ bool cOmxAudio::portChanged() {
       }
       //}}}
 
-    cLog::log (LOGINFO1, "cOmxAudio::portChanged Output bps:%d rate:%d ch:%d buffer size:%d bps:%d",
-                         (int)mPcmOutput.nBitPerSample, (int)mPcmOutput.nSamplingRate,
-                         (int)mPcmOutput.nChannels, mBufferLen, mBytesPerSec);
-    printPCM (&mPcmOutput, "output");
+    cLog::log (LOGINFO, string(__func__) +
+                         " - bitsPerSample:" + dec(mPcmOutput.nBitPerSample) +
+                         " rate:" + dec(mPcmOutput.nSamplingRate)+
+                         " chans:" + dec(mPcmOutput.nChannels) +
+                         " len:" +  dec(mBufferLen) +
+                         " bytesPerSec:" + dec(mBytesPerSec));
 
     if (mSplitter.isInit() ) {
       mPcmOutput.nPortIndex = mSplitter.getInputPort();
@@ -672,9 +646,7 @@ bool cOmxAudio::portChanged() {
       if (mRenderHdmi.isInit())
         mTunnelMixer.init (&mMixer, mMixer.getOutputPort(), &mRenderHdmi, mRenderHdmi.getInputPort());
       }
-    cLog::log (LOGINFO1, "cOmxAudio::portChanged bits:%d mode:%d ch:%d srate:%d noPassThru",
-               (int)mPcmInput.nBitPerSample, mPcmInput.ePCMMode,
-               (int)mPcmInput.nChannels, (int)mPcmInput.nSamplingRate);
+    cLog::log (LOGINFO1, "cOmxAudio::portChanged");
     }
   else {
     if (mRenderAnal.isInit())
@@ -894,35 +866,21 @@ bool cOmxAudio::applyVolume() {
 
   float volume = mMute ? 0.f : mCurVolume;
   if (volume != mLastVolume) {
-    double gain = 1.0;
-    const float* coeff = mDownmixMatrix;
-    //{{{  set decoder downmix coeffs
+    // set mixer downmix coeffs
     OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
     OMX_INIT_STRUCTURE(mix);
 
-    assert (sizeof(mix.coeff) / sizeof(mix.coeff[0]) == 64);
-    if (false) {
-      // reduce scaling so overflow can be seen
-      for (size_t i = 0; i < 8*8; ++i)
-        mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * 0.01f));
-      mix.nPortIndex = mDecoder.getInputPort();
-      if (mDecoder.setConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix)) {
-        cLog::log (LOGERROR, string(__func__) + " set downmix");
-        return false;
-        }
-      }
-    //}}}
-    //{{{  set mixer downmix coeffs
+    const float* coeff = mDownmixMatrix;
     for (size_t i = 0; i < 8*8; ++i)
-      mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * gain * volume));
+      mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * volume));
     mix.nPortIndex = mMixer.getInputPort();
     if (mMixer.setConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix)) {
       // error return
-      cLog::log (LOGERROR, string(__func__) + " set downmix");
+      cLog::log (LOGERROR, string(__func__) + " mixer setDownmix");
       return false;
       }
-    //}}}
-    cLog::log (LOGINFO, "applyVolume - changed vol:%.2f", volume);
+
+    cLog::log (LOGINFO, string(__func__) + " - changed " + decFrac(volume, 3,1,' '));
     mLastVolume = volume;
     }
 
@@ -935,40 +893,22 @@ void cOmxAudio::printChans (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
 
   for (int i = 0; i < OMX_AUDIO_MAXCHANNELS; i++) {
     switch (eChannelMapping[i]) {
-      case OMX_AUDIO_ChannelLF: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLF"); break;
-      case OMX_AUDIO_ChannelRF: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRF"); break;
-      case OMX_AUDIO_ChannelCF: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCF"); break;
-      case OMX_AUDIO_ChannelLS: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLS"); break;
-      case OMX_AUDIO_ChannelRS: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRS"); break;
+      case OMX_AUDIO_ChannelLF:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLF");  break;
+      case OMX_AUDIO_ChannelRF:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRF");  break;
+      case OMX_AUDIO_ChannelCF:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCF");  break;
+      case OMX_AUDIO_ChannelLS:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLS");  break;
+      case OMX_AUDIO_ChannelRS:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRS");  break;
       case OMX_AUDIO_ChannelLFE: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLFE"); break;
-      case OMX_AUDIO_ChannelCS: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCS"); break;
-      case OMX_AUDIO_ChannelLR: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLR"); break;
-      case OMX_AUDIO_ChannelRR: cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRR"); break;
-
+      case OMX_AUDIO_ChannelCS:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelCS");  break;
+      case OMX_AUDIO_ChannelLR:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelLR");  break;
+      case OMX_AUDIO_ChannelRR:  cLog::log(LOGINFO1, "OMX_AUDIO_ChannelRR");  break;
       case OMX_AUDIO_ChannelNone:
       case OMX_AUDIO_ChannelKhronosExtensions:
       case OMX_AUDIO_ChannelVendorStartUnused:
       case OMX_AUDIO_ChannelMax:
-
       default:
         break;
       }
     }
-  }
-//}}}
-//{{{
-void cOmxAudio::printPCM (OMX_AUDIO_PARAM_PCMMODETYPE* pcm, const string& direction) {
-
-  cLog::log (LOGINFO1, "pcm->direction    : %s", direction.c_str());
-  cLog::log (LOGINFO1, "pcm->nPortIndex   : %d", (int)pcm->nPortIndex);
-  cLog::log (LOGINFO1, "pcm->eNumData     : %d", pcm->eNumData);
-  cLog::log (LOGINFO1, "pcm->eEndian      : %d", pcm->eEndian);
-  cLog::log (LOGINFO1, "pcm->bInterleaved : %d", (int)pcm->bInterleaved);
-  cLog::log (LOGINFO1, "pcm->nBitPerSample: %d", (int)pcm->nBitPerSample);
-  cLog::log (LOGINFO1, "pcm->ePCMMode     : %d", pcm->ePCMMode);
-  cLog::log (LOGINFO1, "pcm->nChannels    : %d", (int)pcm->nChannels);
-  cLog::log (LOGINFO1, "pcm->nSamplingRate: %d", (int)pcm->nSamplingRate);
-
-  printChans (pcm->eChannelMapping);
   }
 //}}}
