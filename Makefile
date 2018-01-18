@@ -6,7 +6,7 @@ SRC=       cOmxCore.cpp \
 	   cSwAudio.cpp \
 	   cOmxVideoPlayer.cpp \
 	   cOmxAudioPlayer.cpp \
-	   cPcmRemap.cpp \
+	   cPcmMap.cpp \
 	   ../shared/utils/cLog.cpp \
 	   ../shared/utils/cKeyboard.cpp \
 	   ../shared/nanoVg/cRaspWindow.cpp \

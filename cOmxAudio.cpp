@@ -210,12 +210,12 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t 
     buildChanMap (inLayout, chanMap);
     mNumOutputChans = buildChanMapCEA (outLayout, getChanLayout(mConfig.mLayout));
 
-    cPcmRemap remap;
-    remap.reset();
-    remap.setInputFormat (mNumInputChans, inLayout, bitsPerSample / 8,
-                          mConfig.mHints.samplerate, mConfig.mLayout, mConfig.mBoostOnDownmix);
-    remap.setOutputFormat (mNumOutputChans, outLayout, false);
-    remap.getDownmixMatrix (mDownmixMatrix);
+    cPcmMap pcmMap;
+    pcmMap.reset();
+    pcmMap.setInputFormat (mNumInputChans, inLayout, bitsPerSample / 8,
+                           mConfig.mHints.samplerate, mConfig.mLayout, mConfig.mBoostOnDownmix);
+    pcmMap.setOutputFormat (mNumOutputChans, outLayout, false);
+    pcmMap.getDownmixMatrix (mDownmixMatrix);
     mWaveHeader.dwChannelMask = chanMap;
 
     buildChanMapOMX (mInputChans, chanMap);

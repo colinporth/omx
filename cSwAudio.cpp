@@ -4,7 +4,6 @@
 #include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
 #include "cOmxAv.h"
-#include "cPcmRemap.h"
 
 using namespace std;
 //}}}
@@ -45,8 +44,8 @@ uint64_t cSwAudio::getChanMap() {
   if (bits == mCodecContext->channels)
     layout = mCodecContext->channel_layout;
   else {
-    cLog::log (LOGINFO, string (__func__) + 
-                        " - chans:" + dec(mCodecContext->channels) + 
+    cLog::log (LOGINFO, string (__func__) +
+                        " - chans:" + dec(mCodecContext->channels) +
                         " layout:" + hex(bits));
     layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
     }

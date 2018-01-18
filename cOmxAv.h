@@ -20,6 +20,7 @@
 #include "cOmxClock.h"
 #include "cOmxReader.h"
 #include "cOmxStreamInfo.h"
+#include "cPcmMap.h"
 
 //{{{  WAVE_FORMAT defines
 #define WAVE_FORMAT_UNKNOWN           0x0000
@@ -98,8 +99,6 @@ typedef struct tWAVEFORMATEXTENSIBLE {
   GUID SubFormat;
   } __attribute__((__packed__)) WAVEFORMATEXTENSIBLE;
 //}}}
-
-#include "cPcmRemap.h"
 //}}}
 #define AUDIO_BUFFER_SECONDS 3
 

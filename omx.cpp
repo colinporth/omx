@@ -19,7 +19,6 @@
 #include "../shared/dvb/cDvb.h"
 
 #include "bcm_host.h"
-#include "cPcmRemap.h"
 
 #define AV_NOWARN_DEPRECATED
 #include "avLibs.h"

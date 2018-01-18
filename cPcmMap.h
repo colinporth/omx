@@ -1,3 +1,4 @@
+// cPcmMap.h
 //{{{  includes
 #pragma once
 
@@ -58,7 +59,7 @@ struct PCMMapInfo
 };
 //}}}
 
-class cPcmRemap {
+class cPcmMap {
 public:
   void getDownmixMatrix (float* downmix);
 

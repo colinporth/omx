@@ -1,4 +1,4 @@
-// cPcmRemap.cpp
+// cPcmMap.cpp
 //{{{  includes
 #include <string.h>
 #include <stdio.h>
@@ -9,7 +9,7 @@
 #include <climits>
 #include <cmath>
 
-#include "cPcmRemap.h"
+#include "cPcmMap.h"
 #include "../shared/utils/cLog.h"
 
 using namespace std;
@@ -55,7 +55,7 @@ const struct PCMMapInfo PCMDownmixTable[PCM_MAX_CH][PCM_MAX_MIX] = {
 //}}}
 
 //{{{
-void cPcmRemap::getDownmixMatrix (float *downmix) {
+void cPcmMap::getDownmixMatrix (float *downmix) {
 
   for (int i = 0; i < 8*8; i++)
     downmix[i] = 0.0f;
@@ -72,9 +72,9 @@ void cPcmRemap::getDownmixMatrix (float *downmix) {
 //}}}
 
 //{{{
-enum PCMChannels* cPcmRemap::setInputFormat (unsigned int channels, enum PCMChannels *channelMap,
-                                             unsigned int sampleSize, unsigned int sampleRate,
-                                             enum PCMLayout channelLayout, bool dontnormalize) {
+enum PCMChannels* cPcmMap::setInputFormat (unsigned int channels, enum PCMChannels *channelMap,
+                                           unsigned int sampleSize, unsigned int sampleRate,
+                                           enum PCMLayout channelLayout, bool dontnormalize) {
 // sets the input format, and returns the requested channel layout */
 
   mInChannels = channels;
@@ -113,7 +113,7 @@ enum PCMChannels* cPcmRemap::setInputFormat (unsigned int channels, enum PCMChan
   }
 //}}}
 //{{{
-void cPcmRemap::setOutputFormat (unsigned int channels, enum PCMChannels *channelMap, bool ignoreLayout) {
+void cPcmMap::setOutputFormat (unsigned int channels, enum PCMChannels *channelMap, bool ignoreLayout) {
 /* sets the output format supported by the audio renderer */
 
   mOutChannels = channels;
@@ -129,7 +129,7 @@ void cPcmRemap::setOutputFormat (unsigned int channels, enum PCMChannels *channe
 //}}}
 
 //{{{
-void cPcmRemap::reset() {
+void cPcmMap::reset() {
 
   mInSet  = false;
   mOutSet = false;
@@ -139,8 +139,8 @@ void cPcmRemap::reset() {
 // private
 //{{{
 /* resolves the channels recursively and returns the new index of tablePtr */
-struct PCMMapInfo* cPcmRemap::resolveChannel (enum PCMChannels channel, float level, bool ifExists,
-                                              vector<enum PCMChannels> path, struct PCMMapInfo *tablePtr) {
+struct PCMMapInfo* cPcmMap::resolveChannel (enum PCMChannels channel, float level, bool ifExists,
+                                            vector<enum PCMChannels> path, struct PCMMapInfo *tablePtr) {
 
   if (channel == PCM_INVALID)
     return tablePtr;
@@ -180,7 +180,7 @@ struct PCMMapInfo* cPcmRemap::resolveChannel (enum PCMChannels channel, float le
   }
 //}}}
 //{{{
-void cPcmRemap::resolveChannels() {
+void cPcmMap::resolveChannels() {
 // build lookup table without extra adjustments, useful if we simply
 //  want to find out which channels are active. For final adjustments, BuildMap() is used.
 
@@ -216,10 +216,10 @@ void cPcmRemap::resolveChannels() {
     }
 
   // force mono audio to front left and front right
-  if (!mIgnoreLayout && mInChannels == 1 && 
+  if (!mIgnoreLayout && mInChannels == 1 &&
       mInMap[0] == PCM_FRONT_CENTER &&
       mUseable[PCM_FRONT_LEFT] && mUseable[PCM_FRONT_RIGHT]) {
-    cLog::log (LOGINFO1, "cPcmRemap - Mapping mono audio to front left and front right");
+    cLog::log (LOGINFO1, "cPcmMap - Mapping mono audio to front left and front right");
     mUseable[PCM_FRONT_CENTER] = false;
     mUseable[PCM_FRONT_LEFT_OF_CENTER] = false;
     mUseable[PCM_FRONT_RIGHT_OF_CENTER] = false;
@@ -243,7 +243,7 @@ void cPcmRemap::resolveChannels() {
 
   // if our input has side, and not back channels, and our output doesnt have side channels
   if (hasSide && !hasBack && (!mUseable[PCM_SIDE_LEFT] || !mUseable[PCM_SIDE_RIGHT])) {
-    cLog::log (LOGINFO1, "cPcmRemap - Forcing side channel map to back channels");
+    cLog::log (LOGINFO1, "cPcmMap - Forcing side channel map to back channels");
     for(inCh = 0; inCh < mInChannels; ++inCh)
            if (mInMap[inCh] == PCM_SIDE_LEFT ) mInMap[inCh] = PCM_BACK_LEFT;
       else if (mInMap[inCh] == PCM_SIDE_RIGHT) mInMap[inCh] = PCM_BACK_RIGHT;
@@ -279,7 +279,7 @@ void cPcmRemap::resolveChannels() {
 //}}}
 
 //{{{
-void cPcmRemap::buildMap() {
+void cPcmMap::buildMap() {
 // builds a lookup table to convert from the input mapping to the output
 // mapping, this decreases the amount of work per sample to remap it
 
@@ -290,7 +290,7 @@ void cPcmRemap::buildMap() {
 
   /* see if we need to normalize the levels */
   bool dontnormalize = mDontNormalize;
-  cLog::log(LOGINFO1, "cPcmRemap - Downmix normalization is %s",
+  cLog::log(LOGINFO1, "cPcmMap - Downmix normalization is %s",
                       (dontnormalize ? "disabled" : "enabled"));
 
   resolveChannels();
@@ -338,15 +338,15 @@ void cPcmRemap::buildMap() {
       f = pcmChannelStr(dst->channel); // + dst->level, dst->copy ? "*" : "");
       s += f;
       }
-    cLog::log (LOGINFO1, "cPcmRemap - %s = %s", pcmChannelStr(mOutMap[outCh]).c_str(), s.c_str());
+    cLog::log (LOGINFO1, "cPcmMap - %s = %s", pcmChannelStr(mOutMap[outCh]).c_str(), s.c_str());
     }
   }
 //}}}
 //{{{
-void cPcmRemap::dumpMap (string info, unsigned int channels, enum PCMChannels *channelMap) {
+void cPcmMap::dumpMap (string info, unsigned int channels, enum PCMChannels *channelMap) {
 
   if (channelMap == NULL) {
-    cLog::log (LOGINFO, "cPcmRemap - %s map: NULL", info.c_str());
+    cLog::log (LOGINFO, "cPcmMap - %s map: NULL", info.c_str());
     return;
     }
 
@@ -354,12 +354,12 @@ void cPcmRemap::dumpMap (string info, unsigned int channels, enum PCMChannels *c
   for (unsigned int i = 0; i < channels; ++i)
     mapping += ((i == 0) ? "" : ",") + pcmChannelStr (channelMap[i]);
 
-  cLog::log (LOGINFO, "cPcmRemap - %s map:%s", info.c_str(), mapping.c_str());
+  cLog::log (LOGINFO, "cPcmMap - %s map:%s", info.c_str(), mapping.c_str());
   }
 //}}}
 
 //{{{
-string cPcmRemap::pcmChannelStr (enum PCMChannels ename) {
+string cPcmMap::pcmChannelStr (enum PCMChannels ename) {
 
   const char* PCMChannelName[] = { "FL",   "FR",   "CE",  "LFE", "BL",  "BR",
                                    "FLOC", "FROC", "BC",  "SL"   "SR",
