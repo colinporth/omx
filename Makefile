@@ -20,24 +20,21 @@ INCLUDES = -I$(SDKSTAGE)/usr/local/include/ \
 	   -I$(SDKSTAGE)/opt/vc/include/interface/vcos/pthreads \
 	   -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
 
+#           -g \
+#           -O3 \
+#           -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits \
+#           -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -march=armv6zk \
+#
 CFLAGS=    -std=c++0x \
-	   -g \
-	   -O3 \
+	   -O2 \
 	   -fPIC \
 	   -ftree-vectorize \
 	   -fomit-frame-pointer \
 	   -Wall \
 	   -Wno-psabi \
 	   -Wno-deprecated-declarations \
-	   -mfloat-abi=hard \
-	   -mfpu=vfp \
-	   -mcpu=arm1176jzf-s \
-	   -mtune=arm1176jzf-s \
-	   -march=armv6zk \
-	   -mstructure-size-boundary=32 \
-	   -mabi=aapcs-linux \
-	   -mno-apcs-stack-check \
-	   -mno-sched-prolog \
+	   -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits \
+	   -mstructure-size-boundary=32 -mabi=aapcs-linux -mno-apcs-stack-check -mno-sched-prolog \
 	   -D PIC \
 	   -D _REENTRANT \
 	   -D _LARGEFILE64_SOURCE \
