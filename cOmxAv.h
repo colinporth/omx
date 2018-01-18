@@ -77,13 +77,13 @@ static const GUID KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = {
 //}}}
 //{{{
 typedef struct tWAVEFORMATEX {
-  unsigned short    wFormatTag;
-  unsigned short    nChannels;
+  unsigned short wFormatTag;
+  unsigned short nChannels;
   unsigned int   nSamplesPerSec;
   unsigned int   nAvgBytesPerSec;
-  unsigned short    nBlockAlign;
-  unsigned short    wBitsPerSample;
-  unsigned short    cbSize;
+  unsigned short nBlockAlign;
+  unsigned short wBitsPerSample;
+  unsigned short cbSize;
   } __attribute__((__packed__)) WAVEFORMATEX, *PWAVEFORMATEX, *LPWAVEFORMATEX;
 //}}}
 //{{{
@@ -371,9 +371,6 @@ public:
   enum PCMLayout mLayout = PCM_LAYOUT_2_0;
   bool mBoostOnDownmix = true;
 
-  bool mPassThru = false;
-  bool mHwDecode = false;
-
   bool mIsLive = false;
   };
 //}}}
@@ -383,13 +380,14 @@ class cSwAudio {
 public:
   ~cSwAudio();
 
-  uint64_t getChannelMap();
-  unsigned int getFrameSize() { return mFrameSize; }
-  int getData (uint8_t** dst, double &dts, double &pts);
-  int getChannels() { return mCodecContext->channels; }
+  uint64_t getChanMap();
+  int getChans() { return mCodecContext->channels; }
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
+
+  unsigned int getFrameSize() { return mFrameSize; }
+  int getData (uint8_t** dst, double &dts, double &pts);
 
   bool open (cOmxStreamInfo& hints, enum PCMLayout layout);
   int decode (uint8_t* data, int size, double dts, double pts);
@@ -401,9 +399,9 @@ protected:
   cAvCodec mAvCodec;
   cSwResample mSwResample;
 
-  SwrContext* mConvert = nullptr;
   AVCodecContext* mCodecContext = nullptr;
   AVFrame* mFrame = nullptr;
+  SwrContext* mConvert = nullptr;
 
   enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
   enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
@@ -412,7 +410,7 @@ protected:
   int mBufferOutputUsed = 0;
   int mBufferOutputAlloced = 0;
 
-  int mChannels = 0;
+  int mChans = 0;
 
   bool mFirstFrame = true;
   bool mGotFrame = false;
@@ -437,26 +435,24 @@ public:
   //}}}
   ~cOmxAudio();
 
-  static bool hwDecode (AVCodecID codec);
-
   bool isEOS();
   int getSpace() { return mDecoder.getInputBufferSpace(); }
   int getChunkLen() { return mChunkLen; }
-  float getDelay();
   float getCacheTotal();
+
+  float getDelay();
   unsigned int getAudioRenderingLatency();
 
-  uint64_t getChannelLayout (enum PCMLayout layout);
   float getVolume() { return mMute ? 0.f : mCurVolume; }
+  uint64_t getChanLayout (enum PCMLayout layout);
 
   void setMute (bool mute);
   void setVolume (float volume);
-  void setCodingType (AVCodecID codec);
 
-  bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t channelMap, unsigned int uiBitsPerSample);
-  void buildChannelMap (enum PCMChannels* channelMap, uint64_t layout);
-  int buildChannelMapCEA (enum PCMChannels* channelMap, uint64_t layout);
-  void buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE* channelMap, uint64_t layout);
+  bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t chanMap, int bitsPerSample);
+  void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
+  int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
+  void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool portChanged();
   int addPacket (void* data, int len, double dts, double pts, int frameSize);
   void process();
@@ -464,12 +460,9 @@ public:
   void flush();
 
 private:
-  bool canHwDecode (AVCodecID codec);
-  float getMaxLevel (double& pts);
-
   bool applyVolume();
 
-  void printChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
+  void printChans (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
   void printPCM (OMX_AUDIO_PARAM_PCMMODETYPE* pcm, const std::string& direction);
 
   //{{{  vars
@@ -493,14 +486,13 @@ private:
   cOmxTunnel mTunnelSplitterAnalog;
   cOmxTunnel mTunnelSplitterHdmi;
 
-  OMX_AUDIO_CODINGTYPE mEncoding = OMX_AUDIO_CodingPCM;
-  OMX_AUDIO_CHANNELTYPE mInputChannels[OMX_AUDIO_MAXCHANNELS];
-  OMX_AUDIO_CHANNELTYPE mOutputChannels[OMX_AUDIO_MAXCHANNELS];
+  OMX_AUDIO_CHANNELTYPE mInputChans[OMX_AUDIO_MAXCHANNELS];
+  OMX_AUDIO_CHANNELTYPE mOutputChans[OMX_AUDIO_MAXCHANNELS];
   OMX_AUDIO_PARAM_PCMMODETYPE mPcmInput;
   OMX_AUDIO_PARAM_PCMMODETYPE mPcmOutput;
 
-  unsigned int mNumInputChannels = 0;
-  unsigned int mNumOutputChannels = 0;
+  unsigned int mNumInputChans = 0;
+  unsigned int mNumOutputChans = 0;
   unsigned int mBitsPerSample = 0;
 
   unsigned int mBytesPerSec = 0;
@@ -706,7 +698,6 @@ public:
   double getCacheTotal() { return mOmxAudio->getCacheTotal(); }
 
   float getVolume() { return mCurrentVolume; }
-  bool isPassThru (cOmxStreamInfo hints);
 
   //{{{
   void setMute (bool mute) {
@@ -753,8 +744,6 @@ private:
   cOmxStreamInfo mHints;
 
   std::string mDevice;
-  bool mPassThru;
-  bool mHwDecode;
   bool mBoostOnDownmix;
 
   float mCurrentVolume = 0.f;

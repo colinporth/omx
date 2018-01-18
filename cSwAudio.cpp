@@ -12,7 +12,7 @@ using namespace std;
 #define AUDIO_DECODE_OUTPUT_BUFFER (32*1024)
 
 // local
-const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
+const char kRoundedUpChansShift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
 int countBits (int64_t value) {
 
@@ -37,7 +37,7 @@ cSwAudio::~cSwAudio() {
 //}}}
 
 //{{{
-uint64_t cSwAudio::getChannelMap() {
+uint64_t cSwAudio::getChanMap() {
 
   auto bits = countBits (mCodecContext->channel_layout);
 
@@ -75,7 +75,7 @@ int cSwAudio::getData (uint8_t** dst, double& dts, double& pts) {
 
   // if this buffer won't fit then flush out what we have
   int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
-    (mCodecContext->channels * getBitsPerSample()) >> (rounded_up_channels_shift[mCodecContext->channels] + 4);
+    (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
   if (mBufferOutputUsed && (mBufferOutputUsed + outputSize > desired_size || mNoConcatenate)) {
     int ret = mBufferOutputUsed;
     mBufferOutputUsed = 0;
@@ -96,9 +96,9 @@ int cSwAudio::getData (uint8_t** dst, double& dts, double& pts) {
   // need to convert format
   if (mCodecContext->sample_fmt != mDesiredSampleFormat) {
     if (mConvert &&
-        (mCodecContext->sample_fmt != mSampleFormat || mChannels != mCodecContext->channels)) {
+        (mCodecContext->sample_fmt != mSampleFormat || mChans != mCodecContext->channels)) {
       mSwResample.swr_free (&mConvert);
-      mChannels = mCodecContext->channels;
+      mChans = mCodecContext->channels;
       }
 
     if (!mConvert) {
@@ -175,7 +175,7 @@ bool cSwAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
   if (codec->capabilities & CODEC_CAP_TRUNCATED)
     mCodecContext->flags |= CODEC_FLAG_TRUNCATED;
 
-  mChannels = 0;
+  mChans = 0;
   mCodecContext->channels = hints.channels;
   mCodecContext->sample_rate = hints.samplerate;
   mCodecContext->block_align = hints.blockalign;

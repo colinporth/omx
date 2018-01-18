@@ -10,7 +10,7 @@ using namespace std;
 //}}}
 
 #define AUDIO_DECODE_OUTPUT_BUFFER (32*1024)
-const char rounded_up_channels_shift[] = {0,0,1,2,2,3,3,3,3};
+const char kRoundedUpChansShift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
 int countBits (uint64_t value) {
 
@@ -63,36 +63,34 @@ cOmxAudio::~cOmxAudio() {
 
 // gets
 //{{{
-bool cOmxAudio::hwDecode (AVCodecID codec) {
+bool cOmxAudio::isEOS() {
 
-  switch (codec) {
-    case AV_CODEC_ID_VORBIS:
-      cLog::log (LOGINFO1, "cOmxAudio::hwDecode - AV_CODEC_ID_VORBIS");
-      return true;
+  unsigned int latency = getAudioRenderingLatency();
 
-    case AV_CODEC_ID_AAC:
-      cLog::log (LOGINFO1, "cOmxAudio::hwDecode - AV_CODEC_ID_AAC");
-      return true;
+  lock_guard<recursive_mutex> lockGuard (mMutex);
 
-    case AV_CODEC_ID_MP2:
-    case AV_CODEC_ID_MP3:
-      cLog::log (LOGINFO1, "cOmxAudio::hwDecode - AV_CODEC_ID_MP2 / AV_CODEC_ID_MP3");
-      return true;
+  if (!mFailedEos && !(mDecoder.isEOS() && latency == 0))
+    return false;
 
-    case AV_CODEC_ID_DTS:
-      cLog::log (LOGINFO1, "cOmxAudio::hwDecode - AV_CODEC_ID_DTS");
-      return true;
-
-    case AV_CODEC_ID_AC3:
-    case AV_CODEC_ID_EAC3:
-      cLog::log (LOGINFO1, "cOmxAudio::hwDecode - AV_CODEC_ID_AC3 / AV_CODEC_ID_EAC3");
-      return true;
-
-    default:
-      return false;
+  if (mSubmittedEos) {
+    cLog::log (LOGINFO, "isEOS");
+    mSubmittedEos = false;
     }
+
+  return true;
   }
 //}}}
+//{{{
+float cOmxAudio::getCacheTotal() {
+
+  float audioPlusBuffer = mConfig.mHints.samplerate ? (32.f * 512.f / mConfig.mHints.samplerate) : 0.f;
+  float inputBuffer = mInputBytesPerSec ?
+    (float)mDecoder.getInputBufferSize() / (float)mInputBytesPerSec : 0;
+
+  return AUDIO_BUFFER_SECONDS + inputBuffer + audioPlusBuffer;
+  }
+//}}}
+
 //{{{
 float cOmxAudio::getDelay() {
 
@@ -109,16 +107,6 @@ float cOmxAudio::getDelay() {
     unsigned int used = mDecoder.getInputBufferSize() - mDecoder.getInputBufferSpace();
     return mInputBytesPerSec ? (float)used / (float)mInputBytesPerSec : 0.f;
     }
-  }
-//}}}
-//{{{
-float cOmxAudio::getCacheTotal() {
-
-  float audioPlusBuffer = mConfig.mHints.samplerate ? (32.f * 512.f / mConfig.mHints.samplerate) : 0.f;
-  float inputBuffer = mInputBytesPerSec ?
-    (float)mDecoder.getInputBufferSize() / (float)mInputBytesPerSec : 0;
-
-  return AUDIO_BUFFER_SECONDS + inputBuffer + audioPlusBuffer;
   }
 //}}}
 //{{{
@@ -149,8 +137,9 @@ unsigned int cOmxAudio::getAudioRenderingLatency() {
   return param.nU32;
   }
 //}}}
+
 //{{{
-uint64_t cOmxAudio::getChannelLayout (enum PCMLayout layout) {
+uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
 
   uint64_t layouts[] = {
     /* 2.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT,
@@ -169,24 +158,6 @@ uint64_t cOmxAudio::getChannelLayout (enum PCMLayout layout) {
     };
 
   return (int)layout < 10 ? layouts[(int)layout] : 0;
-  }
-//}}}
-//{{{
-bool cOmxAudio::isEOS() {
-
-  unsigned int latency = getAudioRenderingLatency();
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  if (!mFailedEos && !(mDecoder.isEOS() && latency == 0))
-    return false;
-
-  if (mSubmittedEos) {
-    cLog::log (LOGINFO, "isEOS");
-    mSubmittedEos = false;
-    }
-
-  return true;
   }
 //}}}
 
@@ -211,83 +182,51 @@ void cOmxAudio::setVolume (float volume) {
     applyVolume();
   }
 //}}}
-//{{{
-void cOmxAudio::setCodingType (AVCodecID codec) {
-
-  switch (codec) {
-    case AV_CODEC_ID_DTS:
-      cLog::log (LOGINFO1, "cOmxAudio::SetCodingType - OMX_AUDIO_CodingDTS");
-      mEncoding = OMX_AUDIO_CodingDTS;
-      break;
-
-    case AV_CODEC_ID_AC3:
-    case AV_CODEC_ID_EAC3:
-      cLog::log (LOGINFO1, "cOmxAudio::SetCodingType - OMX_AUDIO_CodingDDP");
-      mEncoding = OMX_AUDIO_CodingDDP;
-      break;
-
-    default:
-      cLog::log (LOGINFO1, "cOmxAudio::SetCodingType - OMX_AUDIO_CodingPCM");
-      mEncoding = OMX_AUDIO_CodingPCM;
-      break;
-    }
-  }
-//}}}
 
 // actions
 //{{{
-bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
-                      uint64_t channelMap, unsigned int uiBitsPerSample) {
+bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t chanMap, int bitsPerSample) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mClock = clock;
-
   mConfig = config;
-  if (mConfig.mPassThru) // passThru overwrites hw decode
-    mConfig.mHwDecode = false;
-  else if (mConfig.mHwDecode) // check again if we are capable to hw decode the format
-    mConfig.mHwDecode = canHwDecode (mConfig.mHints.codec);
-  if (mConfig.mPassThru || mConfig.mHwDecode)
-    setCodingType (mConfig.mHints.codec);
-  else
-    setCodingType (AV_CODEC_ID_PCM_S16LE);
 
-  mNumInputChannels = countBits (channelMap);
-  memset (mInputChannels, 0, sizeof(mInputChannels));
-  memset (mOutputChannels, 0, sizeof(mOutputChannels));
+  mNumInputChans = countBits (chanMap);
+  memset (mInputChans, 0, sizeof(mInputChans));
+  memset (mOutputChans, 0, sizeof(mOutputChans));
 
   memset (&mWaveHeader, 0, sizeof(mWaveHeader));
   mWaveHeader.Format.nChannels = 2;
   mWaveHeader.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
-  if (!mConfig.mPassThru && channelMap) {
+  if (chanMap) {
     //{{{  set input format, get channelLayout
     enum PCMChannels inLayout[OMX_AUDIO_MAXCHANNELS];
     enum PCMChannels outLayout[OMX_AUDIO_MAXCHANNELS];
 
     // force out layout stereo if input not multichannel, gives the receiver chance to upmix
-    if (channelMap == (AV_CH_FRONT_LEFT | AV_CH_FRONT_RIGHT) || channelMap == AV_CH_FRONT_CENTER)
+    if (chanMap == (AV_CH_FRONT_LEFT | AV_CH_FRONT_RIGHT) || chanMap == AV_CH_FRONT_CENTER)
       mConfig.mLayout = PCM_LAYOUT_2_0;
-    buildChannelMap (inLayout, channelMap);
-    mNumOutputChannels = buildChannelMapCEA (outLayout, getChannelLayout(mConfig.mLayout));
+    buildChanMap (inLayout, chanMap);
+    mNumOutputChans = buildChanMapCEA (outLayout, getChanLayout(mConfig.mLayout));
 
     cPcmRemap remap;
     remap.reset();
-    remap.setInputFormat (mNumInputChannels, inLayout, uiBitsPerSample / 8,
+    remap.setInputFormat (mNumInputChans, inLayout, bitsPerSample / 8,
                           mConfig.mHints.samplerate, mConfig.mLayout, mConfig.mBoostOnDownmix);
-    remap.setOutputFormat (mNumOutputChannels, outLayout, false);
+    remap.setOutputFormat (mNumOutputChans, outLayout, false);
     remap.getDownmixMatrix (mDownmixMatrix);
-    mWaveHeader.dwChannelMask = channelMap;
+    mWaveHeader.dwChannelMask = chanMap;
 
-    buildChannelMapOMX (mInputChannels, channelMap);
-    buildChannelMapOMX (mOutputChannels, getChannelLayout (mConfig.mLayout));
+    buildChanMapOMX (mInputChans, chanMap);
+    buildChanMapOMX (mOutputChans, getChanLayout (mConfig.mLayout));
     }
     //}}}
 
-  mBitsPerSample = uiBitsPerSample;
-  mBytesPerSec = mConfig.mHints.samplerate * 2 << rounded_up_channels_shift[mNumInputChannels];
+  mBitsPerSample = bitsPerSample;
+  mBytesPerSec = mConfig.mHints.samplerate * 2 << kRoundedUpChansShift[mNumInputChans];
   mBufferLen = mBytesPerSec * AUDIO_BUFFER_SECONDS;
-  mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChannels >> 3;
+  mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChans >> 3;
 
   if (!mDecoder.init ("OMX.broadcom.audio_decode", OMX_IndexParamAudioInit))
     return false;
@@ -297,7 +236,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   OMX_INIT_STRUCTURE(boolType);
 
   // set passthru
-  boolType.bEnabled = mConfig.mPassThru ? OMX_TRUE : OMX_FALSE;
+  boolType.bEnabled = OMX_FALSE;
   if (mDecoder.setParam (OMX_IndexParamBrcmDecoderPassThrough, &boolType)) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " set PassThru");
@@ -308,8 +247,8 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   // should be big enough that common formats (e.g. 6 channel DTS) fit in a single packet.
   // we don't mind less common formats being split (e.g. ape/wma output large frames)
   // 6 channel 32bpp float to 8 channel 16bpp in, so 48K input buffer will fit the output buffer
-  mChunkLen = AUDIO_DECODE_OUTPUT_BUFFER * (mNumInputChannels * mBitsPerSample)
-                 >> (rounded_up_channels_shift[mNumInputChannels] + 4);
+  mChunkLen = AUDIO_DECODE_OUTPUT_BUFFER * (mNumInputChans * mBitsPerSample)
+                 >> (kRoundedUpChansShift[mNumInputChans] + 4);
 
   OMX_PARAM_PORTDEFINITIONTYPE port;
   OMX_INIT_STRUCTURE(port);
@@ -323,7 +262,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
     }
 
   // set port param
-  port.format.audio.eEncoding = mEncoding;
+  port.format.audio.eEncoding = OMX_AUDIO_CodingPCM;
   port.nBufferSize = mChunkLen;
   port.nBufferCountActual = max (port.nBufferCountMin, 16U);
   if (mDecoder.setParam (OMX_IndexParamPortDefinition, &port)) {
@@ -356,7 +295,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   OMX_INIT_STRUCTURE(format);
 
   format.nPortIndex = mDecoder.getInputPort();
-  format.eEncoding = mEncoding;
+  format.eEncoding = OMX_AUDIO_CodingPCM;
   if (mDecoder.setParam (OMX_IndexParamAudioPortFormat, &format)) {
     // error, return
     cLog::log (LOGERROR, string(__func__) + " set format");
@@ -375,78 +314,51 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
     return false;
     }
     //}}}
+  //{{{  declare buffer as waveHeader
+  mWaveHeader.Samples.wSamplesPerBlock = 0;
+  mWaveHeader.Format.nChannels = mNumInputChans;
+  mWaveHeader.Format.nBlockAlign = mNumInputChans * (mBitsPerSample >> 3);
+  // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
+  mWaveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
+  mWaveHeader.Format.nSamplesPerSec = mConfig.mHints.samplerate;
+  mWaveHeader.Format.nAvgBytesPerSec = mBytesPerSec;
+  mWaveHeader.Format.wBitsPerSample = mBitsPerSample;
+  mWaveHeader.Samples.wValidBitsPerSample = mBitsPerSample;
+  mWaveHeader.Format.cbSize = 0;
+  mWaveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
 
-  if (mEncoding == OMX_AUDIO_CodingPCM) {
-    //{{{  declare buffer
-    mWaveHeader.Samples.wSamplesPerBlock = 0;
-    mWaveHeader.Format.nChannels = mNumInputChannels;
-    mWaveHeader.Format.nBlockAlign = mNumInputChannels * (mBitsPerSample >> 3);
-    // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
-    mWaveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
-    mWaveHeader.Format.nSamplesPerSec = mConfig.mHints.samplerate;
-    mWaveHeader.Format.nAvgBytesPerSec = mBytesPerSec;
-    mWaveHeader.Format.wBitsPerSample = mBitsPerSample;
-    mWaveHeader.Samples.wValidBitsPerSample = mBitsPerSample;
-    mWaveHeader.Format.cbSize = 0;
-    mWaveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
-
-    auto buffer = mDecoder.getInputBuffer();
-    if (!buffer) {
-       //  error, return
-      cLog::log (LOGERROR, string(__func__) + " getInputBuffer");
-      return false;
-      }
-
-    buffer->nOffset = 0;
-    buffer->nFilledLen = min (sizeof(mWaveHeader), buffer->nAllocLen);
-    memset (buffer->pBuffer, 0, buffer->nAllocLen);
-    memcpy (buffer->pBuffer, &mWaveHeader, buffer->nFilledLen);
-    buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
-    if (mDecoder.emptyThisBuffer (buffer)) {
-      //  error, return
-      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
-      return false;
-      }
+  auto buffer = mDecoder.getInputBuffer();
+  if (!buffer) {
+     //  error, return
+    cLog::log (LOGERROR, string(__func__) + " getInputBuffer");
+    return false;
     }
-    //}}}
-  else if (mConfig.mHwDecode) {
-    //{{{  send decoder config
-    if (mConfig.mHints.extrasize > 0 && !mConfig.mHints.extradata) {
-      auto buffer = mDecoder.getInputBuffer();
-      if (!buffer) {
-        // error, return
-        cLog::log (LOGERROR, string(__func__) + " extra getInputBuffer");
-        return false;
-        }
 
-      buffer->nOffset = 0;
-      buffer->nFilledLen = min((OMX_U32)mConfig.mHints.extrasize, buffer->nAllocLen);
-      memset (buffer->pBuffer, 0, buffer->nAllocLen);
-      memcpy (buffer->pBuffer, mConfig.mHints.extradata, buffer->nFilledLen);
-      buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
-      if (mDecoder.emptyThisBuffer (buffer)) {
-        // error, return
-        cLog::log (LOGERROR, string(__func__) + " extra emptyThisBuffer");
-        mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
-        return false;
-        }
-      }
+  buffer->nOffset = 0;
+  buffer->nFilledLen = min (sizeof(mWaveHeader), buffer->nAllocLen);
+  memset (buffer->pBuffer, 0, buffer->nAllocLen);
+  memcpy (buffer->pBuffer, &mWaveHeader, buffer->nFilledLen);
+  buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
+  if (mDecoder.emptyThisBuffer (buffer)) {
+    //  error, return
+    cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+    mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
+    return false;
     }
-    //}}}
+  //}}}
   if (mDecoder.badState())
     return false;
 
   //{{{  set mPcmInput
   OMX_INIT_STRUCTURE(mPcmInput);
   mPcmInput.nPortIndex = mDecoder.getInputPort();
-  memcpy (mPcmInput.eChannelMapping, mInputChannels, sizeof(mInputChannels));
+  memcpy (mPcmInput.eChannelMapping, mInputChans, sizeof(mInputChans));
   mPcmInput.eNumData = OMX_NumericalDataSigned;
   mPcmInput.eEndian = OMX_EndianLittle;
   mPcmInput.bInterleaved = OMX_TRUE;
   mPcmInput.nBitPerSample = mBitsPerSample;
   mPcmInput.ePCMMode = OMX_AUDIO_PCMModeLinear;
-  mPcmInput.nChannels = mNumInputChannels;
+  mPcmInput.nChannels = mNumInputChans;
   mPcmInput.nSamplingRate = mConfig.mHints.samplerate;
 
   cLog::log (LOGINFO1, "cOmxAudio::init - bitsPer:%d rate:%d ch:%d buffer size:%d bytesPer:%d",
@@ -455,8 +367,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
 
   printPCM (&mPcmInput, "input");
   //}}}
-  cLog::log (LOGINFO1, "cOmxAudio::init - dev:%s pass:%d hw:%d",
-                       mConfig.mDevice.c_str(), mConfig.mPassThru, mConfig.mHwDecode);
+  cLog::log (LOGINFO1, "cOmxAudio::init - " + mConfig.mDevice);
 
   mPortChanged = false;
   mSetStartTime  = true;
@@ -469,87 +380,87 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config,
   }
 //}}}
 //{{{
-void cOmxAudio::buildChannelMap (enum PCMChannels* channelMap, uint64_t layout) {
+void cOmxAudio::buildChanMap (enum PCMChannels* chanMap, uint64_t layout) {
 
   int index = 0;
-  if (layout & AV_CH_FRONT_LEFT           ) channelMap[index++] = PCM_FRONT_LEFT           ;
-  if (layout & AV_CH_FRONT_RIGHT          ) channelMap[index++] = PCM_FRONT_RIGHT          ;
-  if (layout & AV_CH_FRONT_CENTER         ) channelMap[index++] = PCM_FRONT_CENTER         ;
-  if (layout & AV_CH_LOW_FREQUENCY        ) channelMap[index++] = PCM_LOW_FREQUENCY        ;
-  if (layout & AV_CH_BACK_LEFT            ) channelMap[index++] = PCM_BACK_LEFT            ;
-  if (layout & AV_CH_BACK_RIGHT           ) channelMap[index++] = PCM_BACK_RIGHT           ;
-  if (layout & AV_CH_FRONT_LEFT_OF_CENTER ) channelMap[index++] = PCM_FRONT_LEFT_OF_CENTER ;
-  if (layout & AV_CH_FRONT_RIGHT_OF_CENTER) channelMap[index++] = PCM_FRONT_RIGHT_OF_CENTER;
-  if (layout & AV_CH_BACK_CENTER          ) channelMap[index++] = PCM_BACK_CENTER          ;
-  if (layout & AV_CH_SIDE_LEFT            ) channelMap[index++] = PCM_SIDE_LEFT            ;
-  if (layout & AV_CH_SIDE_RIGHT           ) channelMap[index++] = PCM_SIDE_RIGHT           ;
-  if (layout & AV_CH_TOP_CENTER           ) channelMap[index++] = PCM_TOP_CENTER           ;
-  if (layout & AV_CH_TOP_FRONT_LEFT       ) channelMap[index++] = PCM_TOP_FRONT_LEFT       ;
-  if (layout & AV_CH_TOP_FRONT_CENTER     ) channelMap[index++] = PCM_TOP_FRONT_CENTER     ;
-  if (layout & AV_CH_TOP_FRONT_RIGHT      ) channelMap[index++] = PCM_TOP_FRONT_RIGHT      ;
-  if (layout & AV_CH_TOP_BACK_LEFT        ) channelMap[index++] = PCM_TOP_BACK_LEFT        ;
-  if (layout & AV_CH_TOP_BACK_CENTER      ) channelMap[index++] = PCM_TOP_BACK_CENTER      ;
-  if (layout & AV_CH_TOP_BACK_RIGHT       ) channelMap[index++] = PCM_TOP_BACK_RIGHT       ;
+  if (layout & AV_CH_FRONT_LEFT           ) chanMap[index++] = PCM_FRONT_LEFT           ;
+  if (layout & AV_CH_FRONT_RIGHT          ) chanMap[index++] = PCM_FRONT_RIGHT          ;
+  if (layout & AV_CH_FRONT_CENTER         ) chanMap[index++] = PCM_FRONT_CENTER         ;
+  if (layout & AV_CH_LOW_FREQUENCY        ) chanMap[index++] = PCM_LOW_FREQUENCY        ;
+  if (layout & AV_CH_BACK_LEFT            ) chanMap[index++] = PCM_BACK_LEFT            ;
+  if (layout & AV_CH_BACK_RIGHT           ) chanMap[index++] = PCM_BACK_RIGHT           ;
+  if (layout & AV_CH_FRONT_LEFT_OF_CENTER ) chanMap[index++] = PCM_FRONT_LEFT_OF_CENTER ;
+  if (layout & AV_CH_FRONT_RIGHT_OF_CENTER) chanMap[index++] = PCM_FRONT_RIGHT_OF_CENTER;
+  if (layout & AV_CH_BACK_CENTER          ) chanMap[index++] = PCM_BACK_CENTER          ;
+  if (layout & AV_CH_SIDE_LEFT            ) chanMap[index++] = PCM_SIDE_LEFT            ;
+  if (layout & AV_CH_SIDE_RIGHT           ) chanMap[index++] = PCM_SIDE_RIGHT           ;
+  if (layout & AV_CH_TOP_CENTER           ) chanMap[index++] = PCM_TOP_CENTER           ;
+  if (layout & AV_CH_TOP_FRONT_LEFT       ) chanMap[index++] = PCM_TOP_FRONT_LEFT       ;
+  if (layout & AV_CH_TOP_FRONT_CENTER     ) chanMap[index++] = PCM_TOP_FRONT_CENTER     ;
+  if (layout & AV_CH_TOP_FRONT_RIGHT      ) chanMap[index++] = PCM_TOP_FRONT_RIGHT      ;
+  if (layout & AV_CH_TOP_BACK_LEFT        ) chanMap[index++] = PCM_TOP_BACK_LEFT        ;
+  if (layout & AV_CH_TOP_BACK_CENTER      ) chanMap[index++] = PCM_TOP_BACK_CENTER      ;
+  if (layout & AV_CH_TOP_BACK_RIGHT       ) chanMap[index++] = PCM_TOP_BACK_RIGHT       ;
 
   while (index < OMX_AUDIO_MAXCHANNELS)
-    channelMap[index++] = PCM_INVALID;
+    chanMap[index++] = PCM_INVALID;
   }
 //}}}
 //{{{
 // See CEA spec: Table 20, Audio InfoFrame data byte 4 for the ordering here
-int cOmxAudio::buildChannelMapCEA (enum PCMChannels* channelMap, uint64_t layout) {
+int cOmxAudio::buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout) {
 
   int index = 0;
-  if (layout & AV_CH_FRONT_LEFT   ) channelMap[index++] = PCM_FRONT_LEFT;
-  if (layout & AV_CH_FRONT_RIGHT  ) channelMap[index++] = PCM_FRONT_RIGHT;
-  if (layout & AV_CH_LOW_FREQUENCY) channelMap[index++] = PCM_LOW_FREQUENCY;
-  if (layout & AV_CH_FRONT_CENTER ) channelMap[index++] = PCM_FRONT_CENTER;
-  if (layout & AV_CH_BACK_LEFT    ) channelMap[index++] = PCM_BACK_LEFT;
-  if (layout & AV_CH_BACK_RIGHT   ) channelMap[index++] = PCM_BACK_RIGHT;
-  if (layout & AV_CH_SIDE_LEFT    ) channelMap[index++] = PCM_SIDE_LEFT;
-  if (layout & AV_CH_SIDE_RIGHT   ) channelMap[index++] = PCM_SIDE_RIGHT;
+  if (layout & AV_CH_FRONT_LEFT   ) chanMap[index++] = PCM_FRONT_LEFT;
+  if (layout & AV_CH_FRONT_RIGHT  ) chanMap[index++] = PCM_FRONT_RIGHT;
+  if (layout & AV_CH_LOW_FREQUENCY) chanMap[index++] = PCM_LOW_FREQUENCY;
+  if (layout & AV_CH_FRONT_CENTER ) chanMap[index++] = PCM_FRONT_CENTER;
+  if (layout & AV_CH_BACK_LEFT    ) chanMap[index++] = PCM_BACK_LEFT;
+  if (layout & AV_CH_BACK_RIGHT   ) chanMap[index++] = PCM_BACK_RIGHT;
+  if (layout & AV_CH_SIDE_LEFT    ) chanMap[index++] = PCM_SIDE_LEFT;
+  if (layout & AV_CH_SIDE_RIGHT   ) chanMap[index++] = PCM_SIDE_RIGHT;
 
   while (index < OMX_AUDIO_MAXCHANNELS)
-    channelMap[index++] = PCM_INVALID;
+    chanMap[index++] = PCM_INVALID;
 
-  int num_channels = 0;
+  int numChans = 0;
   for (index = 0; index < OMX_AUDIO_MAXCHANNELS; index++)
-    if (channelMap[index] != PCM_INVALID)
-       num_channels = index+1;
+    if (chanMap[index] != PCM_INVALID)
+       numChans = index+1;
 
   // round up to power of 2
-  num_channels = num_channels > 4 ? 8 : num_channels > 2 ? 4 : num_channels;
-  return num_channels;
+  numChans = numChans > 4 ? 8 : numChans > 2 ? 4 : numChans;
+  return numChans;
   }
 //}}}
 //{{{
-void cOmxAudio::buildChannelMapOMX (enum OMX_AUDIO_CHANNELTYPE* channelMap, uint64_t layout) {
+void cOmxAudio::buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout) {
 
   int index = 0;
 
-  if (layout & AV_CH_FRONT_LEFT           ) channelMap[index++] = OMX_AUDIO_ChannelLF;
-  if (layout & AV_CH_FRONT_RIGHT          ) channelMap[index++] = OMX_AUDIO_ChannelRF;
-  if (layout & AV_CH_FRONT_CENTER         ) channelMap[index++] = OMX_AUDIO_ChannelCF;
-  if (layout & AV_CH_LOW_FREQUENCY        ) channelMap[index++] = OMX_AUDIO_ChannelLFE;
-  if (layout & AV_CH_BACK_LEFT            ) channelMap[index++] = OMX_AUDIO_ChannelLR;
-  if (layout & AV_CH_BACK_RIGHT           ) channelMap[index++] = OMX_AUDIO_ChannelRR;
-  if (layout & AV_CH_SIDE_LEFT            ) channelMap[index++] = OMX_AUDIO_ChannelLS;
-  if (layout & AV_CH_SIDE_RIGHT           ) channelMap[index++] = OMX_AUDIO_ChannelRS;
-  if (layout & AV_CH_BACK_CENTER          ) channelMap[index++] = OMX_AUDIO_ChannelCS;
+  if (layout & AV_CH_FRONT_LEFT           ) chanMap[index++] = OMX_AUDIO_ChannelLF;
+  if (layout & AV_CH_FRONT_RIGHT          ) chanMap[index++] = OMX_AUDIO_ChannelRF;
+  if (layout & AV_CH_FRONT_CENTER         ) chanMap[index++] = OMX_AUDIO_ChannelCF;
+  if (layout & AV_CH_LOW_FREQUENCY        ) chanMap[index++] = OMX_AUDIO_ChannelLFE;
+  if (layout & AV_CH_BACK_LEFT            ) chanMap[index++] = OMX_AUDIO_ChannelLR;
+  if (layout & AV_CH_BACK_RIGHT           ) chanMap[index++] = OMX_AUDIO_ChannelRR;
+  if (layout & AV_CH_SIDE_LEFT            ) chanMap[index++] = OMX_AUDIO_ChannelLS;
+  if (layout & AV_CH_SIDE_RIGHT           ) chanMap[index++] = OMX_AUDIO_ChannelRS;
+  if (layout & AV_CH_BACK_CENTER          ) chanMap[index++] = OMX_AUDIO_ChannelCS;
 
   // following are not in openmax spec, but gpu does accept them
-  if (layout & AV_CH_FRONT_LEFT_OF_CENTER ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)10;
-  if (layout & AV_CH_FRONT_RIGHT_OF_CENTER) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)11;
-  if (layout & AV_CH_TOP_CENTER           ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)12;
-  if (layout & AV_CH_TOP_FRONT_LEFT       ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)13;
-  if (layout & AV_CH_TOP_FRONT_CENTER     ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)14;
-  if (layout & AV_CH_TOP_FRONT_RIGHT      ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)15;
-  if (layout & AV_CH_TOP_BACK_LEFT        ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)16;
-  if (layout & AV_CH_TOP_BACK_CENTER      ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)17;
-  if (layout & AV_CH_TOP_BACK_RIGHT       ) channelMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)18;
+  if (layout & AV_CH_FRONT_LEFT_OF_CENTER ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)10;
+  if (layout & AV_CH_FRONT_RIGHT_OF_CENTER) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)11;
+  if (layout & AV_CH_TOP_CENTER           ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)12;
+  if (layout & AV_CH_TOP_FRONT_LEFT       ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)13;
+  if (layout & AV_CH_TOP_FRONT_CENTER     ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)14;
+  if (layout & AV_CH_TOP_FRONT_RIGHT      ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)15;
+  if (layout & AV_CH_TOP_BACK_LEFT        ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)16;
+  if (layout & AV_CH_TOP_BACK_CENTER      ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)17;
+  if (layout & AV_CH_TOP_BACK_RIGHT       ) chanMap[index++] = (enum OMX_AUDIO_CHANNELTYPE)18;
 
   while (index < OMX_AUDIO_MAXCHANNELS)
-    channelMap[index++] = OMX_AUDIO_ChannelNone;
+    chanMap[index++] = OMX_AUDIO_ChannelNone;
   }
 //}}}
 //{{{
@@ -563,9 +474,8 @@ bool cOmxAudio::portChanged() {
     return true;
     }
 
-  if (!mConfig.mPassThru)
-    if (!mMixer.init ("OMX.broadcom.audio_mixer", OMX_IndexParamAudioInit))
-      return false;
+  if (!mMixer.init ("OMX.broadcom.audio_mixer", OMX_IndexParamAudioInit))
+    return false;
   if (mConfig.mDevice == "omx:both")
     if (!mSplitter.init ("OMX.broadcom.audio_splitter", OMX_IndexParamAudioInit))
       return false;
@@ -589,10 +499,10 @@ bool cOmxAudio::portChanged() {
       }
       //}}}
 
-    memcpy (mPcmOutput.eChannelMapping, mOutputChannels, sizeof(mOutputChannels));
+    memcpy (mPcmOutput.eChannelMapping, mOutputChans, sizeof(mOutputChans));
 
     // round up to power of 2
-    mPcmOutput.nChannels = mNumOutputChannels > 4 ? 8 : mNumOutputChannels > 2 ? 4 : mNumOutputChannels;
+    mPcmOutput.nChannels = mNumOutputChans > 4 ? 8 : mNumOutputChans > 2 ? 4 : mNumOutputChans;
 
     // limit samplerate (through resampling) if requested
     mPcmOutput.nSamplingRate = min (max ((int)mPcmOutput.nSamplingRate, 8000), 192000);
@@ -827,7 +737,7 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  int pitch = (mConfig.mPassThru || mConfig.mHwDecode) ? 1 : (mBitsPerSample>>3) * mNumInputChannels;
+  int pitch = (mBitsPerSample>>3) * mNumInputChans;
   int demuxSamples = len / pitch;
   int demuxSamplesSent = 0;
   auto demuxer_content = (uint8_t*)data;
@@ -846,9 +756,9 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
     buffer->nFlags  = 0;
 
     // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
-    // it will be 16-bit and rounded up to next power of 2 in channels
+    // it will be 16-bit and rounded up to next power of 2 in Chans
     int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
-      (mNumInputChannels * mBitsPerSample) >> (rounded_up_channels_shift[mNumInputChannels] + 4);
+      (mNumInputChans * mBitsPerSample) >> (kRoundedUpChansShift[mNumInputChans] + 4);
     int remaining = demuxSamples - demuxSamplesSent;
     int samplesSpace = min (maxBuffer, (int)buffer->nAllocLen) / pitch;
     int samples = min(remaining, samplesSpace);
@@ -856,9 +766,7 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
     buffer->nFilledLen = samples * pitch;
 
     int frames = frameSize ? (len / frameSize) : 0;
-    if (((samples < demuxSamples) || (frames > 1)) &&
-        (mBitsPerSample == 32) &&
-        !(mConfig.mPassThru || mConfig.mHwDecode)) {
+    if (((samples < demuxSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
       int samplePitch = mBitsPerSample >> 3;
       int frameSamples = frameSize / pitch;
       int planeSize = frameSamples * samplePitch;
@@ -869,7 +777,7 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
         int outRemaining = min (min (frameSamples - sampleInFrame, samples), samples-sample);
         auto src = demuxer_content + frame*frameSize + sampleInFrame * samplePitch;
         auto dst = (uint8_t*)buffer->pBuffer + sample * samplePitch;
-        for (auto channel = 0u; channel < mNumInputChannels; channel++) {
+        for (auto channel = 0u; channel < mNumInputChans; channel++) {
           memcpy (dst, src, outRemaining * samplePitch);
           src += planeSize;
           dst += outPlaneSize;
@@ -980,81 +888,7 @@ void cOmxAudio::flush() {
 
 // private
 //{{{
-bool cOmxAudio::canHwDecode (AVCodecID codec) {
-
-  switch(codec) {
-    //case AV_CODEC_ID_VORBIS:
-    //  cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingVORBIS");
-    //  m_eEncoding = OMX_AUDIO_CodingVORBIS;
-    //  mConfig.mHwDecode = true;
-    //  break;
-
-    //case AV_CODEC_ID_AAC:
-    //  cLog::log (LOGINFO1, "cOmxAudio::CanHWDecode OMX_AUDIO_CodingAAC");
-    //  m_eEncoding = OMX_AUDIO_CodingAAC;
-    //  mConfig.mHwDecode = true;
-    //  break;
-
-    case AV_CODEC_ID_MP2:
-    case AV_CODEC_ID_MP3:
-      cLog::log (LOGINFO1, "cOmxAudio::canHWDecode - OMX_AUDIO_CodingMP3");
-      mEncoding = OMX_AUDIO_CodingMP3;
-      mConfig.mHwDecode = true;
-      break;
-
-    case AV_CODEC_ID_DTS:
-      cLog::log (LOGINFO1, "cOmxAudio::canHWDecode - OMX_AUDIO_CodingDTS");
-      mEncoding = OMX_AUDIO_CodingDTS;
-      mConfig.mHwDecode = true;
-      break;
-
-    case AV_CODEC_ID_AC3:
-    case AV_CODEC_ID_EAC3:
-      cLog::log (LOGINFO1, "cOmxAudio::canHWDecode - OMX_AUDIO_CodingDDP");
-      mEncoding = OMX_AUDIO_CodingDDP;
-      mConfig.mHwDecode = true;
-      break;
-
-    default:
-      cLog::log (LOGINFO1, "cOmxAudio::canHWDecode - OMX_AUDIO_CodingPCM");
-      mEncoding = OMX_AUDIO_CodingPCM;
-      mConfig.mHwDecode = false;
-      break;
-    }
-
-  return mConfig.mHwDecode;
-  }
-//}}}
-//{{{
-float cOmxAudio::getMaxLevel (double& pts) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  OMX_CONFIG_BRCMAUDIOMAXSAMPLE param;
-  OMX_INIT_STRUCTURE(param);
-
-  if (mDecoder.isInit()) {
-    param.nPortIndex = mDecoder.getInputPort();
-    if (mDecoder.getConfig (OMX_IndexConfigBrcmAudioMaxSample, &param)) {
-      // error return
-      cLog::log (LOGERROR, string(__func__) + " getMaxLevel");
-      return 0;
-      }
-    }
-
-  pts = fromOmxTime (param.nTimeStamp);
-  auto res = (float)param.nMaxSample * (100.f / (1<<15));
-
-  cLog::log (LOGINFO, "getMaxLevel %f %d", res, pts);
-  return res;
-  }
-//}}}
-
-//{{{
 bool cOmxAudio::applyVolume() {
-
-  if (mConfig.mPassThru)
-    return false;
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -1092,15 +926,12 @@ bool cOmxAudio::applyVolume() {
     mLastVolume = volume;
     }
 
-  //double pts = 0.0;
-  //getMaxLevel (pts);
-
   return true;
   }
 //}}}
 
 //{{{
-void cOmxAudio::printChannels (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
+void cOmxAudio::printChans (OMX_AUDIO_CHANNELTYPE eChannelMapping[]) {
 
   for (int i = 0; i < OMX_AUDIO_MAXCHANNELS; i++) {
     switch (eChannelMapping[i]) {
@@ -1138,6 +969,6 @@ void cOmxAudio::printPCM (OMX_AUDIO_PARAM_PCMMODETYPE* pcm, const string& direct
   cLog::log (LOGINFO1, "pcm->nChannels    : %d", (int)pcm->nChannels);
   cLog::log (LOGINFO1, "pcm->nSamplingRate: %d", (int)pcm->nSamplingRate);
 
-  printChannels (pcm->eChannelMapping);
+  printChans (pcm->eChannelMapping);
   }
 //}}}
