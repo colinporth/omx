@@ -1,4 +1,4 @@
-// omx.cpp - simplified omxPlayer
+// omx.cpp - simpler omxPlayer
 //{{{  includes
 #include <stdio.h>
 #include <signal.h>
