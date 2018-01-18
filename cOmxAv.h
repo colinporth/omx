@@ -312,17 +312,21 @@ public:
   void setDropState (bool drop) { mDropState = drop; }
 
   bool open (cOmxClock* clock, const cOmxVideoConfig& config);
-  bool portChanged();
+  bool srcChanged();
   bool decode (uint8_t* data, int size, double dts, double pts);
   void submitEOS();
   void reset();
   void close();
 
 private:
+  std::string getInterlaceModeString (enum OMX_INTERLACETYPE mode);
+  std::string getDeInterlaceModeString (eInterlaceMode interlaceMode);
+
   bool sendDecoderExtraConfig();
   bool naluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
 
-  void logPortChanged (OMX_PARAM_PORTDEFINITIONTYPE port, int interlaceMode);
+  void logSrcChanged (OMX_PARAM_PORTDEFINITIONTYPE port,
+                      enum OMX_INTERLACETYPE interlaceMode, bool deinterlace);
 
   //{{{  vars
   std::recursive_mutex mMutex;
@@ -344,7 +348,7 @@ private:
   std::string mVideoCodecName;
 
   bool mFailedEos = false;
-  bool mPortChanged = false;
+  bool mSrcChanged = false;
   bool mSetStartTime = false;
   bool mDeinterlace = false;
   bool mDropState = false;
@@ -449,7 +453,7 @@ public:
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
   int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
-  bool portChanged();
+  bool srcChanged();
   int addPacket (void* data, int len, double dts, double pts, int frameSize);
   void process();
   void submitEOS();
@@ -495,7 +499,7 @@ private:
   unsigned int mChunkLen = 0;
 
   float mSubmitted = 0.f;
-  bool mPortChanged = false;
+  bool mSrcChanged = false;
   bool mSubmittedEos = false;
   bool mFailedEos = false;
 

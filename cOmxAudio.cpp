@@ -165,7 +165,7 @@ void cOmxAudio::setMute (bool mute) {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mMute = mute;
-  if (mPortChanged)
+  if (mSrcChanged)
     applyVolume();
   }
 //}}}
@@ -175,7 +175,7 @@ void cOmxAudio::setVolume (float volume) {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mCurVolume = volume;
-  if (mPortChanged)
+  if (mSrcChanged)
     applyVolume();
   }
 //}}}
@@ -336,7 +336,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t 
 
   cLog::log (LOGINFO1, string(__func__) + " " + mConfig.mDevice);
 
-  mPortChanged = false;
+  mSrcChanged = false;
   mSetStartTime  = true;
   mSubmittedEos = false;
   mFailedEos = false;
@@ -431,13 +431,13 @@ void cOmxAudio::buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t l
   }
 //}}}
 //{{{
-bool cOmxAudio::portChanged() {
+bool cOmxAudio::srcChanged() {
 
   cLog::log (LOGINFO, __func__);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (mPortChanged) {
+  if (mSrcChanged) {
     mDecoder.disablePort (mDecoder.getOutputPort(), true);
     mDecoder.enablePort (mDecoder.getOutputPort(), true);
     return true;
@@ -694,7 +694,7 @@ bool cOmxAudio::portChanged() {
       }
       //}}}
 
-  mPortChanged = true;
+  mSrcChanged = true;
   return true;
   }
 //}}}
@@ -790,8 +790,8 @@ int cOmxAudio::addPacket (void* data, int len, double dts, double pts, int frame
       }
 
     if (mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone)
-      if (!portChanged())
-        cLog::log (LOGERROR, string(__func__) + "  portChanged");
+      if (!srcChanged())
+        cLog::log (LOGERROR, string(__func__) + "  srcChanged");
     }
 
   mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;

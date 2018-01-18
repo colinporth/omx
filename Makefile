@@ -57,9 +57,6 @@ omx:    version $(OBJS)
 
 clean:
 	rm -f *.o
-	rm -f ../shared/utils/*.o
-	rm -f ../shared/nanoVg/*.o
-	rm -f ../shared/dvb/*.o
 	rm -f *.log
 	rm -f omx
 
