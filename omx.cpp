@@ -504,7 +504,7 @@ private:
           else if (!mPause && (mOmxReader.isEof() || packet || (audio_fifo_high && video_fifo_high))) {
             //{{{  resume
             if (mOmxClock.isPaused()) {
-              cLog::log (LOGINFO, "resume aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
+              cLog::log (LOGINFO, "resume - aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
                          audio_fifo, video_fifo,
                          audio_fifo_low ? "aFifoLo ":"",
                          video_fifo_low ? "vFifoLo ":"",
@@ -523,7 +523,7 @@ private:
               if (!mPause)
                 loadThreshold = min(2.f*loadThreshold, 16.f);
 
-              cLog::log (LOGINFO, "pause aFifo:%.2f vFifo:%.2f %s%s%s%s thresh:%.2f",
+              cLog::log (LOGINFO, "pause - aFifo:%.2f vFifo:%.2f %s%s%s%s thresh:%.2f",
                          audio_fifo, video_fifo,
                          audio_fifo_low ? "aFifoLo ":"",
                          video_fifo_low ? "vFifoLo ":"",
