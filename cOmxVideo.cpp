@@ -42,10 +42,9 @@ bool cOmxVideo::isEOS() {
 
   if (!mFailedEos && !mRender.isEOS())
     return false;
-
   if (mSubmittedEos) {
-    cLog::log (LOGINFO, __func__);
     mSubmittedEos = false;
+    cLog::log (LOGINFO, __func__);
     }
 
   return true;

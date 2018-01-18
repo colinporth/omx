@@ -65,16 +65,13 @@ cOmxAudio::~cOmxAudio() {
 //{{{
 bool cOmxAudio::isEOS() {
 
-  unsigned int latency = getAudioRenderingLatency();
-
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (!mFailedEos && !(mDecoder.isEOS() && latency == 0))
+  if (!mFailedEos && !(mDecoder.isEOS() && (getAudioRenderingLatency() == 0)))
     return false;
-
   if (mSubmittedEos) {
-    cLog::log (LOGINFO, __func__);
     mSubmittedEos = false;
+    cLog::log (LOGINFO, __func__);
     }
 
   return true;
@@ -116,20 +113,20 @@ unsigned int cOmxAudio::getAudioRenderingLatency() {
 
   OMX_PARAM_U32TYPE param;
   OMX_INIT_STRUCTURE(param);
+
   if (mRenderAnal.isInit()) {
     param.nPortIndex = mRenderAnal.getInputPort();
     if (mRenderAnal.getConfig (OMX_IndexConfigAudioRenderingLatency, &param)) {
       // error return
-      cLog::log (LOGERROR, string(__func__) + " get latency");
+      cLog::log (LOGERROR, string(__func__) + " getAnalLatency");
       return 0;
       }
     }
-
   else if (mRenderHdmi.isInit()) {
     param.nPortIndex = mRenderHdmi.getInputPort();
     if (mRenderHdmi.getConfig (OMX_IndexConfigAudioRenderingLatency, &param)) {
       // error return
-      cLog::log (LOGERROR, string(__func__) + " get hdmi latency");
+      cLog::log (LOGERROR, string(__func__) + " getHdmiLatency");
       return 0;
       }
     }
