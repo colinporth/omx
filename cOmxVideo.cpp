@@ -514,7 +514,7 @@ bool cOmxVideo::srcChanged() {
   else
     mTunnelDecoder.init (&mDecoder, mDecoder.getOutputPort(), &mScheduler, mScheduler.getInputPort());
 
-  //{{{  set displayRegion 
+  //{{{  set displayRegion
   switch (mConfig.mHints.orientation) {
     case 1:   mTransform = OMX_DISPLAY_MIRROR_ROT0; break;
     case 90:  mTransform = OMX_DISPLAY_ROT90; break;
@@ -828,7 +828,7 @@ bool cOmxVideo::naluFormat (enum AVCodecID codec, uint8_t *in_extradata, int in_
 void cOmxVideo::logSrcChanged (OMX_PARAM_PORTDEFINITIONTYPE port,
                                enum OMX_INTERLACETYPE interlaceMode) {
 
-  cLog::log (LOGINFO, "srcChanged - %dx%d %.2f %s>%s>%s display:%d aspMode:%d pixAsp:%.2f",
+  cLog::log (LOGINFO, "srcChanged - %dx%d@%.2f %s>%s>%s display:%d aspMode:%d pixAsp:%.2f",
                       port.format.video.nFrameWidth, port.format.video.nFrameHeight,
                       port.format.video.xFramerate / (float)(1<<16),
                       getInterlaceModeString (interlaceMode).c_str(),

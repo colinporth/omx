@@ -485,10 +485,9 @@ bool cOmxAudio::srcChanged() {
       //}}}
 
     cLog::log (LOGINFO, string(__func__) +
-                         " - bitsPerSample:" + dec(mPcmOutput.nBitPerSample) +
-                         " rate:" + dec(mPcmOutput.nSamplingRate)+
-                         " chans:" + dec(mPcmOutput.nChannels) +
-                         " len:" +  dec(mBufferLen) +
+                         " - " + dec(mPcmOutput.nChannels) + "x" + dec(mPcmOutput.nBitPerSample) +
+                         "@" + dec(mPcmOutput.nSamplingRate)+
+                         " bufferLen:" +  dec(mBufferLen) +
                          " bytesPerSec:" + dec(mBytesPerSec));
 
     if (mSplitter.isInit() ) {
