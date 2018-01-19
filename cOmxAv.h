@@ -272,7 +272,10 @@ private:
 enum eInterlaceMode {
   eInterlaceOff = 0,
   eInterlaceAuto = 1,
-  eInterlaceForce = 2 };
+  eInterlaceForce = 2,
+  eInterlaceAutoAdv = 3,
+  eInterlaceForceAdv = 4,
+  };
 //}}}
 //{{{
 class cOmxVideoConfig {
@@ -290,8 +293,7 @@ public:
   float mDisplayAspect = 0.f;
   bool mHdmiClockSync = false;
 
-  eInterlaceMode mDeinterlace = eInterlaceAuto;
-  bool mAdvancedHdDeinterlace = true;
+  eInterlaceMode mDeInterlace = eInterlaceAuto;
   };
 //}}}
 //{{{
@@ -322,11 +324,11 @@ private:
   std::string getInterlaceModeString (enum OMX_INTERLACETYPE mode);
   std::string getDeInterlaceModeString (eInterlaceMode interlaceMode);
 
+  bool naluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
   bool sendDecoderExtraConfig();
-  bool naluFormatStartCodes (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
 
   void logSrcChanged (OMX_PARAM_PORTDEFINITIONTYPE port,
-                      enum OMX_INTERLACETYPE interlaceMode, bool deinterlace);
+                      enum OMX_INTERLACETYPE interlaceMode, bool DeInterlace);
 
   //{{{  vars
   std::recursive_mutex mMutex;
@@ -350,7 +352,7 @@ private:
   bool mFailedEos = false;
   bool mSrcChanged = false;
   bool mSetStartTime = false;
-  bool mDeinterlace = false;
+  bool mDeInterlace = false;
   bool mDropState = false;
   bool mSubmittedEos = false;
 

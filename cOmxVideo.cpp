@@ -164,7 +164,6 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
   string decoderName;
   mCodingType = OMX_VIDEO_CodingUnused;
   mVideoCodecName = "";
-  bool vflip = false;
 
   switch (mConfig.mHints.codec) {
     //{{{
@@ -236,8 +235,6 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     //{{{
     case AV_CODEC_ID_VP6:
       // this form is encoded upside down
-      vflip = true;
-      // fall through
     //}}}
     case AV_CODEC_ID_VP6F:
     //{{{
@@ -367,8 +364,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     }
   //}}}
   //{{{  set nalFormat
-  if (naluFormatStartCodes (mConfig.mHints.codec,
-                            (uint8_t*)mConfig.mHints.extradata, mConfig.mHints.extrasize)) {
+  if (naluFormat (mConfig.mHints.codec, (uint8_t*)mConfig.mHints.extradata, mConfig.mHints.extrasize)) {
     OMX_NALSTREAMFORMATTYPE nalStream;
     OMX_INIT_STRUCTURE(nalStream);
 
@@ -408,16 +404,13 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     case 271: mTransform = OMX_DISPLAY_MIRROR_ROT270; break;
     default:  mTransform = OMX_DISPLAY_ROT0; break;
     }
-
-  if (vflip)
-    mTransform = OMX_DISPLAY_MIRROR_ROT180;
   //}}}
   if (mDecoder.badState())
     return false;
 
   cLog::log (LOGINFO, string (__func__) + " " + mDecoder.getName() +
              " " + dec(mDecoder.getInputPort()) + "->" + dec(mDecoder.getOutputPort()) +
-             string(mConfig.mDeinterlace ? " deint" : "")  +
+             string(mConfig.mDeInterlace ? " deInt" : "")  +
              string(mConfig.mHdmiClockSync ? " hdmi":""));
 
   float aspect = mConfig.mHints.aspect ?
@@ -471,23 +464,23 @@ bool cOmxVideo::srcChanged() {
   if (!mScheduler.init ("OMX.broadcom.video_scheduler", OMX_IndexParamVideoInit))
     return false;
 
-  //{{{  set mDeinterlace from src interlaceMode, config.mDeinterlace
+  //{{{  set mDeInterlace from src interlaceMode, config.mDeInterlace
   OMX_CONFIG_INTERLACETYPE interlace;
   OMX_INIT_STRUCTURE(interlace);
 
   interlace.nPortIndex = mDecoder.getOutputPort();
   mDecoder.getConfig (OMX_IndexConfigCommonInterlace, &interlace);
 
-  if (mConfig.mDeinterlace == eInterlaceForce)
-    mDeinterlace = true;
-  else if (mConfig.mDeinterlace == eInterlaceOff)
-    mDeinterlace = false;
+  if (mConfig.mDeInterlace == eInterlaceForce)
+    mDeInterlace = true;
+  else if (mConfig.mDeInterlace == eInterlaceOff)
+    mDeInterlace = false;
   else
-    mDeinterlace = (interlace.eMode != OMX_InterlaceProgressive);
+    mDeInterlace = (interlace.eMode != OMX_InterlaceProgressive);
 
-  logSrcChanged (port, interlace.eMode, mDeinterlace);
+  logSrcChanged (port, interlace.eMode, mDeInterlace);
 
-  if (mDeinterlace)
+  if (mDeInterlace)
     if (!mImageFx.init ("OMX.broadcom.image_fx", OMX_IndexParamImageInit))
       return false;
   //}}}
@@ -532,9 +525,9 @@ bool cOmxVideo::srcChanged() {
       }
     }
     //}}}
-  if (mDeinterlace) {
-    //{{{  set deinterlace
-    if (!mConfig.mAdvancedHdDeinterlace) {
+  if (mDeInterlace) {
+    //{{{  set deInterlace
+    //if (!mConfig.mAdvancedHdDeinterlace) {
       // imageFx assumed 3 frames of context, release not needed for simple deinterlace
       OMX_PARAM_U32TYPE brcmExtraBuffers;
       OMX_INIT_STRUCTURE(brcmExtraBuffers);
@@ -545,7 +538,7 @@ bool cOmxVideo::srcChanged() {
         cLog::log (LOGERROR, string(__func__) + " setExtraBuffers");
         return false;
         }
-      }
+    //  }
 
     // configure deInterlace
     OMX_CONFIG_IMAGEFILTERPARAMSTYPE filterParams;
@@ -557,7 +550,8 @@ bool cOmxVideo::srcChanged() {
     filterParams.nParams[1] = 0; // default frame interval
     filterParams.nParams[2] = 0; // half framerate
     filterParams.nParams[3] = 1; // use qpus
-    filterParams.eImageFilter = mConfig.mAdvancedHdDeinterlace ? OMX_ImageFilterDeInterlaceAdvanced : OMX_ImageFilterDeInterlaceFast;
+    //filterParams.eImageFilter = mConfig.mAdvancedHdDeinterlace ? OMX_ImageFilterDeInterlaceAdvanced : OMX_ImageFilterDeInterlaceFast;
+    filterParams.eImageFilter = OMX_ImageFilterDeInterlaceFast;
     if (mImageFx.setConfig (OMX_IndexConfigCommonImageFilterParameters, &filterParams)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " setImageFilters");
@@ -586,7 +580,7 @@ bool cOmxVideo::srcChanged() {
     return false;
     }
     //}}}
-  if (mDeinterlace) {
+  if (mDeInterlace) {
     if (mTunnelImageFx.establish()) {
       //{{{  error return
       cLog::log (LOGERROR,  string(__func__) + " mTunnelImageFx.establish");
@@ -723,7 +717,7 @@ void cOmxVideo::reset() {
   mSetStartTime = true;
 
   mDecoder.flushInput();
-  if (mDeinterlace)
+  if (mDeInterlace)
     mImageFx.flushInput();
   mRender.resetEos();
   }
@@ -735,7 +729,7 @@ void cOmxVideo::close() {
 
   mTunnelClock.deEstablish();
   mTunnelDecoder.deEstablish();
-  if (mDeinterlace)
+  if (mDeInterlace)
     mTunnelImageFx.deEstablish();
   mTunnelSched.deEstablish();
 
@@ -743,11 +737,11 @@ void cOmxVideo::close() {
 
   mScheduler.deInit();
   mDecoder.deInit();
-  if (mDeinterlace)
+  if (mDeInterlace)
     mImageFx.deInit();
   mRender.deInit();
 
-  mDeinterlace = false;
+  mDeInterlace = false;
   mClock = NULL;
   }
 //}}}
@@ -776,6 +770,8 @@ string cOmxVideo::getDeInterlaceModeString (eInterlaceMode interlaceMode) {
     case eInterlaceOff:   return "interlaceOff";
     case eInterlaceAuto:  return "interlaceAuto";
     case eInterlaceForce: return "interlaceForce";
+    case eInterlaceAutoAdv:  return "interlaceAutoAdv";
+    case eInterlaceForceAdv: return "interlaceForceAdv";
     }
   return "error";
   }
@@ -809,7 +805,7 @@ bool cOmxVideo::sendDecoderExtraConfig() {
   }
 //}}}
 //{{{
-bool cOmxVideo::naluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize) {
+bool cOmxVideo::naluFormat (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize) {
 // valid avcC atom data always starts with the value 1 (version), otherwise annexb
 
   switch (codec) {
@@ -826,14 +822,14 @@ bool cOmxVideo::naluFormatStartCodes (enum AVCodecID codec, uint8_t *in_extradat
 //}}}
 //{{{
 void cOmxVideo::logSrcChanged (OMX_PARAM_PORTDEFINITIONTYPE port,
-                               enum OMX_INTERLACETYPE interlaceMode, bool deinterlace) {
+                               enum OMX_INTERLACETYPE interlaceMode, bool deInterlace) {
 
   cLog::log (LOGINFO, "srcChanged - %dx%d %.2f %s.%s->%s pixAsp:%.2f display:%d aspMode:%d",
                       port.format.video.nFrameWidth, port.format.video.nFrameHeight,
                       port.format.video.xFramerate / (float)(1<<16),
                       getInterlaceModeString (interlaceMode).c_str(),
-                      getDeInterlaceModeString (mConfig.mDeinterlace).c_str(),
-                      deinterlace ? "deint":"noDeint",
+                      getDeInterlaceModeString (mConfig.mDeInterlace).c_str(),
+                      deInterlace ? "deInt":"noDeInt",
                       mPixelAspect, mConfig.mDisplay, mConfig.mAspectMode);
   }
 //}}}

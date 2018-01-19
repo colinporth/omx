@@ -696,7 +696,7 @@ int main (int argc, char* argv[]) {
   cLog::log (LOGNOTICE, "omx " + root + " " + string(VERSION_DATE));
 
   cAppWindow appWindow (root);
-  appWindow.mVideoConfig.mDeinterlace = deInterlace;
+  appWindow.mVideoConfig.mDeInterlace = deInterlace;
   appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
   appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
   appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
