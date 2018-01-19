@@ -417,8 +417,8 @@ public:
 
   bool open (cOmxStreamInfo& hints, enum PCMLayout layout);
   bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t chanMap, int bitsPerSample);
-  int decode (uint8_t* data, int size, double dts, double pts);
-  int addDecodedPacket (void* data, int len, double dts, double pts, int frameSize);
+  int swDecode (uint8_t* data, int size, double dts, double pts);
+  int addDecodedData (void* data, int len, double dts, double pts, int frameSize);
   void process();
   void submitEOS();
   void flush();

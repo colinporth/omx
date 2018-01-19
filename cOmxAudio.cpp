@@ -71,123 +71,6 @@ cOmxAudio::~cOmxAudio() {
 
 // gets
 //{{{
-uint64_t cOmxAudio::getChanMap() {
-
-  auto bits = countBits (mCodecContext->channel_layout);
-
-  uint64_t layout;
-  if (bits == mCodecContext->channels)
-    layout = mCodecContext->channel_layout;
-  else {
-    cLog::log (LOGINFO, string (__func__) +
-                        " - chans:" + dec(mCodecContext->channels) +
-                        " layout:" + hex(bits));
-    layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
-    }
-
-  return layout;
-  }
-//}}}
-//{{{
-int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
-
-  if (!mGotFrame)
-    return 0;
-
-  // input audio is aligned
-  int inLineSize;
-  int inputSize = mAvUtil.av_samples_get_buffer_size (
-    &inLineSize, mCodecContext->channels, mFrame->nb_samples, mCodecContext->sample_fmt, 0);
-
-  // output audio will be packed
-  int outLineSize;
-  int outputSize = mAvUtil.av_samples_get_buffer_size (
-    &outLineSize, mCodecContext->channels, mFrame->nb_samples, mDesiredSampleFormat, 1);
-
-  if (!mNoConcatenate && mBufferOutputUsed && (int)mFrameSize != outputSize) {
-    cLog::log (LOGERROR, "cOmxAudio::getData size:%d->%d", mFrameSize, outputSize);
-    mNoConcatenate = true;
-    }
-
-  // if this buffer won't fit then flush out what we have
-  int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
-    (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
-  if (mBufferOutputUsed && (mBufferOutputUsed + outputSize > desired_size || mNoConcatenate)) {
-    int ret = mBufferOutputUsed;
-    mBufferOutputUsed = 0;
-    mNoConcatenate = false;
-    dts = mDts;
-    pts = mPts;
-    *dst = mBufferOutput;
-    return ret;
-    }
-  mFrameSize = outputSize;
-
-  if (mBufferOutputAlloced < mBufferOutputUsed + outputSize) {
-    mBufferOutput = (uint8_t*)mAvUtil.av_realloc (
-      mBufferOutput, mBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
-    mBufferOutputAlloced = mBufferOutputUsed + outputSize;
-    }
-
-  // need to convert format
-  if (mCodecContext->sample_fmt != mDesiredSampleFormat) {
-    if (mConvert &&
-        (mCodecContext->sample_fmt != mSampleFormat || mChans != mCodecContext->channels)) {
-      mSwResample.swr_free (&mConvert);
-      mChans = mCodecContext->channels;
-      }
-
-    if (!mConvert) {
-      mSampleFormat = mCodecContext->sample_fmt;
-      mConvert = mSwResample.swr_alloc_set_opts (NULL,
-                   mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
-                   mDesiredSampleFormat, mCodecContext->sample_rate,
-                   mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
-                   mCodecContext->sample_fmt, mCodecContext->sample_rate,
-                   0, NULL);
-
-      if (!mConvert || mSwResample.swr_init(mConvert) < 0) {
-        cLog::log (LOGERROR, "cOmxAudio::getData unable to initialise convert format:%d to %d",
-                             mCodecContext->sample_fmt, mDesiredSampleFormat);
-        return 0;
-        }
-      }
-
-    // use unaligned flag to keep output packed
-    uint8_t* out_planes[mCodecContext->channels];
-    if ((mAvUtil.av_samples_fill_arrays (
-          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
-          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0) ||
-        mSwResample.swr_convert (mConvert, out_planes,
-          mFrame->nb_samples, (const uint8_t**)mFrame->data, mFrame->nb_samples) < 0) {
-      cLog::log (LOGERROR, "cOmxAudio::getData decode unable to convert format %d to %d",
-                           (int)mCodecContext->sample_fmt, mDesiredSampleFormat);
-      outputSize = 0;
-      }
-    }
-  else {
-    // copy to a contiguous buffer
-    uint8_t* out_planes[mCodecContext->channels];
-    if (mAvUtil.av_samples_fill_arrays (
-          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
-          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0 ||
-        mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
-                                 mCodecContext->channels, mDesiredSampleFormat) < 0 )
-      outputSize = 0;
-    }
-  mGotFrame = false;
-
-  if (mFirstFrame)
-    cLog::log (LOGINFO1, "cOmxAudio::getData size:%d/%d line:%d/%d buf:%p, desired:%d",
-               inputSize, outputSize, inLineSize, outLineSize, mBufferOutput, desired_size);
-  mFirstFrame = false;
-
-  mBufferOutputUsed += outputSize;
-  return 0;
-  }
-//}}}
-
-//{{{
 bool cOmxAudio::isEOS() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -280,6 +163,125 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
     };
 
   return (int)layout < 10 ? layouts[(int)layout] : 0;
+  }
+//}}}
+//{{{
+uint64_t cOmxAudio::getChanMap() {
+
+  auto bits = countBits (mCodecContext->channel_layout);
+
+  uint64_t layout;
+  if (bits == mCodecContext->channels)
+    layout = mCodecContext->channel_layout;
+  else {
+    cLog::log (LOGINFO, string (__func__) +
+                        " - chans:" + dec(mCodecContext->channels) +
+                        " layout:" + hex(bits));
+    layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
+    }
+
+  return layout;
+  }
+//}}}
+
+//{{{
+int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
+
+  if (!mGotFrame)
+    return 0;
+
+  // input audio is aligned
+  int inLineSize;
+  int inputSize = mAvUtil.av_samples_get_buffer_size (
+    &inLineSize, mCodecContext->channels, mFrame->nb_samples, mCodecContext->sample_fmt, 0);
+
+  // output audio will be packed
+  int outLineSize;
+  int outputSize = mAvUtil.av_samples_get_buffer_size (
+    &outLineSize, mCodecContext->channels, mFrame->nb_samples, mDesiredSampleFormat, 1);
+
+  if (!mNoConcatenate && mBufferOutputUsed && (int)mFrameSize != outputSize) {
+    cLog::log (LOGERROR, "cOmxAudio::getData size:%d->%d", mFrameSize, outputSize);
+    mNoConcatenate = true;
+    }
+
+  // if this buffer won't fit then flush out what we have
+  int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
+    (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
+  if (mBufferOutputUsed && (mBufferOutputUsed + outputSize > desired_size || mNoConcatenate)) {
+    int ret = mBufferOutputUsed;
+    mBufferOutputUsed = 0;
+    mNoConcatenate = false;
+    dts = mDts;
+    pts = mPts;
+    *dst = mBufferOutput;
+    return ret;
+    }
+  mFrameSize = outputSize;
+
+  if (mBufferOutputAlloced < mBufferOutputUsed + outputSize) {
+    mBufferOutput = (uint8_t*)mAvUtil.av_realloc (
+      mBufferOutput, mBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
+    mBufferOutputAlloced = mBufferOutputUsed + outputSize;
+    }
+
+  if (mCodecContext->sample_fmt != mDesiredSampleFormat) {
+    //{{{  convert format
+    if (mConvert &&
+        ((mCodecContext->sample_fmt != mSampleFormat) || (mChans != mCodecContext->channels))) {
+      mSwResample.swr_free (&mConvert);
+      mChans = mCodecContext->channels;
+      }
+
+    if (!mConvert) {
+      mSampleFormat = mCodecContext->sample_fmt;
+      mConvert = mSwResample.swr_alloc_set_opts (NULL,
+                   mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
+                   mDesiredSampleFormat, mCodecContext->sample_rate,
+                   mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
+                   mCodecContext->sample_fmt, mCodecContext->sample_rate,
+                   0, NULL);
+
+      if (!mConvert || mSwResample.swr_init(mConvert) < 0) {
+        cLog::log (LOGERROR, "cOmxAudio::getData unable to initialise convert format:%d to %d",
+                             mCodecContext->sample_fmt, mDesiredSampleFormat);
+        return 0;
+        }
+      }
+
+    // use unaligned flag to keep output packed
+    uint8_t* out_planes[mCodecContext->channels];
+    if ((mAvUtil.av_samples_fill_arrays (
+          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
+          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0) ||
+        mSwResample.swr_convert (mConvert, out_planes,
+          mFrame->nb_samples, (const uint8_t**)mFrame->data, mFrame->nb_samples) < 0) {
+      cLog::log (LOGERROR, "cOmxAudio::getData decode unable to convert format %d to %d",
+                           (int)mCodecContext->sample_fmt, mDesiredSampleFormat);
+      outputSize = 0;
+      }
+    }
+    //}}}
+  else {
+    //{{{  copy to a contiguous buffer
+    uint8_t* out_planes[mCodecContext->channels];
+    if (mAvUtil.av_samples_fill_arrays (
+          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
+          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0 ||
+        mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
+                                 mCodecContext->channels, mDesiredSampleFormat) < 0 )
+      outputSize = 0;
+    }
+    //}}}
+  mGotFrame = false;
+
+  if (mFirstFrame)
+    cLog::log (LOGINFO1, "cOmxAudio::getData size:%d/%d line:%d/%d buf:%p, desired:%d",
+               inputSize, outputSize, inLineSize, outLineSize, mBufferOutput, desired_size);
+  mFirstFrame = false;
+
+  mBufferOutputUsed += outputSize;
+  return 0;
   }
 //}}}
 
@@ -549,7 +551,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t 
   }
 //}}}
 //{{{
-int cOmxAudio::decode (uint8_t* data, int size, double dts, double pts) {
+int cOmxAudio::swDecode (uint8_t* data, int size, double dts, double pts) {
 
   AVPacket avpkt;
   if (!mBufferOutputUsed) {
@@ -563,6 +565,7 @@ int cOmxAudio::decode (uint8_t* data, int size, double dts, double pts) {
   mAvCodec.av_init_packet (&avpkt);
   avpkt.data = data;
   avpkt.size = size;
+
   int gotFrame;
   int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avpkt);
   if (bytesUsed < 0 || !gotFrame)
@@ -570,13 +573,13 @@ int cOmxAudio::decode (uint8_t* data, int size, double dts, double pts) {
 
   // some codecs will attempt to consume more data than what we gave
   if (bytesUsed > size) {
-    cLog::log (LOGINFO1, "cOmxAudio::decode - consume more data than given");
+    cLog::log (LOGINFO1, "cOmxAudio::swDecode - consume more data than given");
     bytesUsed = size;
     }
   mGotFrame = true;
 
   if (mFirstFrame)
-    cLog::log (LOGINFO, "cOmxAudio::decode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
+    cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
                mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
                size, mFrame->nb_samples, mFrame->linesize[0]);
 
@@ -584,7 +587,7 @@ int cOmxAudio::decode (uint8_t* data, int size, double dts, double pts) {
   }
 //}}}
 //{{{
-int cOmxAudio::addDecodedPacket (void* data, int len, double dts, double pts, int frameSize) {
+int cOmxAudio::addDecodedData (void* data, int len, double dts, double pts, int frameSize) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
