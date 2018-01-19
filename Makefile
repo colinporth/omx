@@ -6,7 +6,10 @@ CFLAGS   += -std=c++0x \
 	    -D PIC -D _REENTRANT \
 	    -D _LARGEFILE64_SOURCE -D _FILE_OFFSET_BITS=64 -D OMX_SKIP64BIT \
 	    -U _FORTIFY_SOURCE \
-	    -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
+	    -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8
+
+#           -march=armv6zk -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp
+#           -mstructure-size-boundary=32 \
 
 INCLUDES += -I$(SDKSTAGE)/opt/vc/include \
 	    -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \
@@ -21,6 +24,8 @@ LDFLAGS  += -L$(SDKSTAGE)/opt/vc/lib/ \
 	    -l asound \
 	    -l avutil -l avcodec -l avformat -l swscale -l swresample \
 	    -L ./ \
+
+OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
 SRC       = omx.cpp \
 	    cOmxCore.cpp \
@@ -37,11 +42,6 @@ SRC       = omx.cpp \
 	    ../shared/nanoVg/cRaspWindow.cpp \
 	    ../shared/nanoVg/cVg.cpp \
 	    ../shared/dvb/cDvb.cpp \
-
-#           -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -march=armv6zk
-#           -mstructure-size-boundary=32 \
-
-OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
 all: omx
 
