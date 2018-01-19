@@ -41,7 +41,7 @@ bool cOmxAudioPlayer::openOmxAudio() {
 
   mOmxAudio = new cOmxAudio();
 
-  if (mOmxAudio->open (mConfig.mHints, mConfig.mLayout)) {
+  if (mOmxAudio->open (mConfig, mConfig.mHints, mConfig.mLayout)) {
     if (mOmxAudio->init (mClock, mConfig)) {
       cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
                           " rate:" + dec(mConfig.mHints.samplerate) +

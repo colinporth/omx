@@ -291,7 +291,7 @@ void cOmxAudio::setVolume (float volume) {
 
 // actions
 //{{{
-bool cOmxAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
+bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints, enum PCMLayout layout) {
 
   cLog::log (LOGINFO, "cOmxAudio::open");
 
