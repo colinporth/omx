@@ -14,17 +14,16 @@ using namespace std;
 bool cOmxAudioPlayer::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mClock = clock;
-
   mConfig = config;
   mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
-
-  mAvFormat.av_register_all();
 
   mAbort = false;
   mFlush = false;
   mFlushRequested = false;
-  mCurrentPts = DVD_NOPTS_VALUE;
   mPacketCacheSize = 0;
+  mCurrentPts = DVD_NOPTS_VALUE;
+
+  mAvFormat.av_register_all();
 
   mSwAudio = nullptr;
   mOmxAudio = nullptr;

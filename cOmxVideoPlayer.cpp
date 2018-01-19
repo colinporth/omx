@@ -11,7 +11,7 @@ using namespace std;
 //}}}
 
 //{{{
-double normDur (double frameDuration) {
+double normaliseDuration (double frameDuration) {
 // if the duration is within 20 microseconds of a common duration, use that
 
   const double durations[] = {
@@ -40,22 +40,22 @@ double normDur (double frameDuration) {
 bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
 
   mClock = clock;
-
   mConfig = config;
   mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
+
+  mAbort = false;
+  mFlush = false;
+  mFlushRequested = false;
+  mPacketCacheSize = 0;
+  mCurrentPts = DVD_NOPTS_VALUE;
 
   mAvFormat.av_register_all();
 
   mFrametime = 0;
-  mCurrentPts = DVD_NOPTS_VALUE;
   mVideoDelay = 0;
 
-  mAbort = false;
-  mFlush = false;
-  mPacketCacheSize = 0;
-
   if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
-    mFps = 1000000.f / normDur (1000000.0 * mConfig.mHints.fpsscale / mConfig.mHints.fpsrate);
+    mFps = 1000000.f / normaliseDuration (1000000.0 * mConfig.mHints.fpsscale / mConfig.mHints.fpsrate);
     if (mFps > 100.f || mFps < 5.f) {
       cLog::log (LOGERROR, "cOmxPlayerVideo::open invalid framerate %d", (int)mFps);
       mFps = 25.f;
@@ -65,17 +65,23 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
     mFps = 25.f;
   mFrametime = 1000000.0 / mFps;
 
-  // open decoder
-  mDecoder = new cOmxVideo();
-  if (mDecoder->open (mClock, mConfig)) {
-    cLog::log (LOGINFO, "cOmxPlayerVideo::open %s profile:%d %dx%d %ffps",
-               mDecoder->getDecoderName().c_str(), mConfig.mHints.profile,
-               mConfig.mHints.width, mConfig.mHints.height, mFps);
-    return true;
+  if (mConfig.mHints.codec == AV_CODEC_ID_MPEG2VIDEO) {
+    cLog::log (LOGNOTICE, "cOmxPlayerVideo::open - no hw mpeg2 decoder - implement swDecoder");
+    return false;
     }
   else {
-    close();
-    return false;
+    // open hw decoder
+    mDecoder = new cOmxVideo();
+    if (mDecoder->open (mClock, mConfig)) {
+      cLog::log (LOGINFO, "cOmxPlayerVideo::open %s profile:%d %dx%d %ffps",
+                 mDecoder->getDecoderName().c_str(), mConfig.mHints.profile,
+                 mConfig.mHints.width, mConfig.mHints.height, mFps);
+      return true;
+      }
+    else {
+      close();
+      return false;
+      }
     }
   }
 //}}}

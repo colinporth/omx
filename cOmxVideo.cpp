@@ -85,50 +85,50 @@ void cOmxVideo::setVideoRect() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  OMX_CONFIG_DISPLAYREGIONTYPE display;
-  OMX_INIT_STRUCTURE(display);
-  display.nPortIndex = mRender.getInputPort();
-  display.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT |
-                                     OMX_DISPLAY_SET_MODE |
-                                     OMX_DISPLAY_SET_SRC_RECT |
-                                     OMX_DISPLAY_SET_FULLSCREEN |
-                                     OMX_DISPLAY_SET_PIXEL);
-  display.mode = (mConfig.mAspectMode == 2) ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
-  display.noaspect = (mConfig.mAspectMode == 3) ? OMX_TRUE : OMX_FALSE;
+  OMX_CONFIG_DISPLAYREGIONTYPE displayRegion;
+  OMX_INIT_STRUCTURE(displayRegion);
+  displayRegion.nPortIndex = mRender.getInputPort();
+  displayRegion.set = (OMX_DISPLAYSETTYPE)(OMX_DISPLAY_SET_NOASPECT |
+                                           OMX_DISPLAY_SET_MODE |
+                                           OMX_DISPLAY_SET_SRC_RECT |
+                                           OMX_DISPLAY_SET_FULLSCREEN |
+                                           OMX_DISPLAY_SET_PIXEL);
+  displayRegion.mode = (mConfig.mAspectMode == 2) ? OMX_DISPLAY_MODE_FILL : OMX_DISPLAY_MODE_LETTERBOX;
+  displayRegion.noaspect = (mConfig.mAspectMode == 3) ? OMX_TRUE : OMX_FALSE;
 
-  display.src_rect.x_offset = (int)(mConfig.mSrcRect.x1 + 0.5f);
-  display.src_rect.y_offset = (int)(mConfig.mSrcRect.y1 + 0.5f);
-  display.src_rect.width = (int)(mConfig.mSrcRect.getWidth() + 0.5f);
-  display.src_rect.height = (int)(mConfig.mSrcRect.getHeight() + 0.5f);
+  displayRegion.src_rect.x_offset = (int)(mConfig.mSrcRect.x1 + 0.5f);
+  displayRegion.src_rect.y_offset = (int)(mConfig.mSrcRect.y1 + 0.5f);
+  displayRegion.src_rect.width = (int)(mConfig.mSrcRect.getWidth() + 0.5f);
+  displayRegion.src_rect.height = (int)(mConfig.mSrcRect.getHeight() + 0.5f);
 
   if ((mConfig.mDstRect.x2 > mConfig.mDstRect.x1) &&
       (mConfig.mDstRect.y2 > mConfig.mDstRect.y1)) {
-    display.set = (OMX_DISPLAYSETTYPE)(display.set | OMX_DISPLAY_SET_DEST_RECT);
-    display.fullscreen = OMX_FALSE;
+    displayRegion.set = (OMX_DISPLAYSETTYPE)(displayRegion.set | OMX_DISPLAY_SET_DEST_RECT);
+    displayRegion.fullscreen = OMX_FALSE;
     if ((mConfig.mAspectMode != 1) &&
         (mConfig.mAspectMode != 2) &&
         (mConfig.mAspectMode != 3))
-      display.noaspect = OMX_TRUE;
-    display.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
-    display.dest_rect.y_offset = (int)(mConfig.mDstRect.y1 + 0.5f);
-    display.dest_rect.width = (int)(mConfig.mDstRect.getWidth() + 0.5f);
-    display.dest_rect.height = (int)(mConfig.mDstRect.getHeight() + 0.5f);
+      displayRegion.noaspect = OMX_TRUE;
+    displayRegion.dest_rect.x_offset = (int)(mConfig.mDstRect.x1 + 0.5f);
+    displayRegion.dest_rect.y_offset = (int)(mConfig.mDstRect.y1 + 0.5f);
+    displayRegion.dest_rect.width = (int)(mConfig.mDstRect.getWidth() + 0.5f);
+    displayRegion.dest_rect.height = (int)(mConfig.mDstRect.getHeight() + 0.5f);
     }
   else
-    display.fullscreen = OMX_TRUE;
+    displayRegion.fullscreen = OMX_TRUE;
 
-  if ((display.noaspect == OMX_FALSE) && (mPixelAspect != 0.f)) {
+  if ((displayRegion.noaspect == OMX_FALSE) && (mPixelAspect != 0.f)) {
     AVRational aspect = av_d2q (mPixelAspect, 100);
-    display.pixel_x = aspect.num;
-    display.pixel_y = aspect.den;
+    displayRegion.pixel_x = aspect.num;
+    displayRegion.pixel_y = aspect.den;
     }
   else {
-    display.pixel_x = 0;
-    display.pixel_y = 0;
+    displayRegion.pixel_x = 0;
+    displayRegion.pixel_y = 0;
     }
 
-  if (mRender.setConfig (OMX_IndexConfigDisplayRegion, &display))
-    cLog::log (LOGERROR, string(__func__) + " setDisplay");
+  if (mRender.setConfig (OMX_IndexConfigDisplayRegion, &displayRegion))
+    cLog::log (LOGERROR, string(__func__) + " setDisplayRegion");
   }
 //}}}
 //{{{
