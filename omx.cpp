@@ -203,6 +203,7 @@ protected:
   //{{{
   void pollKeyboard() {
 
+    //cLog::log (LOGINFO, "pollKeyboard");
     switch (mKeyboard.getEvent()) {
       //{{{
       case cKeyConfig::ACT_PREV_FILE:
@@ -549,18 +550,19 @@ private:
           if (packet) {
             //{{{  got packet
             submitEos = false;
+
             if (mOmxVideoPlayer && mOmxReader.isActive (OMXSTREAM_VIDEO, packet->mStreamIndex)) {
               if (mOmxVideoPlayer->addPacket (packet))
                 packet = NULL;
-              else
-                mOmxClock.msSleep (10);
+              else 
+                mOmxClock.msSleep (20);
               }
 
             else if (mOmxAudioPlayer && mOmxReader.isActive (OMXSTREAM_AUDIO, packet->mStreamIndex)) {
               if (mOmxAudioPlayer->addPacket (packet))
                 packet = NULL;
-              else
-                mOmxClock.msSleep (10);
+              else 
+                mOmxClock.msSleep (20);
               }
 
             else {
@@ -580,7 +582,8 @@ private:
                 if (mOmxAudioPlayer)
                   mOmxAudioPlayer->submitEOS();
                 }
-              if ((!mOmxVideoPlayer || mOmxVideoPlayer->isEOS()) && (!mOmxAudioPlayer || mOmxAudioPlayer->isEOS()))
+              if ((!mOmxVideoPlayer || mOmxVideoPlayer->isEOS()) &&
+                  (!mOmxAudioPlayer || mOmxAudioPlayer->isEOS()))
                 break;
               }
 
