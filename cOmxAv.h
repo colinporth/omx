@@ -401,12 +401,10 @@ public:
   unsigned int getAudioRenderingLatency();
 
   int getChans() { return mCodecContext->channels; }
-  uint64_t getChanMap();
   uint64_t getChanLayout (enum PCMLayout layout);
 
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
-  int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
   float getVolume() { return mMute ? 0.f : mCurVolume; }
 
   unsigned int getFrameSize() { return mFrameSize; }
@@ -416,7 +414,7 @@ public:
   void setVolume (float volume);
 
   bool open (cOmxStreamInfo& hints, enum PCMLayout layout);
-  bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t chanMap, int bitsPerSample);
+  bool init (cOmxClock* clock, const cOmxAudioConfig &config);
   int swDecode (uint8_t* data, int size, double dts, double pts);
   int addDecodedData (void* data, int len, double dts, double pts, int frameSize);
   void process();
@@ -426,6 +424,9 @@ public:
   void dispose();
 
 private:
+  int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
+
+  uint64_t getChanMap();
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
   int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);

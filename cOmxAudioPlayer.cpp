@@ -42,7 +42,7 @@ bool cOmxAudioPlayer::openOmxAudio() {
   mOmxAudio = new cOmxAudio();
 
   if (mOmxAudio->open (mConfig.mHints, mConfig.mLayout)) {
-    if (mOmxAudio->init (mClock, mConfig, mOmxAudio->getChanMap(), mOmxAudio->getBitsPerSample())) {
+    if (mOmxAudio->init (mClock, mConfig)) {
       cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
                           " rate:" + dec(mConfig.mHints.samplerate) +
                           " bps:" + dec(mConfig.mHints.bitspersample));
@@ -84,7 +84,7 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
     }
     //}}}
 
-  cLog::log (LOGINFO1, "cOmxAudioPlayer::decode - pts:%6.2f size:%d", 
+  cLog::log (LOGINFO1, "cOmxAudioPlayer::decode - pts:%6.2f size:%d",
                        packet->mPts/1000000.f, packet->mSize);
 
   if (packet->mPts != DVD_NOPTS_VALUE)

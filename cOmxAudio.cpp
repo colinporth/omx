@@ -165,24 +165,6 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
   return (int)layout < 10 ? layouts[(int)layout] : 0;
   }
 //}}}
-//{{{
-uint64_t cOmxAudio::getChanMap() {
-
-  auto bits = countBits (mCodecContext->channel_layout);
-
-  uint64_t layout;
-  if (bits == mCodecContext->channels)
-    layout = mCodecContext->channel_layout;
-  else {
-    cLog::log (LOGINFO, string (__func__) +
-                        " - chans:" + dec(mCodecContext->channels) +
-                        " layout:" + hex(bits));
-    layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
-    }
-
-  return layout;
-  }
-//}}}
 
 //{{{
 int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
@@ -384,13 +366,16 @@ bool cOmxAudio::open (cOmxStreamInfo &hints, enum PCMLayout layout) {
   }
 //}}}
 //{{{
-bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t chanMap, int bitsPerSample) {
+bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mClock = clock;
   mConfig = config;
 
+  int bitsPerSample = getBitsPerSample();
+
+  uint64_t chanMap = getChanMap();
   mNumInputChans = countBits (chanMap);
   memset (mInputChans, 0, sizeof(mInputChans));
   memset (mOutputChans, 0, sizeof(mOutputChans));
@@ -773,6 +758,24 @@ void cOmxAudio::dispose() {
 //}}}
 
 // private
+//{{{
+uint64_t cOmxAudio::getChanMap() {
+
+  auto bits = countBits (mCodecContext->channel_layout);
+
+  uint64_t layout;
+  if (bits == mCodecContext->channels)
+    layout = mCodecContext->channel_layout;
+  else {
+    cLog::log (LOGINFO, string (__func__) +
+                        " - chans:" + dec(mCodecContext->channels) +
+                        " layout:" + hex(bits));
+    layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
+    }
+
+  return layout;
+  }
+//}}}
 //{{{
 void cOmxAudio::buildChanMap (enum PCMChannels* chanMap, uint64_t layout) {
 
