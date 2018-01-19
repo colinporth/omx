@@ -291,7 +291,7 @@ void cOmxAudio::setVolume (float volume) {
 
 // actions
 //{{{
-bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints, enum PCMLayout layout) {
+bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints) {
 
   cLog::log (LOGINFO, "cOmxAudio::open");
 
@@ -320,20 +320,7 @@ bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints, enum
   mCodecContext->block_align = hints.blockalign;
   mCodecContext->bit_rate = hints.bitrate;
   mCodecContext->bits_per_coded_sample = hints.bitspersample;
-  if (hints.codec == AV_CODEC_ID_TRUEHD) {
-    //{{{  truehd
-    if (layout == PCM_LAYOUT_2_0) {
-      mCodecContext->request_channel_layout = AV_CH_LAYOUT_STEREO;
-      mCodecContext->channels = 2;
-      mCodecContext->channel_layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
-      }
-    else if (layout <= PCM_LAYOUT_5_1) {
-      mCodecContext->request_channel_layout = AV_CH_LAYOUT_5POINT1;
-      mCodecContext->channels = 6;
-      mCodecContext->channel_layout = mAvUtil.av_get_default_channel_layout (mCodecContext->channels);
-      }
-    }
-    //}}}
+
   if (mCodecContext->request_channel_layout)
     cLog::log (LOGINFO, "cOmxAudio::open - channelLayout %x",
                         (unsigned)mCodecContext->request_channel_layout);
