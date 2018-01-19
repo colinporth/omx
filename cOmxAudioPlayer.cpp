@@ -41,24 +41,22 @@ bool cOmxAudioPlayer::openOmxAudio() {
 
   mOmxAudio = new cOmxAudio();
 
-  if (!mOmxAudio->open (mConfig.mHints, mConfig.mLayout))
-    return false;
+  if (mOmxAudio->open (mConfig.mHints, mConfig.mLayout)) {
+    if (mOmxAudio->init (mClock, mConfig, mOmxAudio->getChanMap(), mOmxAudio->getBitsPerSample())) {
+      cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
+                          " rate:" + dec(mConfig.mHints.samplerate) +
+                          " bps:" + dec(mConfig.mHints.bitspersample));
 
-  if (mOmxAudio->init (mClock, mConfig, mOmxAudio->getChanMap(), mOmxAudio->getBitsPerSample())) {
-    cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
-                        " rate:" + dec(mConfig.mHints.samplerate) +
-                        " bps:" + dec(mConfig.mHints.bitspersample));
+      // setup current volume settings
+      mOmxAudio->setVolume (mCurrentVolume);
+      mOmxAudio->setMute (mMute);
+      return true;
+      }
+    }
 
-    // setup current volume settings
-    mOmxAudio->setVolume (mCurrentVolume);
-    mOmxAudio->setMute (mMute);
-    return true;
-    }
-  else {
-    delete mOmxAudio;
-    mOmxAudio = nullptr;
-    return false;
-    }
+  delete mOmxAudio;
+  mOmxAudio = nullptr;
+  return false;
   }
 //}}}
 
