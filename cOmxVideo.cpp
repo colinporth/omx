@@ -392,6 +392,228 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
   }
 //}}}
 //{{{
+bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  unsigned int bytesLeft = (unsigned int)size;
+  OMX_U32 nFlags = 0;
+  if (mSetStartTime) {
+    nFlags |= OMX_BUFFERFLAG_STARTTIME;
+    cLog::log (LOGINFO1, "cOmxVideo::Decode - startTime:%f",
+                         ((pts == DVD_NOPTS_VALUE) ? 0.0 : pts) / 1000000.f);
+    mSetStartTime = false;
+    }
+  if ((pts == DVD_NOPTS_VALUE) && (dts == DVD_NOPTS_VALUE))
+    nFlags |= OMX_BUFFERFLAG_TIME_UNKNOWN;
+  else if (pts == DVD_NOPTS_VALUE)
+    nFlags |= OMX_BUFFERFLAG_TIME_IS_DTS;
+
+  while (bytesLeft) {
+    // 500ms timeout
+    auto buffer = mDecoder.getInputBuffer (500);
+    if (!buffer) {
+      //{{{  error return
+      cLog::log (LOGERROR, string(__func__) + " timeout");
+      return false;
+      }
+      //}}}
+
+    buffer->nFlags = nFlags;
+    buffer->nOffset = 0;
+    buffer->nTimeStamp = toOmxTime ((uint64_t)((pts != DVD_NOPTS_VALUE) ?
+                                                 pts : (dts != DVD_NOPTS_VALUE) ? dts : 0.0));
+    buffer->nFilledLen = min ((OMX_U32)bytesLeft, buffer->nAllocLen);
+    memcpy (buffer->pBuffer, data, buffer->nFilledLen);
+    bytesLeft -= buffer->nFilledLen;
+    data += buffer->nFilledLen;
+    if (bytesLeft == 0)
+      buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+    if (mDecoder.emptyThisBuffer (buffer)) {
+      //{{{  error return
+      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
+      return false;
+      }
+      //}}}
+    if (mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
+      if (!srcChanged()) {
+        //{{{  error return
+        cLog::log (LOGERROR, string(__func__) + " srcChanged");
+        return false;
+        }
+        //}}}
+      }
+    if (mDecoder.waitEvent (OMX_EventParamOrConfigChanged, 0) == OMX_ErrorNone)
+      if (!srcChanged())
+        cLog::log (LOGERROR, string(__func__) + " paramChanged");
+    }
+
+  return true;
+  }
+//}}}
+//{{{
+void cOmxVideo::submitEOS() {
+
+  cLog::log (LOGINFO, "submitEOS");
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  mSubmittedEos = true;
+  mFailedEos = false;
+
+  auto omxBuffer = mDecoder.getInputBuffer (1000);
+  if (omxBuffer == NULL) {
+    // error return
+    cLog::log (LOGERROR, string(__func__) + " getInputBuffer");
+    mFailedEos = true;
+    return;
+    }
+
+  omxBuffer->nOffset = 0;
+  omxBuffer->nFilledLen = 0;
+  omxBuffer->nTimeStamp = toOmxTime (0LL);
+  omxBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
+  if (mDecoder.emptyThisBuffer (omxBuffer)) {
+    // error return
+    cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+    mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), omxBuffer);
+    return;
+    }
+  }
+//}}}
+//{{{
+void cOmxVideo::reset() {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  mSetStartTime = true;
+
+  mDecoder.flushInput();
+  if (mDeInterlace)
+    mImageFx.flushInput();
+  mRender.resetEos();
+  }
+//}}}
+//{{{
+void cOmxVideo::close() {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  mTunnelClock.deEstablish();
+  mTunnelDecoder.deEstablish();
+  if (mDeInterlace)
+    mTunnelImageFx.deEstablish();
+  mTunnelSched.deEstablish();
+
+  mDecoder.flushInput();
+
+  mScheduler.deInit();
+  mDecoder.deInit();
+  if (mDeInterlace)
+    mImageFx.deInit();
+  mRender.deInit();
+
+  mDeInterlace = false;
+  mClock = NULL;
+  }
+//}}}
+
+// private
+//{{{
+string cOmxVideo::getInterlaceModeString (enum OMX_INTERLACETYPE interlaceMode) {
+
+  switch (interlaceMode) {
+    case OMX_InterlaceProgressive:                 return "progressive";
+    case OMX_InterlaceFieldSingleUpperFirst:       return "singleUpper";
+    case OMX_InterlaceFieldSingleLowerFirst:       return "singleLower";
+    case OMX_InterlaceFieldsInterleavedUpperFirst: return "interleaveUpper";
+    case OMX_InterlaceFieldsInterleavedLowerFirst: return "interleavdLower";
+    case OMX_InterlaceMixed:                       return "interlaceMixed";
+    default:;
+    }
+
+  return "error";
+  }
+//}}}
+//{{{
+string cOmxVideo::getDeInterlaceModeString (eDeInterlaceMode deInterlaceMode) {
+
+  switch (deInterlaceMode) {
+    case eDeInterlaceOff:   return "deInterlaceOff";
+    case eDeInterlaceAuto:  return "deInterlaceAuto";
+    case eDeInterlaceForce: return "deInterlaceForce";
+    case eDeInterlaceAutoAdv:  return "deInterlaceAutoAdv";
+    case eDeInterlaceForceAdv: return "deInterlaceForceAdv";
+    }
+  return "error";
+  }
+//}}}
+
+//{{{
+bool cOmxVideo::sendDecoderExtraConfig() {
+
+  cLog::log (LOGINFO, string(__func__) + " size:" + dec(mConfig.mHints.extrasize));
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  if ((mConfig.mHints.extrasize > 0) && (mConfig.mHints.extradata != NULL)) {
+    auto buffer = mDecoder.getInputBuffer();
+    if (buffer == NULL) {
+      cLog::log (LOGERROR, string(__func__) + " buffer");
+      return false;
+      }
+
+    buffer->nOffset = 0;
+    buffer->nFilledLen = min ((OMX_U32)mConfig.mHints.extrasize, buffer->nAllocLen);
+    memset (buffer->pBuffer, 0, buffer->nAllocLen);
+    memcpy (buffer->pBuffer, mConfig.mHints.extradata, buffer->nFilledLen);
+    buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
+    if (mDecoder.emptyThisBuffer (buffer)) {
+      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
+      return false;
+      }
+    }
+
+  return true;
+  }
+//}}}
+//{{{
+bool cOmxVideo::setNaluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize) {
+// valid avcC atom data always starts with the value 1 (version), otherwise annexb
+
+  bool naluFormat = false;
+
+  switch (codec) {
+    case AV_CODEC_ID_H264:
+      if (in_extrasize < 7 || in_extradata == NULL)
+        naluFormat = true;
+      else if (*in_extradata != 1)
+        naluFormat = true;
+    default: break;
+    }
+
+  if (naluFormat) {
+    cLog::log (LOGINFO, string(__func__));
+
+    OMX_NALSTREAMFORMATTYPE nalStreamFormat;
+    OMX_INIT_STRUCTURE(nalStreamFormat);
+
+    nalStreamFormat.nPortIndex = mDecoder.getInputPort();
+    nalStreamFormat.eNaluFormat = OMX_NaluFormatStartCodes;
+    if (mDecoder.setParam ((OMX_INDEXTYPE)OMX_IndexParamNalStreamFormatSelect, &nalStreamFormat)) {
+      // error return
+      cLog::log (LOGERROR, string(__func__) + " setNaluFormat");
+      return false;
+      }
+    }
+
+  return false;
+  }
+//}}}
+
+//{{{
 bool cOmxVideo::srcChanged() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -604,228 +826,6 @@ bool cOmxVideo::srcChanged() {
 
   mSrcChanged = true;
   return true;
-  }
-//}}}
-//{{{
-bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  unsigned int bytesLeft = (unsigned int)size;
-  OMX_U32 nFlags = 0;
-  if (mSetStartTime) {
-    nFlags |= OMX_BUFFERFLAG_STARTTIME;
-    cLog::log (LOGINFO1, "cOmxVideo::Decode - startTime:%f",
-                         ((pts == DVD_NOPTS_VALUE) ? 0.0 : pts) / 1000000.f);
-    mSetStartTime = false;
-    }
-
-  if ((pts == DVD_NOPTS_VALUE) && (dts == DVD_NOPTS_VALUE))
-    nFlags |= OMX_BUFFERFLAG_TIME_UNKNOWN;
-  else if (pts == DVD_NOPTS_VALUE)
-    nFlags |= OMX_BUFFERFLAG_TIME_IS_DTS;
-
-  while (bytesLeft) {
-    // 500ms timeout
-    auto buffer = mDecoder.getInputBuffer (500);
-    if (!buffer) {
-      //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " timeout");
-      return false;
-      }
-      //}}}
-
-    buffer->nFlags = nFlags;
-    buffer->nOffset = 0;
-    buffer->nTimeStamp = toOmxTime ((uint64_t)((pts != DVD_NOPTS_VALUE) ?
-                                                 pts : (dts != DVD_NOPTS_VALUE) ? dts : 0.0));
-    buffer->nFilledLen = min ((OMX_U32)bytesLeft, buffer->nAllocLen);
-    memcpy (buffer->pBuffer, data, buffer->nFilledLen);
-    bytesLeft -= buffer->nFilledLen;
-    data += buffer->nFilledLen;
-    if (bytesLeft == 0)
-      buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
-    if (mDecoder.emptyThisBuffer (buffer)) {
-      //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
-      return false;
-      }
-      //}}}
-    if (mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone) {
-      if (!srcChanged()) {
-        //{{{  error return
-        cLog::log (LOGERROR, string(__func__) + " srcChanged");
-        return false;
-        }
-        //}}}
-      }
-    if (mDecoder.waitEvent (OMX_EventParamOrConfigChanged, 0) == OMX_ErrorNone)
-      if (!srcChanged())
-        cLog::log (LOGERROR, string(__func__) + " paramChanged");
-    }
-
-  return true;
-  }
-//}}}
-//{{{
-void cOmxVideo::submitEOS() {
-
-  cLog::log (LOGINFO, "submitEOS");
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  mSubmittedEos = true;
-  mFailedEos = false;
-
-  auto omxBuffer = mDecoder.getInputBuffer (1000);
-  if (omxBuffer == NULL) {
-    // error return
-    cLog::log (LOGERROR, string(__func__) + " getInputBuffer");
-    mFailedEos = true;
-    return;
-    }
-
-  omxBuffer->nOffset = 0;
-  omxBuffer->nFilledLen = 0;
-  omxBuffer->nTimeStamp = toOmxTime (0LL);
-  omxBuffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
-  if (mDecoder.emptyThisBuffer (omxBuffer)) {
-    // error return
-    cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-    mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), omxBuffer);
-    return;
-    }
-  }
-//}}}
-//{{{
-void cOmxVideo::reset() {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  mSetStartTime = true;
-
-  mDecoder.flushInput();
-  if (mDeInterlace)
-    mImageFx.flushInput();
-  mRender.resetEos();
-  }
-//}}}
-//{{{
-void cOmxVideo::close() {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  mTunnelClock.deEstablish();
-  mTunnelDecoder.deEstablish();
-  if (mDeInterlace)
-    mTunnelImageFx.deEstablish();
-  mTunnelSched.deEstablish();
-
-  mDecoder.flushInput();
-
-  mScheduler.deInit();
-  mDecoder.deInit();
-  if (mDeInterlace)
-    mImageFx.deInit();
-  mRender.deInit();
-
-  mDeInterlace = false;
-  mClock = NULL;
-  }
-//}}}
-
-// private
-//{{{
-string cOmxVideo::getInterlaceModeString (enum OMX_INTERLACETYPE interlaceMode) {
-
-  switch (interlaceMode) {
-    case OMX_InterlaceProgressive:                 return "progressive";
-    case OMX_InterlaceFieldSingleUpperFirst:       return "singleUpper";
-    case OMX_InterlaceFieldSingleLowerFirst:       return "singleLower";
-    case OMX_InterlaceFieldsInterleavedUpperFirst: return "interleaveUpper";
-    case OMX_InterlaceFieldsInterleavedLowerFirst: return "interleavdLower";
-    case OMX_InterlaceMixed:                       return "interlaceMixed";
-    default:;
-    }
-
-  return "error";
-  }
-//}}}
-//{{{
-string cOmxVideo::getDeInterlaceModeString (eDeInterlaceMode deInterlaceMode) {
-
-  switch (deInterlaceMode) {
-    case eDeInterlaceOff:   return "deInterlaceOff";
-    case eDeInterlaceAuto:  return "deInterlaceAuto";
-    case eDeInterlaceForce: return "deInterlaceForce";
-    case eDeInterlaceAutoAdv:  return "deInterlaceAutoAdv";
-    case eDeInterlaceForceAdv: return "deInterlaceForceAdv";
-    }
-  return "error";
-  }
-//}}}
-
-//{{{
-bool cOmxVideo::sendDecoderExtraConfig() {
-
-  cLog::log (LOGINFO, string(__func__) + " size:" + dec(mConfig.mHints.extrasize));
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  if ((mConfig.mHints.extrasize > 0) && (mConfig.mHints.extradata != NULL)) {
-    auto buffer = mDecoder.getInputBuffer();
-    if (buffer == NULL) {
-      cLog::log (LOGERROR, string(__func__) + " buffer");
-      return false;
-      }
-
-    buffer->nOffset = 0;
-    buffer->nFilledLen = min ((OMX_U32)mConfig.mHints.extrasize, buffer->nAllocLen);
-    memset (buffer->pBuffer, 0, buffer->nAllocLen);
-    memcpy (buffer->pBuffer, mConfig.mHints.extradata, buffer->nFilledLen);
-    buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
-    if (mDecoder.emptyThisBuffer (buffer)) {
-      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
-      return false;
-      }
-    }
-
-  return true;
-  }
-//}}}
-//{{{
-bool cOmxVideo::setNaluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize) {
-// valid avcC atom data always starts with the value 1 (version), otherwise annexb
-
-  bool naluFormat = false;
-
-  switch (codec) {
-    case AV_CODEC_ID_H264:
-      if (in_extrasize < 7 || in_extradata == NULL)
-        naluFormat = true;
-      else if (*in_extradata != 1)
-        naluFormat = true;
-    default: break;
-    }
-
-  if (naluFormat) {
-    cLog::log (LOGINFO, string(__func__));
-
-    OMX_NALSTREAMFORMATTYPE nalStreamFormat;
-    OMX_INIT_STRUCTURE(nalStreamFormat);
-
-    nalStreamFormat.nPortIndex = mDecoder.getInputPort();
-    nalStreamFormat.eNaluFormat = OMX_NaluFormatStartCodes;
-    if (mDecoder.setParam ((OMX_INDEXTYPE)OMX_IndexParamNalStreamFormatSelect, &nalStreamFormat)) {
-      // error return
-      cLog::log (LOGERROR, string(__func__) + " setNaluFormat");
-      return false;
-      }
-    }
-
-  return false;
   }
 //}}}
 //{{{

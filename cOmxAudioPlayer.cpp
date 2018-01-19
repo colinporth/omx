@@ -56,7 +56,7 @@ bool cOmxAudioPlayer::openOmxAudio() {
   mOmxAudio = new cOmxAudio();
 
   if (mOmxAudio->init (mClock, mConfig, mSwAudio->getChanMap(), mSwAudio->getBitsPerSample())) {
-    cLog::log (LOGINFO, "openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
+    cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
                         " rate:" + dec(mConfig.mHints.samplerate) +
                         " bps:" + dec(mConfig.mHints.bitspersample));
 
@@ -99,7 +99,7 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
     }
     //}}}
 
-  cLog::log (LOGINFO1, "audioPlayer::decode - pts:%6.2f size:%d", packet->mPts / 1000000.f, packet->mSize);
+  cLog::log (LOGINFO1, "cOmxAudioPlayer::Player::decode - pts:%6.2f size:%d", packet->mPts / 1000000.f, packet->mSize);
 
   if (packet->mPts != DVD_NOPTS_VALUE)
     mCurrentPts = packet->mPts;

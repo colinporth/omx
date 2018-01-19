@@ -313,7 +313,6 @@ public:
   void setVideoRect (const cRect& srcRect, const cRect& dstRect);
 
   bool open (cOmxClock* clock, const cOmxVideoConfig& config);
-  bool srcChanged();
   bool decode (uint8_t* data, int size, double dts, double pts);
   void submitEOS();
   void reset();
@@ -326,6 +325,7 @@ private:
   bool setNaluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
   bool sendDecoderExtraConfig();
 
+  bool srcChanged();
   void logSrcChanged (OMX_PARAM_PORTDEFINITIONTYPE port, enum OMX_INTERLACETYPE interlaceMode);
 
   //{{{  vars
@@ -452,19 +452,18 @@ public:
   void setVolume (float volume);
 
   bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t chanMap, int bitsPerSample);
-  void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
-  int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
-  void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
-  bool srcChanged();
   int addPacket (void* data, int len, double dts, double pts, int frameSize);
   void process();
   void submitEOS();
   void flush();
 
 private:
+  void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
+  int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
+  void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool applyVolume();
 
-  void printChans (OMX_AUDIO_CHANNELTYPE eChannelMapping[]);
+  bool srcChanged();
 
   //{{{  vars
   std::recursive_mutex mMutex;

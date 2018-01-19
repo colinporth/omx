@@ -80,7 +80,7 @@ public:
     if (startPlayer)
       add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,frequency?(getHeight()-2.f)/2.f:-2.f));
 
-    refreshFileNames();
+    updateFileNames();
 
     thread dvbCaptureThread;
     thread dvbGrabThread;
@@ -210,7 +210,7 @@ protected:
         if (mFileNum > 0) {
           mFileNum--;
           mFileChanged = true;
-          refreshFileNames();
+          updateFileNames();
           }
         break;
       //}}}
@@ -219,7 +219,7 @@ protected:
         if (mFileNum < mFileNames.size()-1) {
           mFileNum++;
           mFileChanged = true;
-          refreshFileNames();
+          updateFileNames();
           }
         break;
       //}}}
@@ -285,7 +285,7 @@ private:
     }
   //}}}
   //{{{
-  void refreshFileNames() {
+  void updateFileNames() {
     mFileNames.clear();
     nftw (mRoot.c_str(), addFile, 20, 0);
     changed();
@@ -554,14 +554,14 @@ private:
             if (mOmxVideoPlayer && mOmxReader.isActive (OMXSTREAM_VIDEO, packet->mStreamIndex)) {
               if (mOmxVideoPlayer->addPacket (packet))
                 packet = NULL;
-              else 
+              else
                 mOmxClock.msSleep (20);
               }
 
             else if (mOmxAudioPlayer && mOmxReader.isActive (OMXSTREAM_AUDIO, packet->mStreamIndex)) {
               if (mOmxAudioPlayer->addPacket (packet))
                 packet = NULL;
-              else 
+              else
                 mOmxClock.msSleep (20);
               }
 
@@ -608,7 +608,7 @@ private:
       delete (mOmxVideoPlayer);
       delete (mOmxAudioPlayer);
 
-      refreshFileNames();
+      updateFileNames();
       if (mExit || gAbort)
         ok = false;
       else if (mEntered) {
