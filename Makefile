@@ -1,3 +1,27 @@
+CFLAGS   += -std=c++0x \
+	    -g -O2 \
+	    -fPIC -ftree-vectorize -fomit-frame-pointer \
+	    -Wall -Wno-psabi -Wno-deprecated-declarations \
+	    -mabi=aapcs-linux -mno-apcs-stack-check -mno-sched-prolog \
+	    -D PIC -D _REENTRANT \
+	    -D _LARGEFILE64_SOURCE -D _FILE_OFFSET_BITS=64 -D OMX_SKIP64BIT \
+	    -U _FORTIFY_SOURCE \
+	    -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
+
+INCLUDES += -I$(SDKSTAGE)/opt/vc/include \
+	    -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \
+	    -I$(SDKSTAGE)/opt/vc/include/interface/vcos/pthreads \
+	    -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
+	    -I$(SDKSTAGE)/usr/local/include \
+
+LDFLAGS  += -L$(SDKSTAGE)/opt/vc/lib/ \
+	    -l pthread \
+	    -l brcmGLESv2 -l brcmEGL -l bcm_host \
+	    -l vcos -l vchostif -l vchiq_arm -l openmaxil \
+	    -l asound \
+	    -l avutil -l avcodec -l avformat -l swscale -l swresample \
+	    -L ./ \
+
 SRC       = omx.cpp \
 	    cOmxCore.cpp \
 	    cOmxClock.cpp \
@@ -16,30 +40,6 @@ SRC       = omx.cpp \
 
 #           -mcpu=arm1176jzf-s -mtune=arm1176jzf-s -mfloat-abi=hard -mfpu=vfp -march=armv6zk
 #           -mstructure-size-boundary=32 \
-
-CFLAGS   += -std=c++0x \
-	    -g -O2 \
-	    -fPIC -ftree-vectorize -fomit-frame-pointer \
-	    -Wall -Wno-psabi -Wno-deprecated-declarations \
-	    -mabi=aapcs-linux -mno-apcs-stack-check -mno-sched-prolog \
-	    -D PIC -D _REENTRANT \
-	    -D _LARGEFILE64_SOURCE -D _FILE_OFFSET_BITS=64 -D OMX_SKIP64BIT \
-	    -U _FORTIFY_SOURCE \
-	    -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits
-
-INCLUDES  = -I$(SDKSTAGE)/opt/vc/include \
-	    -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host \
-	    -I$(SDKSTAGE)/opt/vc/include/interface/vcos/pthreads \
-	    -I$(SDKSTAGE)/opt/vc/include/interface/vmcs_host/linux \
-	    -I$(SDKSTAGE)/usr/local/include/ \
-
-LDFLAGS  += -L ./ \
-	    -L $(SDKSTAGE)/opt/vc/lib/ \
-	    -l pthread \
-	    -l brcmGLESv2 -l brcmEGL -l bcm_host \
-	    -l vcos -l vchostif -l vchiq_arm -l openmaxil \
-	    -l avutil -l avcodec -l avformat -l swscale -l swresample \
-	    -l asound \
 
 OBJS    += $(filter %.o,$(SRC:.cpp=.o))
 
