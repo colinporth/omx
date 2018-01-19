@@ -378,51 +378,6 @@ public:
   };
 //}}}
 //{{{
-class cSwAudio {
-public:
-  ~cSwAudio();
-
-  uint64_t getChanMap();
-  int getChans() { return mCodecContext->channels; }
-  int getSampleRate() { return mCodecContext->sample_rate; }
-  int getBitRate() { return mCodecContext->bit_rate; }
-  int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
-
-  unsigned int getFrameSize() { return mFrameSize; }
-  int getData (uint8_t** dst, double &dts, double &pts);
-
-  bool open (cOmxStreamInfo& hints, enum PCMLayout layout);
-  int decode (uint8_t* data, int size, double dts, double pts);
-  void reset();
-  void dispose();
-
-protected:
-  cAvUtil mAvUtil;
-  cAvCodec mAvCodec;
-  cSwResample mSwResample;
-
-  AVCodecContext* mCodecContext = nullptr;
-  AVFrame* mFrame = nullptr;
-  SwrContext* mConvert = nullptr;
-
-  enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
-  enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
-
-  uint8_t* mBufferOutput = nullptr;
-  int mBufferOutputUsed = 0;
-  int mBufferOutputAlloced = 0;
-
-  int mChans = 0;
-
-  bool mFirstFrame = true;
-  bool mGotFrame = false;
-  bool mNoConcatenate = false;
-  unsigned int mFrameSize = 0;
-  double mPts = 0.0;
-  double mDts = 0.0;
-  };
-//}}}
-//{{{
 class cOmxAudio {
 public:
   //{{{
@@ -436,6 +391,15 @@ public:
     };
   //}}}
   ~cOmxAudio();
+
+  uint64_t getChanMap();
+  int getChans() { return mCodecContext->channels; }
+  int getSampleRate() { return mCodecContext->sample_rate; }
+  int getBitRate() { return mCodecContext->bit_rate; }
+  int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
+
+  unsigned int getFrameSize() { return mFrameSize; }
+  int getData (uint8_t** dst, double &dts, double &pts);
 
   bool isEOS();
   int getSpace() { return mDecoder.getInputBufferSpace(); }
@@ -451,8 +415,15 @@ public:
   void setMute (bool mute);
   void setVolume (float volume);
 
+
+  bool open (cOmxStreamInfo& hints, enum PCMLayout layout);
+  int decode (uint8_t* data, int size, double dts, double pts);
+  void reset();
+  void dispose();
+
+
   bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t chanMap, int bitsPerSample);
-  int addPacket (void* data, int len, double dts, double pts, int frameSize);
+  int addDecodedPacket (void* data, int len, double dts, double pts, int frameSize);
   void process();
   void submitEOS();
   void flush();
@@ -465,11 +436,19 @@ private:
 
   bool srcChanged();
 
-  //{{{  vars
+  // vars
   std::recursive_mutex mMutex;
 
   cOmxAudioConfig mConfig;
   cAvUtil mAvUtil;
+  cAvCodec mAvCodec;
+  cSwResample mSwResample;
+
+  AVCodecContext* mCodecContext = nullptr;
+  AVFrame* mFrame = nullptr;
+  SwrContext* mConvert = nullptr;
+  enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
+  enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
 
   cOmxClock* mClock = nullptr;
 
@@ -513,7 +492,19 @@ private:
 
   WAVEFORMATEXTENSIBLE mWaveHeader;
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
-  //}}}
+
+  uint8_t* mBufferOutput = nullptr;
+  int mBufferOutputUsed = 0;
+  int mBufferOutputAlloced = 0;
+
+  int mChans = 0;
+
+  bool mFirstFrame = true;
+  bool mGotFrame = false;
+  bool mNoConcatenate = false;
+  unsigned int mFrameSize = 0;
+  double mPts = 0.0;
+  double mDts = 0.0;
   };
 //}}}
 
@@ -716,20 +707,16 @@ public:
   void reset() {}
 
 private:
-  bool openSwAudio();
   bool openOmxAudio();
   bool decode (cOmxPacket* packet);
   //{{{
   void flushDecoder() {
-    if (mSwAudio)
-      mSwAudio->reset();
+    mOmxAudio->reset();
     mOmxAudio->flush();
     }
   //}}}
   //{{{
   void deleteDecoder() {
-    delete mSwAudio;
-    mSwAudio = nullptr;
     delete mOmxAudio;
     mOmxAudio = nullptr;
     }
@@ -738,7 +725,6 @@ private:
   //{{{  vars
   cOmxAudioConfig mConfig;
   cOmxAudio* mOmxAudio = nullptr;
-  cSwAudio* mSwAudio = nullptr;
   cOmxReader* mOmxReader = nullptr;
   cOmxStreamInfo mHints;
 

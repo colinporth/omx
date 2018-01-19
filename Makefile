@@ -33,7 +33,6 @@ SRC       = omx.cpp \
 	    cOmxReader.cpp \
 	    cOmxVideo.cpp \
 	    cOmxAudio.cpp \
-	    cSwAudio.cpp \
 	    cOmxVideoPlayer.cpp \
 	    cOmxAudioPlayer.cpp \
 	    cPcmMap.cpp \

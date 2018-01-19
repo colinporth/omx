@@ -25,9 +25,8 @@ bool cOmxAudioPlayer::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mAvFormat.av_register_all();
 
-  mSwAudio = nullptr;
   mOmxAudio = nullptr;
-  if (openSwAudio() && openOmxAudio())
+  if (openOmxAudio())
     return true;
   else {
     close();
@@ -38,24 +37,14 @@ bool cOmxAudioPlayer::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
 // private
 //{{{
-bool cOmxAudioPlayer::openSwAudio() {
-
-  mSwAudio = new cSwAudio();
-  if (!mSwAudio->open (mConfig.mHints, mConfig.mLayout)) {
-    delete mSwAudio;
-    mSwAudio = nullptr;
-    return false;
-    }
-
-  return true;
-  }
-//}}}
-//{{{
 bool cOmxAudioPlayer::openOmxAudio() {
 
   mOmxAudio = new cOmxAudio();
 
-  if (mOmxAudio->init (mClock, mConfig, mSwAudio->getChanMap(), mSwAudio->getBitsPerSample())) {
+  if (!mOmxAudio->open (mConfig.mHints, mConfig.mLayout))
+    return false;
+
+  if (mOmxAudio->init (mClock, mConfig, mOmxAudio->getChanMap(), mOmxAudio->getBitsPerSample())) {
     cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
                         " rate:" + dec(mConfig.mHints.samplerate) +
                         " bps:" + dec(mConfig.mHints.bitspersample));
@@ -90,11 +79,9 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
                         packet->mHints.bitrate, packet->mHints.bitspersample);
     mConfig.mHints = packet->mHints;
 
-    delete mSwAudio;
-    mSwAudio = nullptr;
     delete mOmxAudio;
     mOmxAudio = nullptr;
-    if (!(openSwAudio() && openOmxAudio()))
+    if (!openOmxAudio())
       return false;
     }
     //}}}
@@ -112,9 +99,9 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
   auto pts = packet->mPts;
   while (size > 0) {
     // decode packet
-    int len = mSwAudio->decode (data, size, dts, pts);
+    int len = mOmxAudio->decode (data, size, dts, pts);
     if ((len < 0) || (len > size)) {
-      mSwAudio->reset();
+      mOmxAudio->reset();
       break;
       }
     data += len;
@@ -122,14 +109,14 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
 
     // add decoded data to hw
     uint8_t* decodedData;
-    auto decodedSize = mSwAudio->getData (&decodedData, dts, pts);
+    auto decodedSize = mOmxAudio->getData (&decodedData, dts, pts);
     if (decodedSize > 0) {
       while (mOmxAudio->getSpace() < decodedSize) {
         mClock->msSleep (10);
         if (mFlushRequested)
           return true;
         }
-      mOmxAudio->addPacket (decodedData, decodedSize, dts, pts, mSwAudio->getFrameSize());
+      mOmxAudio->addDecodedPacket (decodedData, decodedSize, dts, pts, mOmxAudio->getFrameSize());
       }
     }
 
