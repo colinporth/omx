@@ -671,7 +671,7 @@ int main (int argc, char* argv[]) {
   int vFifo = 1024;
   int vCache = 2 * 1024;
   int aCache = 512;
-  eInterlaceMode deInterlace = eInterlaceAuto;
+  eDeInterlaceMode deInterlaceMode = eDeInterlaceAuto;
 
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
@@ -690,13 +690,13 @@ int main (int argc, char* argv[]) {
     else if (!strcmp(argv[arg], "vc")) vCache = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "vf")) vFifo = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "p")) startPlayer = false;
-    else if (!strcmp(argv[arg], "d")) deInterlace = (eInterlaceMode)atoi (argv[++arg]);
+    else if (!strcmp(argv[arg], "d")) deInterlaceMode = (eDeInterlaceMode)atoi (argv[++arg]);
 
   cLog::init (logLevel, false, "");
   cLog::log (LOGNOTICE, "omx " + root + " " + string(VERSION_DATE));
 
   cAppWindow appWindow (root);
-  appWindow.mVideoConfig.mDeInterlace = deInterlace;
+  appWindow.mVideoConfig.mDeInterlaceMode = deInterlaceMode;
   appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
   appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
   appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
