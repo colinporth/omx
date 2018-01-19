@@ -255,11 +255,9 @@ int cSwAudio::decode (uint8_t* data, int size, double dts, double pts) {
   mGotFrame = true;
 
   if (mFirstFrame)
-    cLog::log (LOGINFO, "cSwAudio::decode - size:%d format:%d:%d chan:%d samples:%d lineSize:%d",
-               size,
-               mCodecContext->sample_fmt, mDesiredSampleFormat, mCodecContext->channels,
-               mFrame->nb_samples, mFrame->linesize[0]
-               );
+    cLog::log (LOGINFO, "swAudio::decode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
+               mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
+               size, mFrame->nb_samples, mFrame->linesize[0]);
 
   return bytesUsed;
   }

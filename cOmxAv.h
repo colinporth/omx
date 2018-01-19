@@ -323,7 +323,7 @@ private:
   std::string getInterlaceModeString (enum OMX_INTERLACETYPE mode);
   std::string getDeInterlaceModeString (eDeInterlaceMode deInterlaceMode);
 
-  bool naluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
+  bool setNaluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
   bool sendDecoderExtraConfig();
 
   void logSrcChanged (OMX_PARAM_PORTDEFINITIONTYPE port, enum OMX_INTERLACETYPE interlaceMode);

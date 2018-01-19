@@ -364,20 +364,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     return false;
     }
   //}}}
-  //{{{  set nalFormat
-  if (naluFormat (mConfig.mHints.codec, (uint8_t*)mConfig.mHints.extradata, mConfig.mHints.extrasize)) {
-    OMX_NALSTREAMFORMATTYPE nalStream;
-    OMX_INIT_STRUCTURE(nalStream);
-
-    nalStream.nPortIndex = mDecoder.getInputPort();
-    nalStream.eNaluFormat = OMX_NaluFormatStartCodes;
-    if (mDecoder.setParam ((OMX_INDEXTYPE)OMX_IndexParamNalStreamFormatSelect, &nalStream)) {
-      // error return
-      cLog::log (LOGERROR, string(__func__) + " setNAL");
-      return false;
-      }
-    }
-  //}}}
+  setNaluFormat (mConfig.mHints.codec, (uint8_t*)mConfig.mHints.extradata, mConfig.mHints.extrasize);
 
   // alloc bufers for omx input port.
   if (mDecoder.allocInputBuffers()) {
@@ -809,16 +796,33 @@ bool cOmxVideo::sendDecoderExtraConfig() {
   }
 //}}}
 //{{{
-bool cOmxVideo::naluFormat (enum AVCodecID codec, uint8_t *in_extradata, int in_extrasize) {
+bool cOmxVideo::setNaluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize) {
 // valid avcC atom data always starts with the value 1 (version), otherwise annexb
+
+  bool naluFormat = false;
 
   switch (codec) {
     case AV_CODEC_ID_H264:
       if (in_extrasize < 7 || in_extradata == NULL)
-        return true;
+        naluFormat = true;
       else if (*in_extradata != 1)
-        return true;
+        naluFormat = true;
     default: break;
+    }
+
+  if (naluFormat) {
+    cLog::log (LOGINFO, string(__func__));
+
+    OMX_NALSTREAMFORMATTYPE nalStreamFormat;
+    OMX_INIT_STRUCTURE(nalStreamFormat);
+
+    nalStreamFormat.nPortIndex = mDecoder.getInputPort();
+    nalStreamFormat.eNaluFormat = OMX_NaluFormatStartCodes;
+    if (mDecoder.setParam ((OMX_INDEXTYPE)OMX_IndexParamNalStreamFormatSelect, &nalStreamFormat)) {
+      // error return
+      cLog::log (LOGERROR, string(__func__) + " setNaluFormat");
+      return false;
+      }
     }
 
   return false;
