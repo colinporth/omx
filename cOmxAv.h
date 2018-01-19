@@ -392,15 +392,6 @@ public:
   //}}}
   ~cOmxAudio();
 
-  uint64_t getChanMap();
-  int getChans() { return mCodecContext->channels; }
-  int getSampleRate() { return mCodecContext->sample_rate; }
-  int getBitRate() { return mCodecContext->bit_rate; }
-  int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
-
-  unsigned int getFrameSize() { return mFrameSize; }
-  int getData (uint8_t** dst, double &dts, double &pts);
-
   bool isEOS();
   int getSpace() { return mDecoder.getInputBufferSpace(); }
   int getChunkLen() { return mChunkLen; }
@@ -409,24 +400,30 @@ public:
   float getDelay();
   unsigned int getAudioRenderingLatency();
 
-  float getVolume() { return mMute ? 0.f : mCurVolume; }
+  int getChans() { return mCodecContext->channels; }
+  uint64_t getChanMap();
   uint64_t getChanLayout (enum PCMLayout layout);
+
+  int getSampleRate() { return mCodecContext->sample_rate; }
+  int getBitRate() { return mCodecContext->bit_rate; }
+  int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
+  float getVolume() { return mMute ? 0.f : mCurVolume; }
+
+  unsigned int getFrameSize() { return mFrameSize; }
+  int getData (uint8_t** dst, double &dts, double &pts);
 
   void setMute (bool mute);
   void setVolume (float volume);
 
-
   bool open (cOmxStreamInfo& hints, enum PCMLayout layout);
-  int decode (uint8_t* data, int size, double dts, double pts);
-  void reset();
-  void dispose();
-
-
   bool init (cOmxClock* clock, const cOmxAudioConfig &config, uint64_t chanMap, int bitsPerSample);
+  int decode (uint8_t* data, int size, double dts, double pts);
   int addDecodedPacket (void* data, int len, double dts, double pts, int frameSize);
   void process();
   void submitEOS();
   void flush();
+  void reset();
+  void dispose();
 
 private:
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
@@ -440,16 +437,6 @@ private:
   std::recursive_mutex mMutex;
 
   cOmxAudioConfig mConfig;
-  cAvUtil mAvUtil;
-  cAvCodec mAvCodec;
-  cSwResample mSwResample;
-
-  AVCodecContext* mCodecContext = nullptr;
-  AVFrame* mFrame = nullptr;
-  SwrContext* mConvert = nullptr;
-  enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
-  enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
-
   cOmxClock* mClock = nullptr;
 
   cOmxCore mRenderAnal;
@@ -468,6 +455,17 @@ private:
   OMX_AUDIO_CHANNELTYPE mInputChans[OMX_AUDIO_MAXCHANNELS];
   OMX_AUDIO_CHANNELTYPE mOutputChans[OMX_AUDIO_MAXCHANNELS];
   OMX_AUDIO_PARAM_PCMMODETYPE mPcmOutput;
+
+  cAvUtil mAvUtil;
+  cAvCodec mAvCodec;
+  cSwResample mSwResample;
+
+  AVCodecContext* mCodecContext = nullptr;
+  AVFrame* mFrame = nullptr;
+  SwrContext* mConvert = nullptr;
+
+  enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
+  enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
 
   unsigned int mNumInputChans = 0;
   unsigned int mNumOutputChans = 0;

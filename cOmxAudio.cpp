@@ -8,7 +8,6 @@
 
 using namespace std;
 //}}}
-
 #define AUDIO_DECODE_OUTPUT_BUFFER (32*1024)
 const char kRoundedUpChansShift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
