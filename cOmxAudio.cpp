@@ -291,7 +291,7 @@ void cOmxAudio::setVolume (float volume) {
 
 // actions
 //{{{
-bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints) {
+bool cOmxAudio::open (const cOmxAudioConfig& config) {
 
   cLog::log (LOGINFO, "cOmxAudio::open");
 

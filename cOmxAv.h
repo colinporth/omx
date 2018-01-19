@@ -413,7 +413,7 @@ public:
   void setMute (bool mute);
   void setVolume (float volume);
 
-  bool open (const cOmxAudioConfig& config, cOmxStreamInfo& hints);
+  bool open (const cOmxAudioConfig& config);
   bool init (cOmxClock* clock, const cOmxAudioConfig& config);
   int swDecode (uint8_t* data, int size, double dts, double pts);
   int addDecodedData (void* data, int len, double dts, double pts, int frameSize);
