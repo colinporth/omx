@@ -297,7 +297,7 @@ bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints) {
 
   mAvCodec.avcodec_register_all();
 
-  auto codec = mAvCodec.avcodec_find_decoder (hints.codec);
+  auto codec = mAvCodec.avcodec_find_decoder (config.mHints.codec);
   if (!codec) {
     //{{{  error return
     cLog::log (LOGINFO1, string(__func__) + " no codec");
@@ -315,11 +315,11 @@ bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints) {
     mCodecContext->flags |= CODEC_FLAG_TRUNCATED;
 
   mChans = 0;
-  mCodecContext->channels = hints.channels;
-  mCodecContext->sample_rate = hints.samplerate;
-  mCodecContext->block_align = hints.blockalign;
-  mCodecContext->bit_rate = hints.bitrate;
-  mCodecContext->bits_per_coded_sample = hints.bitspersample;
+  mCodecContext->channels = config.mHints.channels;
+  mCodecContext->sample_rate = config.mHints.samplerate;
+  mCodecContext->block_align = config.mHints.blockalign;
+  mCodecContext->bit_rate = config.mHints.bitrate;
+  mCodecContext->bits_per_coded_sample = config.mHints.bitspersample;
 
   if (mCodecContext->request_channel_layout)
     cLog::log (LOGINFO, "cOmxAudio::open - channelLayout %x",
@@ -328,11 +328,11 @@ bool cOmxAudio::open (const cOmxAudioConfig& config, cOmxStreamInfo& hints) {
   if (mCodecContext->bits_per_coded_sample == 0)
     mCodecContext->bits_per_coded_sample = 16;
 
-  if (hints.extradata && hints.extrasize > 0 ) {
+  if (mConfig.mHints.extradata && mConfig.mHints.extrasize > 0 ) {
     //{{{  extradata
-    mCodecContext->extradata_size = hints.extrasize;
-    mCodecContext->extradata = (uint8_t*)mAvUtil.av_mallocz (hints.extrasize + FF_INPUT_BUFFER_PADDING_SIZE);
-    memcpy (mCodecContext->extradata, hints.extradata, hints.extrasize);
+    mCodecContext->extradata_size = mConfig.mHints.extrasize;
+    mCodecContext->extradata = (uint8_t*)mAvUtil.av_mallocz (mConfig.mHints.extrasize + FF_INPUT_BUFFER_PADDING_SIZE);
+    memcpy (mCodecContext->extradata, mConfig.mHints.extradata, mConfig.mHints.extrasize);
     }
     //}}}
 
