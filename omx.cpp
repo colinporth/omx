@@ -66,8 +66,8 @@ public:
   //{{{
   void run (const string& inTs, int frequency, bool startPlayer) {
 
-    refreshFileNames();
     initialise (1.f, 0);
+    setChangeCountDown (10);
 
     if (startPlayer)
       add (new cTextBox (mDebugStr, 0.f));
@@ -78,8 +78,9 @@ public:
       add (new cTransportStreamBox (0.f, startPlayer ? (getHeight()-2.f)/2.f : -2.f, &mDvb.mTs));
       }
     if (startPlayer)
-      add (new cListWidget (mFileNames, mFileNum, mFileChanged,
-                            0.f, frequency ? (getHeight()-2.f)/2.f : -2.f));
+      add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,frequency?(getHeight()-2.f)/2.f:-2.f));
+
+    refreshFileNames();
 
     thread dvbCaptureThread;
     thread dvbGrabThread;
@@ -208,7 +209,7 @@ protected:
         if (mFileNum > 0) {
           mFileNum--;
           mFileChanged = true;
-          changed();
+          refreshFileNames();
           }
         break;
       //}}}
@@ -217,7 +218,7 @@ protected:
         if (mFileNum < mFileNames.size()-1) {
           mFileNum++;
           mFileChanged = true;
-          changed();
+          refreshFileNames();
           }
         break;
       //}}}
@@ -249,13 +250,13 @@ protected:
       //}}}
 
       case cKeyConfig::ACT_TOGGLE_VSYNC: toggleVsync(); changed(); break; // v
-      case cKeyConfig::ACT_TOGGLE_PERF:  togglePerf(); changed();  break; // p
+      case cKeyConfig::ACT_TOGGLE_PERF:  togglePerf();  changed(); break; // p
       case cKeyConfig::ACT_TOGGLE_STATS: toggleStats(); changed(); break; // t
       case cKeyConfig::ACT_TOGGLE_TESTS: toggleTests(); changed(); break; // e
 
       case cKeyConfig::ACT_TOGGLE_SOLID: toggleSolid(); break;            // s
       case cKeyConfig::ACT_TOGGLE_EDGES: toggleEdges(); break;            // a
-      case cKeyConfig::ACT_TOGGLE_TRIANGLES: toggleTriangles();  break;   // d
+      case cKeyConfig::ACT_TOGGLE_TRIANGLES: toggleTriangles(); break;    // d
       case cKeyConfig::ACT_LESS_FRINGE: fringeWidth (getFringeWidth() - 0.25f); changed(); break; // q
       case cKeyConfig::ACT_MORE_FRINGE: fringeWidth (getFringeWidth() + 0.25f); changed(); break; // w
 
@@ -458,10 +459,7 @@ private:
                      ":" + dec(vLevel,4) +
                      " ad:" + dec(aDelay) +
                      " ac:" + dec(aCache);
-          if (mDebugStr != str) {
-            mDebugStr = str;
-            changed();
-            }
+          mDebugStr = str;
           //}}}
 
           if (mAudioConfig.mIsLive) {

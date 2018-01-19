@@ -338,9 +338,11 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config, uint64_t 
 
   mSrcChanged = false;
   mSetStartTime  = true;
+  mLastPts = DVD_NOPTS_VALUE;
+
   mSubmittedEos = false;
   mFailedEos = false;
-  mLastPts = DVD_NOPTS_VALUE;
+
   mSubmitted = 0.f;
 
   return true;
