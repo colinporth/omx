@@ -433,7 +433,7 @@ private:
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool applyVolume();
 
-  int addDecodedData (void* data, int len, double dts, double pts);
+  int addDecodedData (uint8_t* data, int len, double dts, double pts);
   int addBuffer (uint8_t* data, int len, double dts, double pts);
 
   // vars
@@ -499,9 +499,8 @@ private:
   int mBufferOutputAllocated = 0;
 
   int mChans = 0;
-
-  bool mFirstFrame = true;
   bool mGotFrame = false;
+  bool mFirstFrame = true;
   bool mNoConcatenate = false;
   unsigned int mFrameSize = 0;
   double mPts = 0.0;

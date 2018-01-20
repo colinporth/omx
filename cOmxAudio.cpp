@@ -166,7 +166,6 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
   }
 //}}}
 
-
 // sets
 //{{{
 void cOmxAudio::setMute (bool mute) {
@@ -443,16 +442,8 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
 
       int gotFrame;
       len = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avPacket);
-      if (len < 0 || !gotFrame) {
-        }
-      else {
-        // some codecs will attempt to consume more data than what we gave
-        if (len > size) {
-          cLog::log (LOGINFO1, "cOmxAudio::swDecode - consume more data than given");
-          len = size;
-          }
+      if ((len >= 0) && gotFrame) {
         mGotFrame = true;
-
         if (mFirstFrame)
           cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
                      mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
@@ -460,8 +451,6 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         }
       }
 
-    uint8_t* decodedData;
-    auto decodedSize = getData (&decodedData, dts, pts);
     if ((len < 0) || (len > size)) {
       reset();
       break;
@@ -469,13 +458,17 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
     data += len;
     size -= len;
 
-    if (decodedSize > 0) {
-      while (getSpace() < decodedSize) {
-        mClock->msSleep (10);
-        if (flushRequested)
-          return true;
+    uint8_t* decodedData;
+    if (mGotFrame) {
+      auto decodedSize = getData (&decodedData, dts, pts);
+      if (decodedSize > 0) {
+        while (getSpace() < decodedSize) {
+          mClock->msSleep (10);
+          if (flushRequested)
+            return true;
+          }
+        addDecodedData (decodedData, decodedSize, dts, pts);
         }
-      addDecodedData (decodedData, decodedSize, dts, pts);
       }
     }
 
@@ -1116,9 +1109,6 @@ bool cOmxAudio::srcChanged() {
 //{{{
 int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
 
-  if (!mGotFrame)
-    return 0;
-
   // input audio is aligned
   int inLineSize;
   int inputSize = mAvUtil.av_samples_get_buffer_size (
@@ -1215,7 +1205,7 @@ int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
   }
 //}}}
 //{{{
-int cOmxAudio::addDecodedData (void* data, int len, double dts, double pts) {
+int cOmxAudio::addDecodedData (uint8_t* data, int len, double dts, double pts) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
