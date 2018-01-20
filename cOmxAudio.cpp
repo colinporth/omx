@@ -166,6 +166,108 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
   }
 //}}}
 
+//{{{
+int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
+
+  if (!mGotFrame)
+    return 0;
+
+  // input audio is aligned
+  int inLineSize;
+  int inputSize = mAvUtil.av_samples_get_buffer_size (
+    &inLineSize, mCodecContext->channels, mFrame->nb_samples, mCodecContext->sample_fmt, 0);
+
+  // output audio will be packed
+  int outLineSize;
+  int outputSize = mAvUtil.av_samples_get_buffer_size (
+    &outLineSize, mCodecContext->channels, mFrame->nb_samples, mDesiredSampleFormat, 1);
+
+  if (!mNoConcatenate && mBufferOutputUsed && ((int)mFrameSize != outputSize)) {
+    cLog::log (LOGERROR, "cOmxAudio::getData size:%d->%d", mFrameSize, outputSize);
+    mNoConcatenate = true;
+    }
+
+  // if this buffer won't fit then flush out what we have
+  int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
+    (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
+  if (mBufferOutputUsed &&
+      (((mBufferOutputUsed + outputSize) > desired_size) || mNoConcatenate)) {
+    int ret = mBufferOutputUsed;
+    mBufferOutputUsed = 0;
+    mNoConcatenate = false;
+    dts = mDts;
+    pts = mPts;
+    *dst = mBufferOutput;
+    return ret;
+    }
+  mFrameSize = outputSize;
+
+  if (mBufferOutputAllocated < mBufferOutputUsed + outputSize) {
+    mBufferOutput = (uint8_t*)mAvUtil.av_realloc (
+      mBufferOutput, mBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
+    mBufferOutputAllocated = mBufferOutputUsed + outputSize;
+    }
+
+  if (mCodecContext->sample_fmt != mDesiredSampleFormat) {
+    //{{{  convert format
+    if (mConvert &&
+        ((mCodecContext->sample_fmt != mSampleFormat) || (mChans != mCodecContext->channels))) {
+      mSwResample.swr_free (&mConvert);
+      mChans = mCodecContext->channels;
+      }
+
+    if (!mConvert) {
+      mSampleFormat = mCodecContext->sample_fmt;
+      mConvert = mSwResample.swr_alloc_set_opts (NULL,
+                   mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
+                   mDesiredSampleFormat, mCodecContext->sample_rate,
+                   mAvUtil.av_get_default_channel_layout(mCodecContext->channels),
+                   mCodecContext->sample_fmt, mCodecContext->sample_rate,
+                   0, NULL);
+
+      if (!mConvert || mSwResample.swr_init(mConvert) < 0) {
+        cLog::log (LOGERROR, "cOmxAudio::getData unable to initialise convert format:%d to %d",
+                             mCodecContext->sample_fmt, mDesiredSampleFormat);
+        return 0;
+        }
+      }
+
+    // use unaligned flag to keep output packed
+    uint8_t* out_planes[mCodecContext->channels];
+    if ((mAvUtil.av_samples_fill_arrays (
+          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
+          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0) ||
+        mSwResample.swr_convert (mConvert, out_planes,
+          mFrame->nb_samples, (const uint8_t**)mFrame->data, mFrame->nb_samples) < 0) {
+      cLog::log (LOGERROR, "cOmxAudio::getData decode unable to convert format %d to %d",
+                           (int)mCodecContext->sample_fmt, mDesiredSampleFormat);
+      outputSize = 0;
+      }
+    }
+    //}}}
+  else {
+    //{{{  copy to a contiguous buffer
+    uint8_t* out_planes[mCodecContext->channels];
+    if (mAvUtil.av_samples_fill_arrays (
+          out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
+          mFrame->nb_samples, mDesiredSampleFormat, 1) < 0 ||
+        mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
+                                 mCodecContext->channels, mDesiredSampleFormat) < 0 )
+      outputSize = 0;
+    }
+    //}}}
+  mGotFrame = false;
+
+  if (mFirstFrame)
+    cLog::log (LOGINFO1, "cOmxAudio::getData size:%d/%d line:%d/%d buf:%p, desired:%d",
+               inputSize, outputSize, inLineSize, outLineSize, mBufferOutput, desired_size);
+  mFirstFrame = false;
+
+  mBufferOutputUsed += outputSize;
+  return 0;
+  }
+//}}}
+
 // sets
 //{{{
 void cOmxAudio::setMute (bool mute) {
@@ -425,6 +527,33 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
 bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<bool>& flushRequested) {
 
   while (size > 0) {
+    int len = swDecode (data, size, dts, pts);
+    uint8_t* decodedData;
+    auto decodedSize = getData (&decodedData, dts, pts);
+    if ((len < 0) || (len > size)) {
+      reset();
+      break;
+      }
+    data += len;
+    size -= len;
+
+    if (decodedSize > 0) {
+      while (getSpace() < decodedSize) {
+        mClock->msSleep (10);
+        if (flushRequested)
+          return true;
+        }
+      addDecodedData (decodedData, decodedSize, dts, pts);
+      }
+    }
+
+  return true;
+  }
+//}}}
+//{{{
+bool cOmxAudio::decode1 (uint8_t* data, int size, double dts, double pts, atomic<bool>& flushRequested) {
+
+  while (size > 0) {
     if (!mBufferOutputUsed) {
       mDts = dts;
       mPts = pts;
@@ -547,7 +676,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
           if (flushRequested)
             return true;
           }
-        addDecodedData (decodedData, decodedSize, dts, pts);
+        addBuffer (decodedData, decodedSize, dts, pts);
         applyVolume();
         }
       }
@@ -618,6 +747,7 @@ void cOmxAudio::flush() {
 void cOmxAudio::reset() {
 
   mAvCodec.avcodec_flush_buffers (mCodecContext);
+  mGotFrame = false;
   mBufferOutputUsed = 0;
   }
 //}}}
@@ -640,8 +770,11 @@ void cOmxAudio::dispose() {
     mAvUtil.av_free (mCodecContext);
     mCodecContext = NULL;
     }
+
+  mGotFrame = false;
   }
 //}}}
+
 
 // private
 //{{{
@@ -1050,6 +1183,42 @@ bool cOmxAudio::srcChanged() {
 //}}}
 
 //{{{
+int cOmxAudio::swDecode (uint8_t* data, int size, double dts, double pts) {
+
+  if (!mBufferOutputUsed) {
+    mDts = dts;
+    mPts = pts;
+    }
+
+  if (mGotFrame)
+    return 0;
+
+  AVPacket avPacket;
+  mAvCodec.av_init_packet (&avPacket);
+  avPacket.data = data;
+  avPacket.size = size;
+
+  int gotFrame;
+  int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avPacket);
+  if (bytesUsed < 0 || !gotFrame)
+    return bytesUsed;
+
+  // some codecs will attempt to consume more data than what we gave
+  if (bytesUsed > size) {
+    cLog::log (LOGINFO1, "cOmxAudio::swDecode - consume more data than given");
+    bytesUsed = size;
+    }
+  mGotFrame = true;
+
+  if (mFirstFrame)
+    cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
+               mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
+               size, mFrame->nb_samples, mFrame->linesize[0]);
+
+  return bytesUsed;
+  }
+//}}}
+//{{{
 int cOmxAudio::addDecodedData (void* data, int len, double dts, double pts) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -1142,6 +1311,109 @@ int cOmxAudio::addDecodedData (void* data, int len, double dts, double pts) {
     }
 
   mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
+  applyVolume();
   return len;
+  }
+//}}}
+//{{{
+int cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  int demuxSamplesSent = 0;
+  int chansSamplePitch = (mBitsPerSample>>3) * mNumInputChans;
+  int demuxSamples = size / chansSamplePitch;
+
+  while (demuxSamplesSent < demuxSamples) {
+    // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
+    // it will be 16-bit and rounded up to next power of 2 in Chans
+    OMX_BUFFERHEADERTYPE* buffer = mDecoder.getInputBuffer (200);
+    if (!buffer) {
+      //{{{  error return
+      cLog::log (LOGERROR, string(__func__) + " timeout");
+      return size;
+      }
+      //}}}
+    //{{{  set buffer data
+    int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
+      (mNumInputChans * mBitsPerSample) >> (kRoundedUpChansShift[mNumInputChans] + 4);
+    int remaining = demuxSamples - demuxSamplesSent;
+    int samplesSpace = min (maxBuffer, (int)buffer->nAllocLen) / chansSamplePitch;
+    int samples = min(remaining, samplesSpace);
+
+    buffer->nFilledLen = samples * chansSamplePitch;
+
+    int frames = mFrameSize ? (size / mFrameSize) : 0;
+    if (((samples < demuxSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
+      int samplePitch = mBitsPerSample >> 3;
+      int frameSamples = mFrameSize / chansSamplePitch;
+      int planeSize = frameSamples * samplePitch;
+      int outPlaneSize = samples * samplePitch;
+      for (int sample = 0; sample < samples;) {
+        int frame = (demuxSamplesSent + sample) / frameSamples;
+        int sampleInFrame = (demuxSamplesSent + sample) - frame * frameSamples;
+        int outRemaining = min (min (frameSamples - sampleInFrame, samples), samples-sample);
+        auto src = data + frame*mFrameSize + sampleInFrame * samplePitch;
+        auto dst = (uint8_t*)buffer->pBuffer + sample * samplePitch;
+        for (auto channel = 0u; channel < mNumInputChans; channel++) {
+          memcpy (dst, src, outRemaining * samplePitch);
+          src += planeSize;
+          dst += outPlaneSize;
+          }
+        sample += outRemaining;
+        }
+      }
+    else
+      memcpy (buffer->pBuffer, data + demuxSamplesSent * chansSamplePitch, buffer->nFilledLen);
+    //}}}
+    //{{{  send buffer and wait
+    auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
+    buffer->nTimeStamp = toOmxTime (val);
+
+    buffer->nOffset = 0;
+    buffer->nFlags  = 0;
+    if (mSetStartTime) {
+      // set buffer startTime
+      buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
+      float time = (float)val / DVD_TIME_BASE;
+      cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(time, 6,2,' '));
+      mSetStartTime = false;
+      mLastPts = pts;
+      }
+    else {
+      // set buffer pts
+      if (pts == DVD_NOPTS_VALUE) {
+        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+        mLastPts = pts;
+        }
+      else if (mLastPts != pts) {
+        if (pts > mLastPts)
+          mLastPts = pts;
+        else
+          buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+        }
+      else if (mLastPts == pts)
+        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+      }
+
+
+    demuxSamplesSent += demuxSamples;
+    if (demuxSamplesSent == demuxSamples)
+      buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+
+    if (mDecoder.emptyThisBuffer (buffer)) {
+      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
+      return 0;
+      }
+
+    if (!mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0))
+      if (!srcChanged())
+        cLog::log (LOGERROR, string(__func__) + "  srcChanged");
+    //}}}
+    }
+
+  mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
+  return size;
   }
 //}}}

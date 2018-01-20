@@ -419,9 +419,13 @@ public:
   void reset();
   void dispose();
 
+  bool decode1 (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
+
 private:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
   uint64_t getChanMap();
+
+  int getData (uint8_t** dst, double &dts, double &pts);
 
   bool srcChanged();
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
@@ -429,7 +433,9 @@ private:
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool applyVolume();
 
+  int swDecode (uint8_t* data, int size, double dts, double pts);
   int addDecodedData (void* data, int len, double dts, double pts);
+  int addBuffer (uint8_t* data, int len, double dts, double pts);
 
   // vars
   std::recursive_mutex mMutex;
@@ -496,6 +502,7 @@ private:
   int mChans = 0;
 
   bool mFirstFrame = true;
+  bool mGotFrame = false;
   bool mNoConcatenate = false;
   unsigned int mFrameSize = 0;
   double mPts = 0.0;
