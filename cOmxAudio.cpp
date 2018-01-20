@@ -29,7 +29,7 @@ cOmxAudio::~cOmxAudio() {
     mTunnelClockHdmi.deEstablish();
 
   // ignore expected errors on teardown
-  if (mMixer.isInit() )
+  if (mMixer.isInit())
     mMixer.ignoreNextError (OMX_ErrorPortUnpopulated);
   else {
     if (mRenderHdmi.isInit() )
@@ -59,10 +59,6 @@ cOmxAudio::~cOmxAudio() {
     mRenderAnal.deInit();
 
   mAvUtil.av_free (mBufferOutput);
-
-  mBufferOutput = NULL;
-  mBufferOutputAllocated = 0;
-  mBufferOutputUsed = 0;
 
   if (mFrame)
     mAvUtil.av_free (mFrame);
@@ -254,9 +250,9 @@ bool cOmxAudio::open (const cOmxAudioConfig& config) {
     //}}}
 
   mFrame = mAvCodec.av_frame_alloc();
+
   mSampleFormat = AV_SAMPLE_FMT_NONE;
-  mDesiredSampleFormat =
-    (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
+  mDesiredSampleFormat = (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
 
   return true;
   }
@@ -815,11 +811,10 @@ bool cOmxAudio::srcChanged() {
     OMX_INIT_STRUCTURE(mPcmOutput);
     mPcmOutput.nPortIndex = mDecoder.getOutputPort();
     if (mDecoder.getParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
-      //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + "getParam");
+      // error return
+      cLog::log (LOGERROR, string(__func__) + "getParam pcmOutput");
       return false;
       }
-      //}}}
 
     memcpy (mPcmOutput.eChannelMapping, mOutputChans, sizeof(mOutputChans));
 
@@ -832,7 +827,7 @@ bool cOmxAudio::srcChanged() {
     mPcmOutput.nPortIndex = mMixer.getOutputPort();
     if (mMixer.setParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
       // error return
-      cLog::log (LOGERROR,  string(__func__) + " setParam");
+      cLog::log (LOGERROR,  string(__func__) + " setParam pcmOutput");
       return false;
       }
     //}}}
