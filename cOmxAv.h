@@ -419,8 +419,6 @@ public:
   void reset();
   void dispose();
 
-  bool decode1 (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
-
 private:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
   uint64_t getChanMap();
@@ -433,7 +431,6 @@ private:
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool applyVolume();
 
-  int addDecodedData (uint8_t* data, int len, double dts, double pts);
   int addBuffer (uint8_t* data, int len, double dts, double pts);
 
   // vars
