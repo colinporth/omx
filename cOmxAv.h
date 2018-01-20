@@ -433,7 +433,6 @@ private:
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool applyVolume();
 
-  int swDecode (uint8_t* data, int size, double dts, double pts);
   int addDecodedData (void* data, int len, double dts, double pts);
   int addBuffer (uint8_t* data, int len, double dts, double pts);
 
