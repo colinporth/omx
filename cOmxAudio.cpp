@@ -527,7 +527,40 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
 bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<bool>& flushRequested) {
 
   while (size > 0) {
-    int len = swDecode (data, size, dts, pts);
+
+    if (!mBufferOutputUsed) {
+      mDts = dts;
+      mPts = pts;
+      }
+
+    int len;
+    if (mGotFrame)
+      len = 0;
+    else {
+      AVPacket avPacket;
+      mAvCodec.av_init_packet (&avPacket);
+      avPacket.data = data;
+      avPacket.size = size;
+
+      int gotFrame;
+      len = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avPacket);
+      if (len < 0 || !gotFrame) {
+        }
+      else {
+        // some codecs will attempt to consume more data than what we gave
+        if (len > size) {
+          cLog::log (LOGINFO1, "cOmxAudio::swDecode - consume more data than given");
+          len = size;
+          }
+        mGotFrame = true;
+
+        if (mFirstFrame)
+          cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
+                     mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
+                     size, mFrame->nb_samples, mFrame->linesize[0]);
+        }
+      }
+
     uint8_t* decodedData;
     auto decodedSize = getData (&decodedData, dts, pts);
     if ((len < 0) || (len > size)) {
