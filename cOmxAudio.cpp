@@ -438,12 +438,12 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
 
     if (!mGotFrame) {
       //{{{  decode frame from packet
-      int gotFrame;
       AVPacket avPacket;
       mAvCodec.av_init_packet (&avPacket);
       avPacket.data = data;
       avPacket.size = size;
 
+      int gotFrame;
       int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avPacket);
       if ((bytesUsed < 0) || (bytesUsed > size)) {
         reset();
