@@ -407,16 +407,12 @@ public:
   int getBitRate() { return mCodecContext->bit_rate; }
   float getVolume() { return mMute ? 0.f : mCurVolume; }
 
-  unsigned int getFrameSize() { return mFrameSize; }
-  int getData (uint8_t** dst, double &dts, double &pts);
-
   void setMute (bool mute);
   void setVolume (float volume);
 
   bool open (const cOmxAudioConfig& config);
   bool init (cOmxClock* clock, const cOmxAudioConfig& config);
-  int swDecode (uint8_t* data, int size, double dts, double pts);
-  int addDecodedData (void* data, int len, double dts, double pts, int frameSize);
+  bool decode (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
   void process();
   void submitEOS();
   void flush();
@@ -425,14 +421,18 @@ public:
 
 private:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
-
   uint64_t getChanMap();
+
+  int getData (uint8_t** dst, double &dts, double &pts);
+
+  bool srcChanged();
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
   int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool applyVolume();
 
-  bool srcChanged();
+  int swDecode (uint8_t* data, int size, double dts, double pts);
+  int addDecodedData (void* data, int len, double dts, double pts);
 
   // vars
   std::recursive_mutex mMutex;

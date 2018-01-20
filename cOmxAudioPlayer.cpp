@@ -77,10 +77,10 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
                         packet->mHints.bitrate, packet->mHints.bitspersample);
     mConfig.mHints = packet->mHints;
 
-    delete mOmxAudio;
-    mOmxAudio = nullptr;
-    if (!openOmxAudio())
-      return false;
+    //delete mOmxAudio;
+    //mOmxAudio = nullptr;
+    //if (!openOmxAudio())
+    //  return false;
     }
     //}}}
 
@@ -92,31 +92,6 @@ bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
   else if (packet->mDts != DVD_NOPTS_VALUE)
     mCurrentPts = packet->mDts;
 
-  auto data = packet->mData;
-  auto size = packet->mSize;
-  auto dts = packet->mDts;
-  auto pts = packet->mPts;
-  while (size > 0) {
-    int len = mOmxAudio->swDecode (data, size, dts, pts);
-    if ((len < 0) || (len > size)) {
-      mOmxAudio->reset();
-      break;
-      }
-    data += len;
-    size -= len;
-
-    uint8_t* decodedData;
-    auto decodedSize = mOmxAudio->getData (&decodedData, dts, pts);
-    if (decodedSize > 0) {
-      while (mOmxAudio->getSpace() < decodedSize) {
-        mClock->msSleep (10);
-        if (mFlushRequested)
-          return true;
-        }
-      mOmxAudio->addDecodedData (decodedData, decodedSize, dts, pts, mOmxAudio->getFrameSize());
-      }
-    }
-
-  return true;
+  return mOmxAudio->decode (packet->mData, packet->mSize, packet->mDts, packet->mPts, mFlushRequested);
   }
 //}}}

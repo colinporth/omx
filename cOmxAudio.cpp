@@ -182,7 +182,7 @@ int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
   int outputSize = mAvUtil.av_samples_get_buffer_size (
     &outLineSize, mCodecContext->channels, mFrame->nb_samples, mDesiredSampleFormat, 1);
 
-  if (!mNoConcatenate && mBufferOutputUsed && (int)mFrameSize != outputSize) {
+  if (!mNoConcatenate && mBufferOutputUsed && ((int)mFrameSize != outputSize)) {
     cLog::log (LOGERROR, "cOmxAudio::getData size:%d->%d", mFrameSize, outputSize);
     mNoConcatenate = true;
     }
@@ -190,7 +190,8 @@ int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
   // if this buffer won't fit then flush out what we have
   int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
     (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
-  if (mBufferOutputUsed && (mBufferOutputUsed + outputSize > desired_size || mNoConcatenate)) {
+  if (mBufferOutputUsed &&
+      (((mBufferOutputUsed + outputSize) > desired_size) || mNoConcatenate)) {
     int ret = mBufferOutputUsed;
     mBufferOutputUsed = 0;
     mNoConcatenate = false;
@@ -523,139 +524,30 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
   }
 //}}}
 //{{{
-int cOmxAudio::swDecode (uint8_t* data, int size, double dts, double pts) {
+bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<bool>& flushRequested) {
 
-  AVPacket avpkt;
-  if (!mBufferOutputUsed) {
-    mDts = dts;
-    mPts = pts;
+  while (size > 0) {
+    int len = swDecode (data, size, dts, pts);
+    uint8_t* decodedData;
+    auto decodedSize = getData (&decodedData, dts, pts);
+    if ((len < 0) || (len > size)) {
+      reset();
+      break;
+      }
+    data += len;
+    size -= len;
+
+    if (decodedSize > 0) {
+      while (getSpace() < decodedSize) {
+        mClock->msSleep (10);
+        if (flushRequested)
+          return true;
+        }
+      addDecodedData (decodedData, decodedSize, dts, pts);
+      }
     }
 
-  if (mGotFrame)
-    return 0;
-
-  mAvCodec.av_init_packet (&avpkt);
-  avpkt.data = data;
-  avpkt.size = size;
-
-  int gotFrame;
-  int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avpkt);
-  if (bytesUsed < 0 || !gotFrame)
-    return bytesUsed;
-
-  // some codecs will attempt to consume more data than what we gave
-  if (bytesUsed > size) {
-    cLog::log (LOGINFO1, "cOmxAudio::swDecode - consume more data than given");
-    bytesUsed = size;
-    }
-  mGotFrame = true;
-
-  if (mFirstFrame)
-    cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
-               mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
-               size, mFrame->nb_samples, mFrame->linesize[0]);
-
-  return bytesUsed;
-  }
-//}}}
-//{{{
-int cOmxAudio::addDecodedData (void* data, int len, double dts, double pts, int frameSize) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
-  int pitch = (mBitsPerSample>>3) * mNumInputChans;
-  int demuxSamples = len / pitch;
-  int demuxSamplesSent = 0;
-  auto demuxer_content = (uint8_t*)data;
-
-  OMX_BUFFERHEADERTYPE* buffer = nullptr;
-  while (demuxSamplesSent < demuxSamples) {
-    buffer = mDecoder.getInputBuffer (200); // 200ms timeout
-    if (!buffer) {
-      //{{{  error return
-      cLog::log (LOGERROR, string(__func__) + " timeout");
-      return len;
-      }
-      //}}}
-
-    buffer->nOffset = 0;
-    buffer->nFlags  = 0;
-
-    // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
-    // it will be 16-bit and rounded up to next power of 2 in Chans
-    int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
-      (mNumInputChans * mBitsPerSample) >> (kRoundedUpChansShift[mNumInputChans] + 4);
-    int remaining = demuxSamples - demuxSamplesSent;
-    int samplesSpace = min (maxBuffer, (int)buffer->nAllocLen) / pitch;
-    int samples = min(remaining, samplesSpace);
-
-    buffer->nFilledLen = samples * pitch;
-
-    int frames = frameSize ? (len / frameSize) : 0;
-    if (((samples < demuxSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
-      int samplePitch = mBitsPerSample >> 3;
-      int frameSamples = frameSize / pitch;
-      int planeSize = frameSamples * samplePitch;
-      int outPlaneSize = samples * samplePitch;
-      for (int sample = 0; sample < samples;) {
-        int frame = (demuxSamplesSent + sample) / frameSamples;
-        int sampleInFrame = (demuxSamplesSent + sample) - frame * frameSamples;
-        int outRemaining = min (min (frameSamples - sampleInFrame, samples), samples-sample);
-        auto src = demuxer_content + frame*frameSize + sampleInFrame * samplePitch;
-        auto dst = (uint8_t*)buffer->pBuffer + sample * samplePitch;
-        for (auto channel = 0u; channel < mNumInputChans; channel++) {
-          memcpy (dst, src, outRemaining * samplePitch);
-          src += planeSize;
-          dst += outPlaneSize;
-          }
-        sample += outRemaining;
-        }
-      }
-    else
-      memcpy (buffer->pBuffer, demuxer_content + demuxSamplesSent * pitch, buffer->nFilledLen);
-
-    auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
-    if (mSetStartTime) {
-      buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
-      mLastPts = pts;
-      float time = (float)val / DVD_TIME_BASE;
-      cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(time, 6,2,' '));
-      mSetStartTime = false;
-      }
-    else {
-      if (pts == DVD_NOPTS_VALUE) {
-        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
-        mLastPts = pts;
-        }
-      else if (mLastPts != pts) {
-        if (pts > mLastPts)
-          mLastPts = pts;
-        else
-          buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
-        }
-      else if (mLastPts == pts)
-        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
-      }
-
-    buffer->nTimeStamp = toOmxTime (val);
-    demuxSamplesSent += samples;
-    if (demuxSamplesSent == demuxSamples)
-      buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
-
-    if (mDecoder.emptyThisBuffer (buffer)) {
-      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
-      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
-      return 0;
-      }
-
-    if (mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone)
-      if (!srcChanged())
-        cLog::log (LOGERROR, string(__func__) + "  srcChanged");
-    }
-
-  mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
-  applyVolume();
-  return len;
+  return true;
   }
 //}}}
 //{{{
@@ -763,6 +655,7 @@ uint64_t cOmxAudio::getChanMap() {
   return layout;
   }
 //}}}
+
 //{{{
 void cOmxAudio::buildChanMap (enum PCMChannels* chanMap, uint64_t layout) {
 
@@ -1146,5 +1039,139 @@ bool cOmxAudio::srcChanged() {
 
   mSrcChanged = true;
   return true;
+  }
+//}}}
+
+//{{{
+int cOmxAudio::swDecode (uint8_t* data, int size, double dts, double pts) {
+
+  if (!mBufferOutputUsed) {
+    mDts = dts;
+    mPts = pts;
+    }
+
+  if (mGotFrame)
+    return 0;
+
+  AVPacket avPacket;
+  mAvCodec.av_init_packet (&avPacket);
+  avPacket.data = data;
+  avPacket.size = size;
+
+  int gotFrame;
+  int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avPacket);
+  if (bytesUsed < 0 || !gotFrame)
+    return bytesUsed;
+
+  // some codecs will attempt to consume more data than what we gave
+  if (bytesUsed > size) {
+    cLog::log (LOGINFO1, "cOmxAudio::swDecode - consume more data than given");
+    bytesUsed = size;
+    }
+  mGotFrame = true;
+
+  if (mFirstFrame)
+    cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
+               mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
+               size, mFrame->nb_samples, mFrame->linesize[0]);
+
+  return bytesUsed;
+  }
+//}}}
+//{{{
+int cOmxAudio::addDecodedData (void* data, int len, double dts, double pts) {
+
+  lock_guard<recursive_mutex> lockGuard (mMutex);
+
+  int pitch = (mBitsPerSample>>3) * mNumInputChans;
+  int demuxSamples = len / pitch;
+  int demuxSamplesSent = 0;
+  auto demuxerContent = (uint8_t*)data;
+
+  OMX_BUFFERHEADERTYPE* buffer = nullptr;
+  while (demuxSamplesSent < demuxSamples) {
+    // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
+    // it will be 16-bit and rounded up to next power of 2 in Chans
+    buffer = mDecoder.getInputBuffer (200);
+    if (!buffer) {
+      //{{{  error return
+      cLog::log (LOGERROR, string(__func__) + " timeout");
+      return len;
+      }
+      //}}}
+    buffer->nOffset = 0;
+    buffer->nFlags  = 0;
+    int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
+      (mNumInputChans * mBitsPerSample) >> (kRoundedUpChansShift[mNumInputChans] + 4);
+    int remaining = demuxSamples - demuxSamplesSent;
+    int samplesSpace = min (maxBuffer, (int)buffer->nAllocLen) / pitch;
+    int samples = min(remaining, samplesSpace);
+    buffer->nFilledLen = samples * pitch;
+
+    int frames = mFrameSize ? (len / mFrameSize) : 0;
+    if (((samples < demuxSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
+      int samplePitch = mBitsPerSample >> 3;
+      int frameSamples = mFrameSize / pitch;
+      int planeSize = frameSamples * samplePitch;
+      int outPlaneSize = samples * samplePitch;
+      for (int sample = 0; sample < samples;) {
+        int frame = (demuxSamplesSent + sample) / frameSamples;
+        int sampleInFrame = (demuxSamplesSent + sample) - frame * frameSamples;
+        int outRemaining = min (min (frameSamples - sampleInFrame, samples), samples - sample);
+        auto src = demuxerContent + (frame * mFrameSize) + (sampleInFrame * samplePitch);
+        auto dst = (uint8_t*)buffer->pBuffer + sample * samplePitch;
+        for (auto channel = 0u; channel < mNumInputChans; channel++) {
+          memcpy (dst, src, outRemaining * samplePitch);
+          src += planeSize;
+          dst += outPlaneSize;
+          }
+        sample += outRemaining;
+        }
+      }
+    else
+      memcpy (buffer->pBuffer, demuxerContent + demuxSamplesSent * pitch, buffer->nFilledLen);
+
+    auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
+    if (mSetStartTime) {
+      buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
+      mLastPts = pts;
+      float time = (float)val / DVD_TIME_BASE;
+      cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(time, 6,2,' '));
+      mSetStartTime = false;
+      }
+    else {
+      if (pts == DVD_NOPTS_VALUE) {
+        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+        mLastPts = pts;
+        }
+      else if (mLastPts != pts) {
+        if (pts > mLastPts)
+          mLastPts = pts;
+        else
+          buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+        }
+      else if (mLastPts == pts)
+        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+      }
+
+    buffer->nTimeStamp = toOmxTime (val);
+    demuxSamplesSent += samples;
+    if (demuxSamplesSent == demuxSamples)
+      buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+
+    if (mDecoder.emptyThisBuffer (buffer)) {
+      cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
+      mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
+      return 0;
+      }
+
+    if (mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0) == OMX_ErrorNone)
+      if (!srcChanged())
+        cLog::log (LOGERROR, string(__func__) + "  srcChanged");
+    }
+
+  mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
+  applyVolume();
+  return len;
   }
 //}}}
