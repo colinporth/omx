@@ -474,13 +474,16 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
       // if this buffer won't fit then flush out what we have
       int desired_size = AUDIO_DECODE_OUTPUT_BUFFER *
         (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
+
       if (mBufferOutputUsed &&
           (((mBufferOutputUsed + outputSize) > desired_size) || mNoConcatenate)) {
         //{{{  done
         decodedData = mBufferOutput;
         decodedSize = mBufferOutputUsed;
+
         mBufferOutputUsed = 0;
         mNoConcatenate = false;
+
         dts = mDts;
         pts = mPts;
         }
@@ -512,7 +515,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
                          mCodecContext->sample_fmt, mCodecContext->sample_rate,
                          0, NULL);
 
-            if (!mConvert || mSwResample.swr_init(mConvert) < 0) 
+            if (!mConvert || mSwResample.swr_init(mConvert) < 0)
               cLog::log (LOGERROR, "cOmxAudio::getData unable to initialise convert format:%d to %d",
                                    mCodecContext->sample_fmt, mDesiredSampleFormat);
             }
@@ -1060,7 +1063,6 @@ bool cOmxAudio::srcChanged() {
   }
 //}}}
 
-//{{{
 int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -1081,8 +1083,7 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
       return len;
       }
       //}}}
-    buffer->nOffset = 0;
-    buffer->nFlags  = 0;
+
     int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
       (mNumInputChans * mBitsPerSample) >> (kRoundedUpChansShift[mNumInputChans] + 4);
     int remaining = demuxSamples - demuxSamplesSent;
@@ -1092,6 +1093,7 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
 
     int frames = mFrameSize ? (len / mFrameSize) : 0;
     if (((samples < demuxSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
+      //{{{  complicated copy
       int samplePitch = mBitsPerSample >> 3;
       int frameSamples = mFrameSize / pitch;
       int planeSize = frameSamples * samplePitch;
@@ -1110,9 +1112,12 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
         sample += outRemaining;
         }
       }
+      //}}}
     else
       memcpy (buffer->pBuffer, demuxerContent + demuxSamplesSent * pitch, buffer->nFilledLen);
 
+    buffer->nOffset = 0;
+    buffer->nFlags  = 0;
     auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
     if (mSetStartTime) {
       buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
@@ -1121,20 +1126,18 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
       cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(time, 6,2,' '));
       mSetStartTime = false;
       }
-    else {
-      if (pts == DVD_NOPTS_VALUE) {
-        buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+    else if (pts == DVD_NOPTS_VALUE) {
+      buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
+      mLastPts = pts;
+      }
+    else if (mLastPts != pts) {
+      if (pts > mLastPts)
         mLastPts = pts;
-        }
-      else if (mLastPts != pts) {
-        if (pts > mLastPts)
-          mLastPts = pts;
-        else
-          buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
-        }
-      else if (mLastPts == pts)
+      else
         buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
       }
+    else if (mLastPts == pts)
+      buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
 
     buffer->nTimeStamp = toOmxTime (val);
     demuxSamplesSent += samples;
@@ -1156,4 +1159,3 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
   applyVolume();
   return len;
   }
-//}}}
