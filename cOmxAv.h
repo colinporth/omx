@@ -423,15 +423,13 @@ private:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
   uint64_t getChanMap();
 
-  int getData (uint8_t** dst, double &dts, double &pts);
-
   bool srcChanged();
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
   int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
   bool applyVolume();
 
-  int swDecode (uint8_t* data, int size, double dts, double pts);
+  int getData (uint8_t** dst, double &dts, double &pts);
   int addDecodedData (void* data, int len, double dts, double pts);
 
   // vars
