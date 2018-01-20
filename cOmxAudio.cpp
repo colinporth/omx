@@ -431,29 +431,25 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
       mPts = pts;
       }
 
-    int bytesUsed;
-    if (mGotFrame)
-      bytesUsed = 0;
-    else {
+    if (!mGotFrame) {
       int gotFrame;
       AVPacket avPacket;
       mAvCodec.av_init_packet (&avPacket);
       avPacket.data = data;
       avPacket.size = size;
-      bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avPacket);
-      if ((bytesUsed >= 0) && gotFrame) {
+      int bytesUsed = mAvCodec.avcodec_decode_audio4 (mCodecContext, mFrame, &gotFrame, &avPacket);
+      if ((bytesUsed < 0) || (bytesUsed > size)) {
+        reset();
+        break;
+        }
+      else if (gotFrame) {
         data += bytesUsed;
         size -= bytesUsed;
-
         mGotFrame = true;
         if (mFirstFrame)
           cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
                      mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
                      size, mFrame->nb_samples, mFrame->linesize[0]);
-        }
-      else if ((bytesUsed < 0) || (bytesUsed > size)) {
-        reset();
-        break;
         }
       }
 
