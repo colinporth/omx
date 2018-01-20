@@ -422,14 +422,12 @@ private:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
   uint64_t getChanMap();
 
-  int getData (uint8_t** data, double &dts, double &pts);
-
-  bool srcChanged();
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
   int buildChanMapCEA (enum PCMChannels* chanMap, uint64_t layout);
   void buildChanMapOMX (enum OMX_AUDIO_CHANNELTYPE* chanMap, uint64_t layout);
-  bool applyVolume();
 
+  bool srcChanged();
+  void applyVolume();
   int addBuffer (uint8_t* data, int len, double dts, double pts);
 
   // vars
@@ -476,7 +474,6 @@ private:
   unsigned int mChunkLen = 0;
 
   float mSubmitted = 0.f;
-  bool mSrcChanged = false;
   bool mSubmittedEos = false;
   bool mFailedEos = false;
 
