@@ -1102,17 +1102,14 @@ bool cOmxAudio::srcChanged() {
 //}}}
 
 //{{{
-int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
+int cOmxAudio::getData (uint8_t** data, double& dts, double& pts) {
 
-  // input audio is aligned
   int inLineSize;
-  int inputSize = mAvUtil.av_samples_get_buffer_size (
-    &inLineSize, mCodecContext->channels, mFrame->nb_samples, mCodecContext->sample_fmt, 0);
-
-  // output audio will be packed
+  int inputSize = mAvUtil.av_samples_get_buffer_size (&inLineSize, mCodecContext->channels, 
+                                                      mFrame->nb_samples, mCodecContext->sample_fmt, 0);
   int outLineSize;
-  int outputSize = mAvUtil.av_samples_get_buffer_size (
-    &outLineSize, mCodecContext->channels, mFrame->nb_samples, mDesiredSampleFormat, 1);
+  int outputSize = mAvUtil.av_samples_get_buffer_size (&outLineSize, mCodecContext->channels, 
+                                                       mFrame->nb_samples, mDesiredSampleFormat, 1);
 
   if (!mNoConcatenate && mBufferOutputUsed && ((int)mFrameSize != outputSize)) {
     cLog::log (LOGERROR, "cOmxAudio::getData size:%d->%d", mFrameSize, outputSize);
@@ -1124,14 +1121,16 @@ int cOmxAudio::getData (uint8_t** dst, double& dts, double& pts) {
     (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
   if (mBufferOutputUsed &&
       (((mBufferOutputUsed + outputSize) > desired_size) || mNoConcatenate)) {
+    //{{{  done
     int ret = mBufferOutputUsed;
     mBufferOutputUsed = 0;
     mNoConcatenate = false;
     dts = mDts;
     pts = mPts;
-    *dst = mBufferOutput;
+    *data = mBufferOutput;
     return ret;
     }
+    //}}}
   mFrameSize = outputSize;
 
   if (mBufferOutputAllocated < mBufferOutputUsed + outputSize) {

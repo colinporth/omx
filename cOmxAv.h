@@ -425,7 +425,7 @@ private:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }
   uint64_t getChanMap();
 
-  int getData (uint8_t** dst, double &dts, double &pts);
+  int getData (uint8_t** data, double &dts, double &pts);
 
   bool srcChanged();
   void buildChanMap (enum PCMChannels* chanMap, uint64_t layout);
