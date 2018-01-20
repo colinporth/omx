@@ -431,7 +431,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
       }
 
     if (!mGotFrame) {
-      //{{{  read from packet
+      //{{{  decode frame from packet
       int gotFrame;
       AVPacket avPacket;
       mAvCodec.av_init_packet (&avPacket);
@@ -445,9 +445,10 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         }
 
       else if (gotFrame) {
+        mGotFrame = true;
         data += bytesUsed;
         size -= bytesUsed;
-        mGotFrame = true;
+
         if (mFirstFrame)
           cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
                      mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
@@ -457,7 +458,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
       //}}}
 
     if (mGotFrame) {
-      //{{{  convert and addBuffer
+      //{{{  convert frame, addBuffer
       int inLineSize;
       int inputSize = mAvUtil.av_samples_get_buffer_size (&inLineSize, mCodecContext->channels,
                                                           mFrame->nb_samples, mCodecContext->sample_fmt, 0);
@@ -470,13 +471,12 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         mNoConcatenate = true;
         }
 
-      uint8_t* decodedData = nullptr;
-      int decodedSize = 0;
-
       // if this buffer won't fit then flush out what we have
       int desiredSize = AUDIO_DECODE_OUTPUT_BUFFER *
         (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
 
+      uint8_t* decodedData = nullptr;
+      int decodedSize = 0;
       if (mBufferOutputUsed &&
           (((mBufferOutputUsed + outputSize) > desiredSize) || mNoConcatenate)) {
         //{{{  done
@@ -494,13 +494,25 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         //{{{  convert
         mFrameSize = outputSize;
 
-        if (mBufferOutputAllocated < mBufferOutputUsed + outputSize) {
+        if (mBufferOutputAllocated < (mBufferOutputUsed + outputSize)) {
           mBufferOutput = (uint8_t*)mAvUtil.av_realloc (
             mBufferOutput, mBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
           mBufferOutputAllocated = mBufferOutputUsed + outputSize;
           }
 
-        if (mCodecContext->sample_fmt != mDesiredSampleFormat) {
+        if (mCodecContext->sample_fmt == mDesiredSampleFormat) {
+          //{{{  copy to contiguous buffer
+          uint8_t* out_planes[mCodecContext->channels];
+
+          if ((mAvUtil.av_samples_fill_arrays (out_planes, NULL, mBufferOutput + mBufferOutputUsed,
+                                               mCodecContext->channels, mFrame->nb_samples, 
+                                               mDesiredSampleFormat, 1) < 0) ||
+              mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
+                                       mCodecContext->channels, mDesiredSampleFormat) < 0 )
+            outputSize = 0;
+          }
+          //}}}
+        else {
           //{{{  convert format
           if (mConvert &&
               ((mCodecContext->sample_fmt != mSampleFormat) || (mChans != mCodecContext->channels))) {
@@ -533,17 +545,6 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
                                  (int)mCodecContext->sample_fmt, mDesiredSampleFormat);
             outputSize = 0;
             }
-          }
-          //}}}
-        else {
-          //{{{  copy to a contiguous buffer
-          uint8_t* out_planes[mCodecContext->channels];
-          if (mAvUtil.av_samples_fill_arrays (
-                out_planes, NULL, mBufferOutput + mBufferOutputUsed, mCodecContext->channels,
-                mFrame->nb_samples, mDesiredSampleFormat, 1) < 0 ||
-              mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
-                                       mCodecContext->channels, mDesiredSampleFormat) < 0 )
-            outputSize = 0;
           }
           //}}}
         mGotFrame = false;
