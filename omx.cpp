@@ -446,8 +446,6 @@ private:
           //{{{  debugStr
           auto aLevel = mOmxAudioPlayer ? mOmxAudioPlayer->getPacketCacheSize()/1024 : 0;
           auto vLevel = mOmxVideoPlayer ? mOmxVideoPlayer->getPacketCacheSize()/1024 : 0;
-          auto aDelay = mOmxAudioPlayer ? mOmxAudioPlayer->getDelay() : 0;
-          auto aCache = mOmxAudioPlayer ? mOmxAudioPlayer->getCacheTotal() : 0;
           auto streamLength = mOmxReader.getStreamLength() / 1000;
 
           auto str = frac(clockPts/1000000.0,6,2,' ') +
@@ -457,9 +455,7 @@ private:
                      " " + frac(audio_fifo,6,2,' ') +
                      ":" + frac(video_fifo,6,2,' ') +
                      " " + dec(aLevel,4) +
-                     ":" + dec(vLevel,4) +
-                     " ad:" + dec(aDelay) +
-                     " ac:" + dec(aCache);
+                     ":" + dec(vLevel,4);
           mDebugStr = str;
           //}}}
 

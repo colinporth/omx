@@ -417,7 +417,6 @@ public:
   void submitEOS();
   void flush();
   void reset();
-  void dispose();
 
 private:
   int getBitsPerSample() { return mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16 ? 16 : 32; }

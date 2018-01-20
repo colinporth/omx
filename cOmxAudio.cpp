@@ -58,14 +58,25 @@ cOmxAudio::~cOmxAudio() {
   if (mRenderAnal.isInit())
     mRenderAnal.deInit();
 
-
   mAvUtil.av_free (mBufferOutput);
 
   mBufferOutput = NULL;
   mBufferOutputAllocated = 0;
   mBufferOutputUsed = 0;
 
-  dispose();
+  if (mFrame)
+    mAvUtil.av_free (mFrame);
+
+  if (mConvert)
+    mSwResample.swr_free (&mConvert);
+
+  if (mCodecContext) {
+    if (mCodecContext->extradata)
+      mAvUtil.av_free (mCodecContext->extradata);
+    mCodecContext->extradata = NULL;
+    mAvCodec.avcodec_close (mCodecContext);
+    mAvUtil.av_free (mCodecContext);
+    }
   }
 //}}}
 
@@ -238,7 +249,6 @@ bool cOmxAudio::open (const cOmxAudioConfig& config) {
   if (mAvCodec.avcodec_open2 (mCodecContext, codec, NULL) < 0) {
     //{{{  error return
     cLog::log (LOGERROR, string(__func__) + " cannot open codec");
-    dispose();
     return false;
     }
     //}}}
@@ -505,7 +515,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
           uint8_t* out_planes[mCodecContext->channels];
 
           if ((mAvUtil.av_samples_fill_arrays (out_planes, NULL, mBufferOutput + mBufferOutputUsed,
-                                               mCodecContext->channels, mFrame->nb_samples, 
+                                               mCodecContext->channels, mFrame->nb_samples,
                                                mDesiredSampleFormat, 1) < 0) ||
               mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
                                        mCodecContext->channels, mDesiredSampleFormat) < 0 )
@@ -635,29 +645,6 @@ void cOmxAudio::reset() {
   mAvCodec.avcodec_flush_buffers (mCodecContext);
   mGotFrame = false;
   mBufferOutputUsed = 0;
-  }
-//}}}
-//{{{
-void cOmxAudio::dispose() {
-
-  if (mFrame)
-    mAvUtil.av_free (mFrame);
-  mFrame = NULL;
-
-  if (mConvert)
-    mSwResample.swr_free (&mConvert);
-
-  if (mCodecContext) {
-    if (mCodecContext->extradata)
-      mAvUtil.av_free (mCodecContext->extradata);
-    mCodecContext->extradata = NULL;
-
-    mAvCodec.avcodec_close (mCodecContext);
-    mAvUtil.av_free (mCodecContext);
-    mCodecContext = NULL;
-    }
-
-  mGotFrame = false;
   }
 //}}}
 
@@ -1077,8 +1064,6 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
   int demuxSamples = len / pitch;
 
   while (demuxSamplesSent < demuxSamples) {
-    // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
-    // it will be 16-bit and rounded up to next power of 2 in Chans
     OMX_BUFFERHEADERTYPE* buffer = mDecoder.getInputBuffer (200);
     if (!buffer) {
       //{{{  error return
@@ -1088,11 +1073,13 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
       //}}}
     buffer->nOffset = 0;
 
+    // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
+    // it will be 16-bit and rounded up to next power of 2 in Chans
     int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
       (mNumInputChans * mBitsPerSample) >> (kRoundedUpChansShift[mNumInputChans] + 4);
     int remaining = demuxSamples - demuxSamplesSent;
     int samplesSpace = min (maxBuffer, (int)buffer->nAllocLen) / pitch;
-    int samples = min(remaining, samplesSpace);
+    int samples = min (remaining, samplesSpace);
     buffer->nFilledLen = samples * pitch;
 
     int frames = mFrameSize ? (len / mFrameSize) : 0;
@@ -1119,9 +1106,14 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
       //}}}
     else
       memcpy (buffer->pBuffer, data + demuxSamplesSent * pitch, buffer->nFilledLen);
+    demuxSamplesSent += samples;
 
-    buffer->nFlags  = 0;
+    //{{{  set buffer flags and timestamp
     auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
+    buffer->nTimeStamp = toOmxTime (val);
+
+    buffer->nFlags = (demuxSamplesSent == demuxSamples) ? OMX_BUFFERFLAG_ENDOFFRAME : 0;
+
     if (mSetStartTime) {
       buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
       mLastPts = pts;
@@ -1129,23 +1121,23 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
       cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(time, 6,2,' '));
       mSetStartTime = false;
       }
+
     else if (pts == DVD_NOPTS_VALUE) {
       buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
       mLastPts = pts;
       }
+
     else if (mLastPts != pts) {
       if (pts > mLastPts)
         mLastPts = pts;
       else
         buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
       }
+
     else if (mLastPts == pts)
       buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
-    buffer->nTimeStamp = toOmxTime (val);
 
-    demuxSamplesSent += samples;
-    if (demuxSamplesSent == demuxSamples)
-      buffer->nFlags |= OMX_BUFFERFLAG_ENDOFFRAME;
+    //}}}
 
     if (mDecoder.emptyThisBuffer (buffer)) {
       //{{{  error, return
