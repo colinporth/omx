@@ -163,15 +163,17 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
     /* 2.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_LOW_FREQUENCY,
     /* 3.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER,
     /* 3.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_LOW_FREQUENCY,
-    /* 4.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_BACK_LEFT | 1<<PCM_BACK_RIGHT,
-    /* 4.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_BACK_LEFT | 1<<PCM_BACK_RIGHT | 1<<PCM_LOW_FREQUENCY,
-    /* 5.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_BACK_LEFT | 1<<PCM_BACK_RIGHT,
-    /* 5.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_BACK_LEFT | 1<<PCM_BACK_RIGHT |
+    /* 4.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_BACK_LEFT    | 1<<PCM_BACK_RIGHT,
+    /* 4.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_BACK_LEFT    | 1<<PCM_BACK_RIGHT |
               1<<PCM_LOW_FREQUENCY,
-    /* 7.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_SIDE_LEFT | 1<<PCM_SIDE_RIGHT |
-              1<<PCM_BACK_LEFT | 1<<PCM_BACK_RIGHT,
-    /* 7.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_SIDE_LEFT | 1<<PCM_SIDE_RIGHT |
-              1<<PCM_BACK_LEFT | 1<<PCM_BACK_RIGHT | 1<<PCM_LOW_FREQUENCY
+    /* 5.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_BACK_LEFT  |
+              1<<PCM_BACK_RIGHT,
+    /* 5.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_BACK_LEFT  |
+              1<<PCM_BACK_RIGHT | 1<<PCM_LOW_FREQUENCY,
+    /* 7.0 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_SIDE_LEFT  |
+              1<<PCM_SIDE_RIGHT | 1<<PCM_BACK_LEFT   | 1<<PCM_BACK_RIGHT,
+    /* 7.1 */ 1<<PCM_FRONT_LEFT | 1<<PCM_FRONT_RIGHT | 1<<PCM_FRONT_CENTER | 1<<PCM_SIDE_LEFT  |
+              1<<PCM_SIDE_RIGHT | 1<<PCM_BACK_LEFT   | 1<<PCM_BACK_RIGHT   | 1<<PCM_LOW_FREQUENCY
     };
 
   return (int)layout < 10 ? layouts[(int)layout] : 0;
@@ -182,16 +184,12 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
 //{{{
 void cOmxAudio::setMute (bool mute) {
 
-  lock_guard<recursive_mutex> lockGuard (mMutex);
-
   mMute = mute;
   applyVolume();
   }
 //}}}
 //{{{
 void cOmxAudio::setVolume (float volume) {
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mCurVolume = volume;
   applyVolume();
@@ -989,7 +987,7 @@ void cOmxAudio::applyVolume() {
       return;
       }
 
-    cLog::log (LOGINFO, string(__func__) + " - changed " + frac(volume, 3,1,' '));
+    cLog::log (LOGINFO1, string(__func__) + " - changed " + frac(volume, 3,1,' '));
     mLastVolume = volume;
     }
   }
@@ -999,12 +997,12 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  int demuxSamplesSent = 0;
-  int pitch = (mBitsPerSample>>3) * mNumInputChans;
-  int demuxSamples = size / pitch;
+  int samplesSent = 0;
+  int samplesPitch = (mBitsPerSample >> 3) * mNumInputChans;
+  int numSamples = size / samplesPitch;
 
-  while (demuxSamplesSent < demuxSamples) {
-    OMX_BUFFERHEADERTYPE* buffer = mDecoder.getInputBuffer (200);
+  while (samplesSent < numSamples) {
+    auto buffer = mDecoder.getInputBuffer (200);
     if (!buffer) {
       //{{{  error return
       cLog::log (LOGERROR, string(__func__) + " timeout");
@@ -1013,28 +1011,28 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
       //}}}
     buffer->nOffset = 0;
 
-    int remaining = demuxSamples - demuxSamplesSent;
-    int samplesSpace = min (getChunkLen (mNumInputChans), (int)buffer->nAllocLen) / pitch;
+    int remaining = numSamples - samplesSent;
+    int samplesSpace = min (getChunkLen (mNumInputChans), (int)buffer->nAllocLen) / samplesPitch;
     int samples = min (remaining, samplesSpace);
-    buffer->nFilledLen = samples * pitch;
+    buffer->nFilledLen = samples * samplesPitch;
 
     int frames = mFrameSize ? (size / mFrameSize) : 0;
-    if (((samples < demuxSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
+    if (((samples < numSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
       //{{{  complicated copy
-      int samplePitch = mBitsPerSample >> 3;
-      int frameSamples = mFrameSize / pitch;
-      int planeSize = frameSamples * samplePitch;
-      int outPlaneSize = samples * samplePitch;
+      int frameSamples = mFrameSize / samplesPitch;
+      int bytesPerSample = mBitsPerSample >> 3;
+      int planeSize = frameSamples * bytesPerSample;
+      int outPlaneSize = samples * bytesPerSample;
 
       for (int sample = 0; sample < samples;) {
-        int frame = (demuxSamplesSent + sample) / frameSamples;
-        int sampleInFrame = (demuxSamplesSent + sample) - (frame * frameSamples);
+        int frame = (samplesSent + sample) / frameSamples;
+        int sampleInFrame = (samplesSent + sample) - (frame * frameSamples);
         int outRemaining = min (min (frameSamples - sampleInFrame, samples), samples - sample);
 
-        auto src = data + (frame * mFrameSize) + (sampleInFrame * samplePitch);
-        auto dst = (uint8_t*)buffer->pBuffer + (sample * samplePitch);
+        auto src = data + (frame * mFrameSize) + (sampleInFrame * bytesPerSample);
+        auto dst = (uint8_t*)buffer->pBuffer + (sample * bytesPerSample);
         for (auto channel = 0u; channel < mNumInputChans; channel++) {
-          memcpy (dst, src, outRemaining * samplePitch);
+          memcpy (dst, src, outRemaining * bytesPerSample);
           src += planeSize;
           dst += outPlaneSize;
           }
@@ -1044,14 +1042,14 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
       }
       //}}}
     else
-      memcpy (buffer->pBuffer, data + (demuxSamplesSent * pitch), buffer->nFilledLen);
-    demuxSamplesSent += samples;
+      memcpy (buffer->pBuffer, data + (samplesSent * samplesPitch), buffer->nFilledLen);
+    samplesSent += samples;
 
     //{{{  set buffer flags and timestamp
     auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
     buffer->nTimeStamp = toOmxTime (val);
 
-    buffer->nFlags = (demuxSamplesSent == demuxSamples) ? OMX_BUFFERFLAG_ENDOFFRAME : 0;
+    buffer->nFlags = (samplesSent == numSamples) ? OMX_BUFFERFLAG_ENDOFFRAME : 0;
 
     if (mSetStartTime) {
       buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;

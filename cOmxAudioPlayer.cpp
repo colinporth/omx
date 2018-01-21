@@ -21,7 +21,7 @@ bool cOmxAudioPlayer::open (cOmxClock* clock, const cOmxAudioConfig& config) {
   mFlush = false;
   mFlushRequested = false;
   mPacketCacheSize = 0;
-  mCurrentPts = DVD_NOPTS_VALUE;
+  mCurPts = DVD_NOPTS_VALUE;
 
   mAvFormat.av_register_all();
 
@@ -47,48 +47,28 @@ bool cOmxAudioPlayer::openOmxAudio() {
                         " bps:" + dec(mConfig.mHints.bitspersample));
 
     // setup current volume settings
-    mOmxAudio->setVolume (mCurrentVolume);
+    mOmxAudio->setVolume (mCurVolume);
     mOmxAudio->setMute (mMute);
     return true;
     }
-
-  delete mOmxAudio;
-  mOmxAudio = nullptr;
-  return false;
+  else {
+    delete mOmxAudio;
+    mOmxAudio = nullptr;
+    return false;
+    }
   }
 //}}}
 
 //{{{
 bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
 
-  if ((packet->mHints.channels != mConfig.mHints.channels)  ||
-      (packet->mHints.codec != mConfig.mHints.codec) ||
-      (packet->mHints.bitrate != mConfig.mHints.bitrate) ||
-      (packet->mHints.samplerate != mConfig.mHints.samplerate) ||
-      (packet->mHints.bitspersample != mConfig.mHints.bitspersample)) {
-    //{{{  change decoders
-    cLog::log (LOGINFO, "Decode C : %d %d %d %d %d",
-                        mConfig.mHints.codec, mConfig.mHints.channels, mConfig.mHints.samplerate,
-                        mConfig.mHints.bitrate, mConfig.mHints.bitspersample);
-    cLog::log (LOGINFO, "Decode N : %d %d %d %d %d",
-                        packet->mHints.codec, packet->mHints.channels, packet->mHints.samplerate,
-                        packet->mHints.bitrate, packet->mHints.bitspersample);
-    mConfig.mHints = packet->mHints;
-
-    //delete mOmxAudio;
-    //mOmxAudio = nullptr;
-    //if (!openOmxAudio())
-    //  return false;
-    }
-    //}}}
-
   cLog::log (LOGINFO1, "cOmxAudioPlayer::decode - pts:%6.2f size:%d",
                        packet->mPts/1000000.f, packet->mSize);
 
   if (packet->mPts != DVD_NOPTS_VALUE)
-    mCurrentPts = packet->mPts;
+    mCurPts = packet->mPts;
   else if (packet->mDts != DVD_NOPTS_VALUE)
-    mCurrentPts = packet->mDts;
+    mCurPts = packet->mDts;
 
   return mOmxAudio->decode (packet->mData, packet->mSize, packet->mDts, packet->mPts, mFlushRequested);
   }

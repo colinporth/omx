@@ -21,16 +21,6 @@ using namespace std;
 #define READ_CACHED    0x04  // use cache to access this file
 #define READ_NO_CACHE  0x08  // open without caching. regardless to file type
 #define READ_BITRATE   0x10  // calcuate bitrate for file while reading
-
-#define RESET_TIMEOUT(x) do { \
-  timeout_start = currentHostCounter(); \
-  timeout_duration = (x) * timeout_default_duration; \
-  } while (0)
-//}}}
-//{{{  static vars
-static int64_t timeout_start;
-static int64_t timeout_default_duration;
-static int64_t timeout_duration;
 //}}}
 //{{{
 typedef enum {
@@ -41,6 +31,12 @@ typedef enum {
   } eIoControl;
 //}}}
 
+// local
+//{{{  vars
+int64_t timeoutStart;
+int64_t timeoutDefaultDuration;
+int64_t timeoutDuration;
+//}}}
 //{{{
 class cFile {
 public:
@@ -147,10 +143,9 @@ private:
   bool mPipe = false;
   };
 //}}}
-
-// local
 //{{{
 int64_t currentHostCounter() {
+
   struct timespec now;
   clock_gettime (CLOCK_MONOTONIC, &now);
   return (((int64_t)now.tv_sec * 1000000000LL) + now.tv_nsec);
@@ -160,7 +155,7 @@ int64_t currentHostCounter() {
 int interruptCb (void* unused) {
 
   int ret = 0;
-  if (timeout_duration && currentHostCounter() - timeout_start > timeout_duration) {
+  if (timeoutDuration && currentHostCounter() - timeoutStart > timeoutDuration) {
     cLog::log (LOGERROR, string(__func__) + " Timed out");
     ret = 1;
     }
@@ -172,7 +167,9 @@ int interruptCb (void* unused) {
 int fileRead (void* h, uint8_t* buf, int size) {
 
   cLog::log (LOGINFO2, "fileRead %d", size);
-  RESET_TIMEOUT(1);
+  timeoutStart = currentHostCounter();
+  timeoutDuration =  timeoutDefaultDuration;
+
   if (interruptCb (NULL))
     return -1;
 
@@ -185,7 +182,8 @@ offset_t fileSeek (void* h, offset_t pos, int whence) {
 
   cLog::log (LOGINFO2, "fileSeek %d %d", pos, whence);
 
-  RESET_TIMEOUT(1);
+  timeoutStart = currentHostCounter();
+  timeoutDuration = timeoutDefaultDuration;
   if (interruptCb (NULL))
     return -1;
 
@@ -521,14 +519,15 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
                        const string& cookie, const string& user_agent,
                        const string& lavfdopts, const string& avdict) {
 
-  timeout_default_duration = (int64_t) (timeout * 1e9);
+  timeoutDefaultDuration = (int64_t) (timeout * 1e9);
   mCurPts = DVD_NOPTS_VALUE;
   mFilename = filename;
   mSpeed = DVD_PLAYSPEED_NORMAL;
   mProgram = UINT_MAX;
   AVInputFormat* iformat = NULL;
 
-  RESET_TIMEOUT(3);
+  timeoutStart = currentHostCounter();
+  timeoutDuration = 3 * timeoutDefaultDuration;
   clearStreams();
 
   mAvFormat.av_register_all();
@@ -681,7 +680,8 @@ cOmxPacket* cOmxReader::readPacket() {
   avPacket.data = NULL;
   avPacket.stream_index = MAX_OMX_STREAMS;
 
-  RESET_TIMEOUT(1);
+  timeoutStart = currentHostCounter();
+  timeoutDuration =  timeoutDefaultDuration;
   if (mAvFormat.av_read_frame (mAvFormatContext, &avPacket) < 0) {
     //{{{  error return
     mEof = true;
@@ -758,7 +758,8 @@ bool cOmxReader::seek (float time, double& startPts) {
   if (mAvFormatContext->start_time != (int64_t)AV_NOPTS_VALUE)
     seekPts += mAvFormatContext->start_time;
 
-  RESET_TIMEOUT(1);
+  timeoutStart = currentHostCounter();
+  timeoutDuration = timeoutDefaultDuration;
   auto ret = mAvFormat.av_seek_frame (mAvFormatContext, -1, seekPts, backwards ? AVSEEK_FLAG_BACKWARD : 0);
   if (ret >= 0)
     updateCurrentPTS();

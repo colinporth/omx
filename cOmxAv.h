@@ -510,7 +510,7 @@ public:
 
   int getNumPackets() { return mPackets.size(); };
   int getPacketCacheSize() { return mPacketCacheSize; };
-  double getCurrentPTS() { return mCurrentPts; };
+  double getCurPTS() { return mCurPts; };
 
   //{{{
   bool addPacket (cOmxPacket* packet) {
@@ -595,7 +595,7 @@ public:
       }
 
     mPacketCacheSize = 0;
-    mCurrentPts = DVD_NOPTS_VALUE;
+    mCurPts = DVD_NOPTS_VALUE;
 
     flushDecoder();
 
@@ -615,7 +615,7 @@ public:
     deleteDecoder();
 
     mStreamId = -1;
-    mCurrentPts = DVD_NOPTS_VALUE;
+    mCurPts = DVD_NOPTS_VALUE;
     mStream = nullptr;
 
     return true;
@@ -648,7 +648,7 @@ protected:
   int mStreamId = -1;
   AVStream* mStream = nullptr;
 
-  double mCurrentPts = 0.0;
+  double mCurPts = 0.0;
 
   bool mAbort;
   bool mFlush = false;
@@ -668,7 +668,7 @@ public:
   double getDelay() { return mOmxAudio->getDelay(); }
   double getCacheTotal() { return mOmxAudio->getCacheTotal(); }
 
-  float getVolume() { return mCurrentVolume; }
+  float getVolume() { return mCurVolume; }
 
   //{{{
   void setMute (bool mute) {
@@ -678,7 +678,7 @@ public:
   //}}}
   //{{{
   void setVolume (float volume) {
-    mCurrentVolume = volume;
+    mCurVolume = volume;
     mOmxAudio->setVolume (volume);
     }
   //}}}
@@ -712,7 +712,7 @@ private:
   std::string mDevice;
   bool mBoostOnDownmix;
 
-  float mCurrentVolume = 0.f;
+  float mCurVolume = 0.f;
   float mDrc = 0.f;
   bool mMute = false;
   //}}}

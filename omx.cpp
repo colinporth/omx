@@ -1,4 +1,4 @@
-// omx.cpp - simpler omxPlayer
+// omx.cpp 
 //{{{  includes
 #include <stdio.h>
 #include <signal.h>
@@ -59,6 +59,7 @@ class cAppWindow : public cRaspWindow {
 public:
   //{{{
   cAppWindow (const string& root) : mDvb(root), mRoot(root) {
+
     mKeyboard.setKeymap (cKeyConfig::getKeymap());
     thread ([=]() { mKeyboard.run(); } ).detach();
     }
@@ -286,6 +287,7 @@ private:
   //}}}
   //{{{
   void updateFileNames() {
+
     mFileNames.clear();
     nftw (mRoot.c_str(), addFile, 20, 0);
     changed();
@@ -454,12 +456,13 @@ private:
       // debugStr
       auto clockPts = mOmxClock.getMediaTime();
       auto streamLength = mOmxReader.getStreamLength() / 1000;
-      auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
-      auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
+      auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurPTS() : DVD_NOPTS_VALUE;
+      auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurPTS() : DVD_NOPTS_VALUE;
       auto str = frac(clockPts/1000000.0,6,2,' ') +
-                 "of" + dec (streamLength) +
+                 "of" + dec(streamLength) +
                  " " + frac(audio_pts/1000000.0,6,2,' ') +
-                 ":" + frac(video_pts/1000000.0,6,2,' ');
+                 ":" + frac(video_pts/1000000.0,6,2,' ') +
+                 " vol:" + frac(mOmxAudioPlayer ? mOmxAudioPlayer->getVolume() : 0.f, 3,2,' ');
       mDebugStr = str;
 
       // pause control
@@ -618,6 +621,7 @@ int main (int argc, char* argv[]) {
   cLog::log (LOGNOTICE, "omx " + root + " " + string(VERSION_DATE));
 
   cAppWindow appWindow (root);
+
   appWindow.mVideoConfig.mDeInterlaceMode = deInterlaceMode;
   appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
   appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;

@@ -47,7 +47,7 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
   mFlush = false;
   mFlushRequested = false;
   mPacketCacheSize = 0;
-  mCurrentPts = DVD_NOPTS_VALUE;
+  mCurPts = DVD_NOPTS_VALUE;
 
   mAvFormat.av_register_all();
 
@@ -92,7 +92,7 @@ void cOmxVideoPlayer::reset() {
 
   mStreamId = -1;
   mStream = NULL;
-  mCurrentPts = DVD_NOPTS_VALUE;
+  mCurPts = DVD_NOPTS_VALUE;
   mFrametime = 0;
 
   mAbort = false;
@@ -115,12 +115,12 @@ bool cOmxVideoPlayer::decode (cOmxPacket* packet) {
   double pts = packet->mPts;
   if (pts != DVD_NOPTS_VALUE) {
     pts += mVideoDelay;
-    mCurrentPts = pts;
+    mCurPts = pts;
     }
 
   cLog::log (LOGINFO1, "cOmxAudioPlayer::::decode - pts" +
                        (packet->mPts == DVD_NOPTS_VALUE) ? "none" : frac(packet->mPts / 1000000.f, 6,2,' ') +
-                       " curPts" + frac(mCurrentPts / 1000000.f, 6,2,' ') +
+                       " curPts" + frac(mCurPts / 1000000.f, 6,2,' ') +
                        " size" + dec(packet->mSize));
 
   while ((int)mDecoder->getInputBufferSpace() < packet->mSize) {
