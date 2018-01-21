@@ -8,6 +8,7 @@
 
 using namespace std;
 //}}}
+#define AUDIO_BUFFER_SECONDS 3
 const char kRoundedUpChansShift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
 int getCountBits (uint64_t value) {
@@ -284,7 +285,7 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mBitsPerSample = getBitsPerSample();
   mBytesPerSec = mConfig.mHints.samplerate * (2 << kRoundedUpChansShift[mNumInputChans]);
-  mBufferLen = mBytesPerSec * AUDIO_BUFFER_SECONDS;
+  mBufferLen =  AUDIO_BUFFER_SECONDS * mBytesPerSec;
   mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChans >> 3;
 
   if (!mDecoder.init ("OMX.broadcom.audio_decode", OMX_IndexParamAudioInit))
@@ -549,7 +550,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
 //{{{
 void cOmxAudio::submitEOS() {
 
-  cLog::log (LOGINFO, __func__);
+  cLog::log (LOGINFO2, __func__);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -563,10 +564,12 @@ void cOmxAudio::submitEOS() {
     mFailedEos = true;
     return;
     }
+
   buffer->nOffset = 0;
   buffer->nFilledLen = 0;
   buffer->nTimeStamp = toOmxTime (0LL);
   buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME | OMX_BUFFERFLAG_EOS | OMX_BUFFERFLAG_TIME_UNKNOWN;
+
   if (mDecoder.emptyThisBuffer (buffer)) {
     cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
     mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
@@ -577,6 +580,8 @@ void cOmxAudio::submitEOS() {
 //{{{
 void cOmxAudio::reset() {
 
+  cLog::log (LOGINFO2, "cOmxAudio::reset " + mConfig.mDevice);
+
   mAvCodec.avcodec_flush_buffers (mCodecContext);
 
   mGotFrame = false;
@@ -585,6 +590,8 @@ void cOmxAudio::reset() {
 //}}}
 //{{{
 void cOmxAudio::flush() {
+
+  cLog::log (LOGINFO2, "cOmxAudio::flush " + mConfig.mDevice);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 

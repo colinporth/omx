@@ -100,7 +100,6 @@ typedef struct tWAVEFORMATEXTENSIBLE {
   } __attribute__((__packed__)) WAVEFORMATEXTENSIBLE;
 //}}}
 //}}}
-#define AUDIO_BUFFER_SECONDS 3
 
 //{{{
 class cPoint {
