@@ -394,6 +394,8 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 //{{{
 bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
 
+  cLog::log (LOGINFO1, "decode " + frac(pts/1000000.0,6,2,' ') + " " + dec(size));
+
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   unsigned int bytesLeft = (unsigned int)size;

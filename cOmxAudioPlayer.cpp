@@ -62,9 +62,6 @@ bool cOmxAudioPlayer::openOmxAudio() {
 //{{{
 bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
 
-  cLog::log (LOGINFO1, "cOmxAudioPlayer::decode - pts:%6.2f size:%d",
-                       packet->mPts/1000000.f, packet->mSize);
-
   if (packet->mPts != DVD_NOPTS_VALUE)
     mCurPts = packet->mPts;
   else if (packet->mDts != DVD_NOPTS_VALUE)

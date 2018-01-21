@@ -410,6 +410,8 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 //{{{
 bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<bool>& flushRequested) {
 
+  cLog::log (LOGINFO1, "decode " + frac(pts/1000000.0,6,2,' ') + " " + dec(size));
+
   while (size > 0) {
     if (!mBufferOutputUsed) {
       mDts = dts;
@@ -994,6 +996,8 @@ void cOmxAudio::applyVolume() {
 //}}}
 //{{{
 void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
+
+  cLog::log (LOGINFO1, "addBuffer " + frac(pts/1000000.0,6,2,' ') + " " + dec(size));
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 

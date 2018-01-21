@@ -76,10 +76,10 @@ public:
       add (new cTextBox (mDvb.mPacketStr, 15.f));
       add (new cTextBox (mDvb.mSignalStr, 14.f));
       add (new cTextBox (mDvb.mTuneStr, 13.f));
-      mTsBox = add (new cTransportStreamBox (0.f, startPlayer ? (getHeight()-2.f)/2.f : -2.f, &mDvb.mTs));
+      mTsBox = add (new cTransportStreamBox (&mDvb.mTs, 0.f,-2.f));
       }
     if (startPlayer)
-      mListWidget = add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,frequency?(getHeight()-2.f)/2.f:-2.f));
+      mListWidget = add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,-2.f));
 
     updateFileNames();
 
