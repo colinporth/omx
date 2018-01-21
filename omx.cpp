@@ -452,29 +452,30 @@ private:
         }
         //}}}
 
+      // debugStr
       auto clockPts = mOmxClock.getMediaTime();
-      //{{{  debugStr
       auto streamLength = mOmxReader.getStreamLength() / 1000;
       auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
       auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
-
       auto str = frac(clockPts/1000000.0,6,2,' ') +
                  "of" + dec (streamLength) +
                  " " + frac(audio_pts/1000000.0,6,2,' ') +
                  ":" + frac(video_pts/1000000.0,6,2,' ');
-
       mDebugStr = str;
-      //}}}
 
       // pause control
       if (mPause && !mOmxClock.isPaused()) {
+        //{{{  pause
         cLog::log (LOGINFO, "pause");
         mOmxClock.pause();
         }
+        //}}}
       if (!mPause && mOmxClock.isPaused()) {
+        //{{{  resume
         cLog::log (LOGINFO, "resume");
         mOmxClock.resume();
         }
+        //}}}
 
       if (!sentStarted) {
         //{{{  clock reset
@@ -485,6 +486,7 @@ private:
 
       if (!packet)
         packet = mOmxReader.readPacket();
+
       if (packet) {
         //{{{  got packet
         submitEos = false;
