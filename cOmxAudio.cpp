@@ -8,10 +8,9 @@
 
 using namespace std;
 //}}}
-#define AUDIO_DECODE_OUTPUT_BUFFER (32*1024)
 const char kRoundedUpChansShift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
-int countBits (uint64_t value) {
+int getCountBits (uint64_t value) {
 
   int bits = 0;
   for (; value; ++bits)
@@ -92,6 +91,15 @@ bool cOmxAudio::isEOS() {
   return true;
   }
 //}}}
+
+//{{{
+int cOmxAudio::getChunkLen (int chans) {
+// we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
+// it will be 16-bit and rounded up to next power of 2 chans
+
+  return 32*1024 * (chans * mBitsPerSample) >> (kRoundedUpChansShift[chans] + 4);
+  }
+//}}}
 //{{{
 float cOmxAudio::getCacheTotal() {
 
@@ -102,7 +110,6 @@ float cOmxAudio::getCacheTotal() {
   return AUDIO_BUFFER_SECONDS + inputBuffer + audioPlusBuffer;
   }
 //}}}
-
 //{{{
 float cOmxAudio::getDelay() {
 
@@ -149,7 +156,6 @@ unsigned int cOmxAudio::getAudioRenderingLatency() {
   return param.nU32;
   }
 //}}}
-
 //{{{
 uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
 
@@ -266,7 +272,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
   int bitsPerSample = getBitsPerSample();
 
   uint64_t chanMap = getChanMap();
-  mNumInputChans = countBits (chanMap);
+  mNumInputChans = getCountBits (chanMap);
   memset (mInputChans, 0, sizeof(mInputChans));
   memset (mOutputChans, 0, sizeof(mOutputChans));
 
@@ -298,7 +304,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
     //}}}
 
   mBitsPerSample = bitsPerSample;
-  mBytesPerSec = mConfig.mHints.samplerate * 2 << kRoundedUpChansShift[mNumInputChans];
+  mBytesPerSec = mConfig.mHints.samplerate * (2 << kRoundedUpChansShift[mNumInputChans]);
   mBufferLen = mBytesPerSec * AUDIO_BUFFER_SECONDS;
   mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChans >> 3;
 
@@ -309,9 +315,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
   // should be big enough that common formats (e.g. 6 channel DTS) fit in a single packet.
   // we don't mind less common formats being split (e.g. ape/wma output large frames)
   // 6 channel 32bpp float to 8 channel 16bpp in, so 48K input buffer will fit the output buffer
-  mChunkLen = AUDIO_DECODE_OUTPUT_BUFFER * (mNumInputChans * mBitsPerSample)
-                 >> (kRoundedUpChansShift[mNumInputChans] + 4);
-
   OMX_PARAM_PORTDEFINITIONTYPE port;
   OMX_INIT_STRUCTURE(port);
 
@@ -325,7 +328,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   // set port param
   port.format.audio.eEncoding = OMX_AUDIO_CodingPCM;
-  port.nBufferSize = mChunkLen;
+  port.nBufferSize = getChunkLen (mNumInputChans);
   port.nBufferCountActual = max (port.nBufferCountMin, 16U);
   if (mDecoder.setParam (OMX_IndexParamPortDefinition, &port)) {
     // error, return
@@ -476,8 +479,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         }
 
       // if this buffer won't fit then flush out what we have
-      int desiredSize = AUDIO_DECODE_OUTPUT_BUFFER *
-        (mCodecContext->channels * getBitsPerSample()) >> (kRoundedUpChansShift[mCodecContext->channels] + 4);
+      int desiredSize = getChunkLen (mCodecContext->channels);
 
       uint8_t* decodedData = nullptr;
       int decodedSize = 0;
@@ -512,14 +514,15 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
                                                mCodecContext->channels, mFrame->nb_samples,
                                                mDesiredSampleFormat, 1) < 0) ||
               mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, mFrame->nb_samples,
-                                       mCodecContext->channels, mDesiredSampleFormat) < 0 )
+                                       mCodecContext->channels, mDesiredSampleFormat) < 0)
             outputSize = 0;
           }
           //}}}
         else {
           //{{{  convert format
           if (mConvert &&
-              ((mCodecContext->sample_fmt != mSampleFormat) || (mChans != mCodecContext->channels))) {
+              ((mCodecContext->sample_fmt != mSampleFormat) ||
+               (mChans != mCodecContext->channels))) {
             mSwResample.swr_free (&mConvert);
             mChans = mCodecContext->channels;
             }
@@ -647,7 +650,7 @@ void cOmxAudio::flush() {
 //{{{
 uint64_t cOmxAudio::getChanMap() {
 
-  auto bits = countBits (mCodecContext->channel_layout);
+  auto bits = getCountBits (mCodecContext->channel_layout);
 
   uint64_t layout;
   if (bits == mCodecContext->channels)
@@ -800,10 +803,10 @@ bool cOmxAudio::srcChanged() {
     }
   //}}}
   cLog::log (LOGINFO, string(__func__) +
-                       " - " + dec(mPcmOutput.nChannels) + "x" + dec(mPcmOutput.nBitPerSample) +
-                       "@" + dec(mPcmOutput.nSamplingRate)+
-                       " bufferLen:" +  dec(mBufferLen) +
-                       " bytesPerSec:" + dec(mBytesPerSec));
+                      " - " + dec(mPcmOutput.nChannels) + "x" + dec(mPcmOutput.nBitPerSample) +
+                      "@" + dec(mPcmOutput.nSamplingRate)+
+                      " bufferLen:" +  dec(mBufferLen) +
+                      " bytesPerSec:" + dec(mBytesPerSec));
   if (mSplitter.isInit()) {
     //{{{  wireup splitter to pcm output
     // setup splitter
@@ -1029,57 +1032,56 @@ void cOmxAudio::applyVolume() {
   }
 //}}}
 //{{{
-int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
+void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   int demuxSamplesSent = 0;
   int pitch = (mBitsPerSample>>3) * mNumInputChans;
-  int demuxSamples = len / pitch;
+  int demuxSamples = size / pitch;
 
   while (demuxSamplesSent < demuxSamples) {
     OMX_BUFFERHEADERTYPE* buffer = mDecoder.getInputBuffer (200);
     if (!buffer) {
       //{{{  error return
       cLog::log (LOGERROR, string(__func__) + " timeout");
-      return len;
+      return;
       }
       //}}}
     buffer->nOffset = 0;
 
-    // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
-    // it will be 16-bit and rounded up to next power of 2 in Chans
-    int maxBuffer = AUDIO_DECODE_OUTPUT_BUFFER *
-      (mNumInputChans * mBitsPerSample) >> (kRoundedUpChansShift[mNumInputChans] + 4);
     int remaining = demuxSamples - demuxSamplesSent;
-    int samplesSpace = min (maxBuffer, (int)buffer->nAllocLen) / pitch;
+    int samplesSpace = min (getChunkLen (mNumInputChans), (int)buffer->nAllocLen) / pitch;
     int samples = min (remaining, samplesSpace);
     buffer->nFilledLen = samples * pitch;
 
-    int frames = mFrameSize ? (len / mFrameSize) : 0;
+    int frames = mFrameSize ? (size / mFrameSize) : 0;
     if (((samples < demuxSamples) || (frames > 1)) && (mBitsPerSample == 32)) {
       //{{{  complicated copy
       int samplePitch = mBitsPerSample >> 3;
       int frameSamples = mFrameSize / pitch;
       int planeSize = frameSamples * samplePitch;
       int outPlaneSize = samples * samplePitch;
+
       for (int sample = 0; sample < samples;) {
         int frame = (demuxSamplesSent + sample) / frameSamples;
-        int sampleInFrame = (demuxSamplesSent + sample) - frame * frameSamples;
+        int sampleInFrame = (demuxSamplesSent + sample) - (frame * frameSamples);
         int outRemaining = min (min (frameSamples - sampleInFrame, samples), samples - sample);
+
         auto src = data + (frame * mFrameSize) + (sampleInFrame * samplePitch);
-        auto dst = (uint8_t*)buffer->pBuffer + sample * samplePitch;
+        auto dst = (uint8_t*)buffer->pBuffer + (sample * samplePitch);
         for (auto channel = 0u; channel < mNumInputChans; channel++) {
           memcpy (dst, src, outRemaining * samplePitch);
           src += planeSize;
           dst += outPlaneSize;
           }
+
         sample += outRemaining;
         }
       }
       //}}}
     else
-      memcpy (buffer->pBuffer, data + demuxSamplesSent * pitch, buffer->nFilledLen);
+      memcpy (buffer->pBuffer, data + (demuxSamplesSent * pitch), buffer->nFilledLen);
     demuxSamplesSent += samples;
 
     //{{{  set buffer flags and timestamp
@@ -1117,16 +1119,14 @@ int cOmxAudio::addBuffer (uint8_t* data, int len, double dts, double pts) {
       //{{{  error, return
       cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
       mDecoder.decoderEmptyBufferDone (mDecoder.getHandle(), buffer);
-      return 0;
+      return;
       }
       //}}}
-
     if (!mDecoder.waitEvent (OMX_EventPortSettingsChanged, 0))
       if (!srcChanged())
         cLog::log (LOGERROR, string(__func__) + "  srcChanged");
     }
 
   mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
-  return len;
   }
 //}}}

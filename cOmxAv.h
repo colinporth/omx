@@ -394,15 +394,13 @@ public:
 
   bool isEOS();
   int getSpace() { return mDecoder.getInputBufferSpace(); }
-  int getChunkLen() { return mChunkLen; }
   float getCacheTotal();
-
   float getDelay();
   unsigned int getAudioRenderingLatency();
+  int getChunkLen (int chans);
 
   int getChans() { return mCodecContext->channels; }
   uint64_t getChanLayout (enum PCMLayout layout);
-
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
   float getVolume() { return mMute ? 0.f : mCurVolume; }
@@ -428,7 +426,7 @@ private:
 
   bool srcChanged();
   void applyVolume();
-  int addBuffer (uint8_t* data, int len, double dts, double pts);
+  void addBuffer (uint8_t* data, int size, double dts, double pts);
 
   // vars
   std::recursive_mutex mMutex;
