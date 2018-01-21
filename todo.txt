@@ -3,6 +3,7 @@ speed up ts open
 make mpeg2 sw work
 
 background not extending to whole screen
+adv hd interlvae on 1920x1080 monitor fails in omx, ok in omxplayer
 
 make local keyboard work with events
 make mouse,touchscreen work with events
