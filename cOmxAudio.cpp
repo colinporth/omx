@@ -238,26 +238,22 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
     mCodecContext->bits_per_coded_sample = 16;
 
   if (mConfig.mHints.extradata && mConfig.mHints.extrasize > 0 ) {
-    //{{{  extradata
+    // extradata
     mCodecContext->extradata_size = mConfig.mHints.extrasize;
     mCodecContext->extradata = (uint8_t*)mAvUtil.av_mallocz (mConfig.mHints.extrasize + FF_INPUT_BUFFER_PADDING_SIZE);
     memcpy (mCodecContext->extradata, mConfig.mHints.extradata, mConfig.mHints.extrasize);
     }
-    //}}}
 
   if (mAvCodec.avcodec_open2 (mCodecContext, codec, NULL) < 0) {
-    //{{{  error return
+    // error return
     cLog::log (LOGERROR, string(__func__) + " cannot open codec");
     return false;
     }
-    //}}}
   //}}}
   mFrame = mAvCodec.av_frame_alloc();
 
   mSampleFormat = AV_SAMPLE_FMT_NONE;
   mDesiredSampleFormat = (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
-
-  lock_guard<recursive_mutex> lockGuard (mMutex);
 
   uint64_t chanMap = getChanMap();
   mNumInputChans = getCountBits (chanMap);
@@ -293,7 +289,6 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   if (!mDecoder.init ("OMX.broadcom.audio_decode", OMX_IndexParamAudioInit))
     return false;
-
   //{{{  set number/size of buffers for decoder input
   // should be big enough that common formats (e.g. 6 channel DTS) fit in a single packet.
   // we don't mind less common formats being split (e.g. ape/wma output large frames)
