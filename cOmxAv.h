@@ -707,7 +707,6 @@ private:
   // vars
   cOmxAudioConfig mConfig;
   cOmxAudio* mOmxAudio = nullptr;
-  cOmxStreamInfo mHints;
   };
 //}}}
 //{{{
@@ -716,31 +715,29 @@ public:
   cOmxVideoPlayer() : cOmxPlayer() {}
   virtual ~cOmxVideoPlayer() { close(); }
 
-  bool isEOS() { return mPackets.empty() && mDecoder->isEOS(); }
+  bool isEOS() { return mPackets.empty() && mOmxVideo->isEOS(); }
   double getDelay() { return mVideoDelay; }
   double getFPS() { return mFps; };
 
   void setDelay (double delay) { mVideoDelay = delay; }
-  void setAlpha (int alpha) { mDecoder->setAlpha (alpha); }
-  void setVideoRect (int aspectMode) { mDecoder->setVideoRect (aspectMode); }
-  void setVideoRect (const cRect& SrcRect, const cRect& DestRect) { mDecoder->setVideoRect (SrcRect, DestRect); }
+  void setAlpha (int alpha) { mOmxVideo->setAlpha (alpha); }
+  void setVideoRect (int aspectMode) { mOmxVideo->setVideoRect (aspectMode); }
+  void setVideoRect (const cRect& SrcRect, const cRect& DestRect) { mOmxVideo->setVideoRect (SrcRect, DestRect); }
 
   bool open (cOmxClock* avClock, const cOmxVideoConfig& config);
-  void submitEOS() { mDecoder->submitEOS(); }
+  void submitEOS() { mOmxVideo->submitEOS(); }
   void reset();
 
 private:
   bool decode (cOmxPacket* packet);
-  void flushDecoder() { mDecoder->reset(); }
-  void deleteDecoder() { delete mDecoder; mDecoder = nullptr; }
+  void flushDecoder() { mOmxVideo->reset(); }
+  void deleteDecoder() { delete mOmxVideo; mOmxVideo = nullptr; }
 
-  //{{{  vars
+  // vars
   cOmxVideoConfig mConfig;
-  cOmxVideo* mDecoder = nullptr;
+  cOmxVideo* mOmxVideo = nullptr;
 
   float mFps = 25.f;
   double mVideoDelay = 0.0;
-  float mDisplayAspect = false;
-  //}}}
   };
 //}}}

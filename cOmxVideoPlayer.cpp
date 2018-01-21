@@ -69,10 +69,10 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
     }
   else {
     // open hw decoder
-    mDecoder = new cOmxVideo();
-    if (mDecoder->open (mClock, mConfig)) {
+    mOmxVideo = new cOmxVideo();
+    if (mOmxVideo->open (mClock, mConfig)) {
       cLog::log (LOGINFO, "cOmxPlayerVideo::open %s profile:%d %dx%d %ffps",
-                 mDecoder->getDecoderName().c_str(), mConfig.mHints.profile,
+                 mOmxVideo->getDecoderName().c_str(), mConfig.mHints.profile,
                  mConfig.mHints.width, mConfig.mHints.height, mFps);
       return true;
       }
@@ -115,12 +115,12 @@ bool cOmxVideoPlayer::decode (cOmxPacket* packet) {
     mCurPts = pts;
     }
 
-  while ((int)mDecoder->getInputBufferSpace() < packet->mSize) {
+  while ((int)mOmxVideo->getInputBufferSpace() < packet->mSize) {
     mClock->msSleep (10);
     if (mFlushRequested)
       return true;
     }
 
-  return mDecoder->decode (packet->mData, packet->mSize, dts, pts);
+  return mOmxVideo->decode (packet->mData, packet->mSize, dts, pts);
   }
 //}}}
