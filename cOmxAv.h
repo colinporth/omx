@@ -397,6 +397,8 @@ public:
   uint64_t getChanLayout (enum PCMLayout layout);
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
+
+  float getMute() { return mMute; }
   float getVolume() { return mMute ? 0.f : mCurVolume; }
 
   void setMute (bool mute);
@@ -470,7 +472,7 @@ private:
   bool mFailedEos = false;
 
   bool mMute = false;
-  float mCurVolume = 0.f;
+  float mCurVolume = 1.f;
   float mLastVolume = 0.f;
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
 
@@ -668,17 +670,16 @@ public:
   double getDelay() { return mOmxAudio->getDelay(); }
   double getCacheTotal() { return mOmxAudio->getCacheTotal(); }
 
-  float getVolume() { return mCurVolume; }
+  bool getMute() { return mOmxAudio->getMute(); }
+  float getVolume() { return mOmxAudio->getVolume(); }
 
   //{{{
   void setMute (bool mute) {
-    mMute = mute;
     mOmxAudio->setMute (mute);
     }
   //}}}
   //{{{
   void setVolume (float volume) {
-    mCurVolume = volume;
     mOmxAudio->setVolume (volume);
     }
   //}}}
@@ -703,19 +704,11 @@ private:
     }
   //}}}
 
-  //{{{  vars
+  // vars
   cOmxAudioConfig mConfig;
   cOmxAudio* mOmxAudio = nullptr;
   cOmxReader* mOmxReader = nullptr;
   cOmxStreamInfo mHints;
-
-  std::string mDevice;
-  bool mBoostOnDownmix;
-
-  float mCurVolume = 0.f;
-  float mDrc = 0.f;
-  bool mMute = false;
-  //}}}
   };
 //}}}
 //{{{

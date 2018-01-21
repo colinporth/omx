@@ -271,14 +271,16 @@ protected:
 
       //{{{
       case cKeyConfig::ACT_DEC_VOLUME:
-        mVolume -= 300;
-        mOmxAudioPlayer->setVolume (pow (10, mVolume / 2000.0));
+        if (mOmxAudioPlayer)
+          mOmxAudioPlayer->setVolume (mOmxAudioPlayer->getVolume()*4.f/5.f);
+        changed();
         break;
       //}}}
       //{{{
       case cKeyConfig::ACT_INC_VOLUME:
-        mVolume += 300;
-        mOmxAudioPlayer->setVolume (pow (10, mVolume / 2000.0));
+        if (mOmxAudioPlayer)
+          mOmxAudioPlayer->setVolume (mOmxAudioPlayer->getVolume()*5.f/4.f);
+        changed();
         break;
       //}}}
 
@@ -428,10 +430,8 @@ private:
     mOmxReader.getHints (OMXSTREAM_AUDIO, mAudioConfig.mHints);
 
     if (mOmxAudioPlayer) {
-      if (mOmxAudioPlayer->open (&mOmxClock, mAudioConfig)) {
+      if (mOmxAudioPlayer->open (&mOmxClock, mAudioConfig))
         thread ([=]() { mOmxAudioPlayer->run("aud "); } ).detach();
-        mOmxAudioPlayer->setVolume (pow (10, mVolume / 2000.0));
-        }
       else {
         delete (mOmxAudioPlayer);  // crashes ?
         mOmxAudioPlayer = nullptr;
@@ -601,7 +601,6 @@ private:
 
   bool mPause = false;
   double mSeekIncSec = 0.0;
-  long mVolume = 0;
   string mDebugStr;
 
   static vector<string> mFileNames;

@@ -45,10 +45,6 @@ bool cOmxAudioPlayer::openOmxAudio() {
     cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
                         " rate:" + dec(mConfig.mHints.samplerate) +
                         " bps:" + dec(mConfig.mHints.bitspersample));
-
-    // setup current volume settings
-    mOmxAudio->setVolume (mCurVolume);
-    mOmxAudio->setMute (mMute);
     return true;
     }
   else {
