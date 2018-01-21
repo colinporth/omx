@@ -291,6 +291,7 @@ private:
     changed();
     }
   //}}}
+
   //{{{
   void player (string fileName) {
 
@@ -338,183 +339,22 @@ private:
 
     bool ok = true;
     while (ok) {
-      cLog::log (LOGINFO, "open " + fileName);
+      cLog::log (LOGINFO, "opening " + fileName);
       if (mOmxReader.open (fileName, false, true, 5.f, "","","probesize:1000000","")) {
         cLog::log (LOGINFO, "opened " + fileName);
-        //{{{  start play
-        mOmxClock.stateIdle();
-        mOmxClock.stop();
-        mOmxClock.pause();
-
-        if (mOmxReader.getAudioStreamCount())
-          mOmxAudioPlayer = new cOmxAudioPlayer();
-        if (mOmxReader.getVideoStreamCount())
-          mOmxVideoPlayer = new cOmxVideoPlayer();
-        mOmxReader.getHints (OMXSTREAM_AUDIO, mAudioConfig.mHints);
-        mOmxReader.getHints (OMXSTREAM_VIDEO, mVideoConfig.mHints);
-
-        if (mOmxVideoPlayer) {
-          if (mOmxVideoPlayer->open (&mOmxClock, mVideoConfig))
-            thread ([=]() { mOmxVideoPlayer->run ("vid "); } ).detach();
-          else {
-            //delete (mOmxVideoPlayer);
-            mOmxVideoPlayer = nullptr;
-            }
-          }
-
-        mAudioConfig.mDevice = "omx:local";
-        if (mOmxAudioPlayer && mOmxAudioPlayer->open (&mOmxClock, mAudioConfig)) {
-          thread ([=]() { mOmxAudioPlayer->run("aud "); } ).detach();
-          mOmxAudioPlayer->setVolume (pow (10, mVolume / 2000.0));
-          //mOmxAudioPlayer.SetDynamicRangeCompression (m_Amplification);
-          }
-
-        mOmxClock.reset (mOmxVideoPlayer, mOmxAudioPlayer);
-        mOmxClock.stateExecute();
-        //}}}
-
-        bool sentStarted = true;
-        bool submitEos = false;
-        double lastSeekPosSec = 0.0;
-        cOmxPacket* packet = nullptr;
-        while (!mEntered && !mExit && !gAbort) {
-          //{{{  play loop
-          if (mSeekIncSec != 0.0) {
-            //{{{  seek
-            double pts = mOmxClock.getMediaTime();
-            double seekPosSec = (pts ? (pts / 1000000.0) : lastSeekPosSec) + mSeekIncSec;
-            lastSeekPosSec = seekPosSec;
-
-            double seekPts = 0;
-            if (mOmxReader.seek (seekPosSec, seekPts)) {
-              mOmxClock.stop();
-              mOmxClock.pause();
-
-              if (mOmxVideoPlayer)
-                mOmxVideoPlayer->flush();
-              if (mOmxAudioPlayer)
-                mOmxAudioPlayer->flush();
-              delete (packet);
-              packet = nullptr;
-
-              if (pts != DVD_NOPTS_VALUE)
-                mOmxClock.setMediaTime (seekPts);
-              }
-
-            sentStarted = false;
-
-            if (mOmxVideoPlayer)
-              mOmxVideoPlayer->reset();
-            mOmxClock.pause();
-
-            cLog::log (LOGINFO, "seekPos:"  + frac(seekPosSec,6,5,' '));
-            mSeekIncSec = 0.0;
-            }
-            //}}}
-
-          auto clockPts = mOmxClock.getMediaTime();
-          //{{{  debugStr
-          auto streamLength = mOmxReader.getStreamLength() / 1000;
-          auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
-          auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
-
-          auto str = frac(clockPts/1000000.0,6,2,' ') +
-                     "of" + dec (streamLength) +
-                     " " + frac(audio_pts/1000000.0,6,2,' ') +
-                     ":" + frac(video_pts/1000000.0,6,2,' ');
-
-          mDebugStr = str;
-          //}}}
-
-          // pause control
-          if (mPause && !mOmxClock.isPaused()) {
-            cLog::log (LOGINFO, "pause");
-            mOmxClock.pause();
-            }
-          if (!mPause && mOmxClock.isPaused()) {
-            cLog::log (LOGINFO, "resume");
-            mOmxClock.resume();
-            }
-
-          if (!sentStarted) {
-            //{{{  clock reset
-            mOmxClock.reset (mOmxVideoPlayer, mOmxAudioPlayer);
-            sentStarted = true;
-            }
-            //}}}
-
-          if (!packet)
-            packet = mOmxReader.readPacket();
-          if (packet) {
-            //{{{  got packet
-            submitEos = false;
-
-            if (mOmxVideoPlayer && mOmxReader.isActive (OMXSTREAM_VIDEO, packet->mStreamIndex)) {
-              if (mOmxVideoPlayer->addPacket (packet))
-                packet = NULL;
-              else
-                mOmxClock.msSleep (20);
-              }
-
-            else if (mOmxAudioPlayer && mOmxReader.isActive (OMXSTREAM_AUDIO, packet->mStreamIndex)) {
-              if (mOmxAudioPlayer->addPacket (packet))
-                packet = NULL;
-              else
-                mOmxClock.msSleep (20);
-              }
-
-            else {
-              delete (packet);
-              packet = nullptr;
-              }
-            }
-            //}}}
-          else if (mOmxReader.isEof()) {
-            //{{{  EOF, may still be playing out
-            if (!(mOmxVideoPlayer && mOmxVideoPlayer->getPacketCacheSize()) &&
-                !(mOmxAudioPlayer && mOmxAudioPlayer->getPacketCacheSize())) {
-              if (!submitEos) {
-                submitEos = true;
-                if (mOmxVideoPlayer)
-                  mOmxVideoPlayer->submitEOS();
-                if (mOmxAudioPlayer)
-                  mOmxAudioPlayer->submitEOS();
-                }
-              if ((!mOmxVideoPlayer || mOmxVideoPlayer->isEOS()) &&
-                  (!mOmxAudioPlayer || mOmxAudioPlayer->isEOS()))
-                break;
-              }
-
-            // wait about another frame
-            mOmxClock.msSleep (20);
-            }
-            //}}}
-          else // wait for another packet
-            mOmxClock.msSleep (10);
-          }
-          //}}}
-
-        //{{{  stop play
-        mOmxClock.stop();
-        mOmxClock.stateIdle();
-        delete (packet);
-        packet = nullptr;
-        //}}}
+        startPlay();
+        playLoop();
+        stopPlay();
+        mOmxReader.close();
         }
-      mOmxReader.close();
-
-      delete (mOmxVideoPlayer);
-      delete (mOmxAudioPlayer);
 
       updateFileNames();
       if (mExit || gAbort)
         ok = false;
       else if (mEntered) {
-        //{{{  play
         mEntered = false;
         mPause = false;
         }
-        //}}}
       else if (mFileNum >= mFileNames.size()-1)
         ok = false;
       else
@@ -528,6 +368,184 @@ private:
     mExit = true;
     }
   //}}}
+  //{{{
+  void startPlay() {
+
+    mOmxClock.stateIdle();
+    mOmxClock.stop();
+    mOmxClock.pause();
+
+    // get video streams,config and start videoPlayer
+    if (mOmxReader.getVideoStreamCount())
+      mOmxVideoPlayer = new cOmxVideoPlayer();
+    mOmxReader.getHints (OMXSTREAM_VIDEO, mVideoConfig.mHints);
+
+    if (mOmxVideoPlayer) {
+      if (mOmxVideoPlayer->open (&mOmxClock, mVideoConfig))
+        thread ([=]() { mOmxVideoPlayer->run ("vid "); } ).detach();
+      else {
+        //delete (mOmxVideoPlayer);  // crashes
+        mOmxVideoPlayer = nullptr;
+        }
+      }
+
+    // get audio streams,config and start audioPlayer
+    if (mOmxReader.getAudioStreamCount())
+      mOmxAudioPlayer = new cOmxAudioPlayer();
+    mOmxReader.getHints (OMXSTREAM_AUDIO, mAudioConfig.mHints);
+    mAudioConfig.mDevice = "omx:local";
+
+    if (mOmxAudioPlayer) {
+      if (mOmxAudioPlayer->open (&mOmxClock, mAudioConfig)) {
+        thread ([=]() { mOmxAudioPlayer->run("aud "); } ).detach();
+        mOmxAudioPlayer->setVolume (pow (10, mVolume / 2000.0));
+        }
+      else {
+        //delete (mOmxAudioPlayer);  // crashes ?
+        mOmxAudioPlayer = nullptr;
+        }
+      }
+
+    mOmxClock.reset (mOmxVideoPlayer, mOmxAudioPlayer);
+    mOmxClock.stateExecute();
+    }
+  //}}}
+  //{{{
+  void playLoop() {
+
+    bool sentStarted = true;
+    bool submitEos = false;
+    double lastSeekPosSec = 0.0;
+
+    cOmxPacket* packet = nullptr;
+    while (!mEntered && !mExit && !gAbort) {
+      if (mSeekIncSec != 0.0) {
+        //{{{  seek
+        double pts = mOmxClock.getMediaTime();
+        double seekPosSec = (pts ? (pts / 1000000.0) : lastSeekPosSec) + mSeekIncSec;
+        lastSeekPosSec = seekPosSec;
+
+        double seekPts = 0;
+        if (mOmxReader.seek (seekPosSec, seekPts)) {
+          mOmxClock.stop();
+          mOmxClock.pause();
+
+          if (mOmxVideoPlayer)
+            mOmxVideoPlayer->flush();
+          if (mOmxAudioPlayer)
+            mOmxAudioPlayer->flush();
+          delete (packet);
+          packet = nullptr;
+
+          if (pts != DVD_NOPTS_VALUE)
+            mOmxClock.setMediaTime (seekPts);
+          }
+
+        sentStarted = false;
+
+        if (mOmxVideoPlayer)
+          mOmxVideoPlayer->reset();
+        mOmxClock.pause();
+
+        cLog::log (LOGINFO, "seekPos:"  + frac(seekPosSec,6,5,' '));
+        mSeekIncSec = 0.0;
+        }
+        //}}}
+
+      auto clockPts = mOmxClock.getMediaTime();
+      //{{{  debugStr
+      auto streamLength = mOmxReader.getStreamLength() / 1000;
+      auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
+      auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
+
+      auto str = frac(clockPts/1000000.0,6,2,' ') +
+                 "of" + dec (streamLength) +
+                 " " + frac(audio_pts/1000000.0,6,2,' ') +
+                 ":" + frac(video_pts/1000000.0,6,2,' ');
+
+      mDebugStr = str;
+      //}}}
+
+      // pause control
+      if (mPause && !mOmxClock.isPaused()) {
+        cLog::log (LOGINFO, "pause");
+        mOmxClock.pause();
+        }
+      if (!mPause && mOmxClock.isPaused()) {
+        cLog::log (LOGINFO, "resume");
+        mOmxClock.resume();
+        }
+
+      if (!sentStarted) {
+        //{{{  clock reset
+        mOmxClock.reset (mOmxVideoPlayer, mOmxAudioPlayer);
+        sentStarted = true;
+        }
+        //}}}
+
+      if (!packet)
+        packet = mOmxReader.readPacket();
+      if (packet) {
+        //{{{  got packet
+        submitEos = false;
+
+        if (mOmxVideoPlayer && mOmxReader.isActive (OMXSTREAM_VIDEO, packet->mStreamIndex)) {
+          if (mOmxVideoPlayer->addPacket (packet))
+            packet = NULL;
+          else
+            mOmxClock.msSleep (20);
+          }
+
+        else if (mOmxAudioPlayer && mOmxReader.isActive (OMXSTREAM_AUDIO, packet->mStreamIndex)) {
+          if (mOmxAudioPlayer->addPacket (packet))
+            packet = NULL;
+          else
+            mOmxClock.msSleep (20);
+          }
+
+        else {
+          delete (packet);
+          packet = nullptr;
+          }
+        }
+        //}}}
+      else if (mOmxReader.isEof()) {
+        //{{{  EOF, may still be playing out
+        if (!(mOmxVideoPlayer && mOmxVideoPlayer->getPacketCacheSize()) &&
+            !(mOmxAudioPlayer && mOmxAudioPlayer->getPacketCacheSize())) {
+          if (!submitEos) {
+            submitEos = true;
+            if (mOmxVideoPlayer)
+              mOmxVideoPlayer->submitEOS();
+            if (mOmxAudioPlayer)
+              mOmxAudioPlayer->submitEOS();
+            }
+          if ((!mOmxVideoPlayer || mOmxVideoPlayer->isEOS()) &&
+              (!mOmxAudioPlayer || mOmxAudioPlayer->isEOS()))
+            break;
+          }
+
+        // wait about another frame
+        mOmxClock.msSleep (20);
+        }
+        //}}}
+      else // wait for another packet
+        mOmxClock.msSleep (10);
+      }
+
+    delete (packet);
+    }
+  //}}}
+  //{{{
+  void stopPlay() {
+    mOmxClock.stop();
+    mOmxClock.stateIdle();
+
+    delete (mOmxVideoPlayer);
+    delete (mOmxAudioPlayer);
+    }
+  //}}}
+
   //{{{  vars
   cOmxClock mOmxClock;
   cOmxReader mOmxReader;
