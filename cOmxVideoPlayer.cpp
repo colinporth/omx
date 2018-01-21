@@ -51,7 +51,6 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
 
   mAvFormat.av_register_all();
 
-  mFrametime = 0;
   mVideoDelay = 0;
 
   if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
@@ -63,7 +62,6 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
     }
   else
     mFps = 25.f;
-  mFrametime = 1000000.0 / mFps;
 
   if (mConfig.mHints.codec == AV_CODEC_ID_MPEG2VIDEO) {
     cLog::log (LOGNOTICE, "cOmxPlayerVideo::open - no hw mpeg2 decoder - implement swDecoder");
@@ -93,7 +91,6 @@ void cOmxVideoPlayer::reset() {
   mStreamId = -1;
   mStream = NULL;
   mCurPts = DVD_NOPTS_VALUE;
-  mFrametime = 0;
 
   mAbort = false;
   mFlush = false;

@@ -65,21 +65,20 @@ public:
     }
   //}}}
   //{{{
-  void run (const string& inTs, int frequency, bool startPlayer) {
+  void run (const string& inTs, int frequency) {
 
     initialise (1.f, 0);
     setChangeCountDown (10);
 
-    if (startPlayer)
-      add (new cTextBox (mDebugStr, 0.f));
+    add (new cTextBox (mDebugStr, 0.f));
     if (frequency) {
       add (new cTextBox (mDvb.mPacketStr, 15.f));
       add (new cTextBox (mDvb.mSignalStr, 14.f));
       add (new cTextBox (mDvb.mTuneStr, 13.f));
       mTsBox = add (new cTransportStreamBox (&mDvb.mTs, 0.f,-2.f));
       }
-    if (startPlayer)
-      mListWidget = add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,-2.f));
+    float list = frequency ? 2.f : 1.0f;
+    mListWidget = addAt (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,-list), 0.f,list);
 
     updateFileNames();
 
@@ -101,8 +100,7 @@ public:
     else if (!inTs.empty())
       thread ([=]() { mDvb.readThread (inTs); } ).detach();
 
-    if (startPlayer)
-      thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
+    thread ([=]() { player (mFileNames[mFileNum]); } ).detach();
 
     cRaspWindow::run();
     }
@@ -134,15 +132,18 @@ protected:
     enum eKeyAction {
       ACT_NONE,
       ACT_EXIT,
+
       ACT_PREV_FILE, ACT_NEXT_FILE, ACT_ENTER,
       ACT_PLAYPAUSE, ACT_STEP,
       ACT_SEEK_DEC_SMALL, ACT_SEEK_INC_SMALL,
       ACT_SEEK_DEC_LARGE, ACT_SEEK_INC_LARGE,
       ACT_DEC_VOLUME, ACT_INC_VOLUME,
       ACT_TOGGLE_TS, ACT_TOGGLE_LIST,
+
       ACT_TOGGLE_VSYNC, ACT_TOGGLE_PERF, ACT_TOGGLE_STATS, ACT_TOGGLE_TESTS,
       ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES, ACT_TOGGLE_TRIANGLES,
       ACT_LESS_FRINGE, ACT_MORE_FRINGE,
+
       ACT_LOG1, ACT_LOG2, ACT_LOG3, ACT_LOG4, ACT_LOG5, ACT_LOG6,
       };
     //}}}
@@ -624,7 +625,6 @@ int main (int argc, char* argv[]) {
   eLogLevel logLevel = LOGINFO;
   string root = "/home/pi/tv";
   string inTs;
-  bool startPlayer = true;
   int frequency = 0;
   int vFifo = 1024;
   int vCache = 2 * 1024;
@@ -647,7 +647,6 @@ int main (int argc, char* argv[]) {
     else if (!strcmp(argv[arg], "ac")) aCache = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "vc")) vCache = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "vf")) vFifo = atoi (argv[++arg]);
-    else if (!strcmp(argv[arg], "p")) startPlayer = false;
     else if (!strcmp(argv[arg], "d")) deInterlaceMode = (eDeInterlaceMode)atoi (argv[++arg]);
 
   cLog::init (logLevel, false, "");
@@ -661,7 +660,7 @@ int main (int argc, char* argv[]) {
   appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
   appWindow.mAudioConfig.mDevice = "omx:local";
 
-  appWindow.run (inTs, frequency, startPlayer);
+  appWindow.run (inTs, frequency);
 
   return EXIT_SUCCESS;
   }

@@ -707,7 +707,6 @@ private:
   // vars
   cOmxAudioConfig mConfig;
   cOmxAudio* mOmxAudio = nullptr;
-  cOmxReader* mOmxReader = nullptr;
   cOmxStreamInfo mHints;
   };
 //}}}
@@ -739,9 +738,8 @@ private:
   cOmxVideoConfig mConfig;
   cOmxVideo* mDecoder = nullptr;
 
-  double mVideoDelay = 0.0;
   float mFps = 25.f;
-  double mFrametime = 0.0;
+  double mVideoDelay = 0.0;
   float mDisplayAspect = false;
   //}}}
   };
