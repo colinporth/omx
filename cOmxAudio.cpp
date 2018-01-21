@@ -437,7 +437,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         size -= bytesUsed;
 
         if (mFirstFrame)
-          cLog::log (LOGINFO, "cOmxAudio::swDecode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
+          cLog::log (LOGINFO, "cOmxAudio::decode - chan:%d format:%d:%d pktSize:%d samples:%d lineSize:%d",
                      mCodecContext->channels, mCodecContext->sample_fmt, mDesiredSampleFormat,
                      size, mFrame->nb_samples, mFrame->linesize[0]);
         }
