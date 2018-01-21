@@ -101,16 +101,6 @@ int cOmxAudio::getChunkLen (int chans) {
   }
 //}}}
 //{{{
-float cOmxAudio::getCacheTotal() {
-
-  float audioPlusBuffer = mConfig.mHints.samplerate ? (32.f * 512.f / mConfig.mHints.samplerate) : 0.f;
-  float inputBuffer = mInputBytesPerSec ?
-    (float)mDecoder.getInputBufferSize() / (float)mInputBytesPerSec : 0;
-
-  return AUDIO_BUFFER_SECONDS + inputBuffer + audioPlusBuffer;
-  }
-//}}}
-//{{{
 float cOmxAudio::getDelay() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
@@ -126,6 +116,14 @@ float cOmxAudio::getDelay() {
     unsigned int used = mDecoder.getInputBufferSize() - mDecoder.getInputBufferSpace();
     return mInputBytesPerSec ? (float)used / (float)mInputBytesPerSec : 0.f;
     }
+  }
+//}}}
+//{{{
+float cOmxAudio::getCacheTotal() {
+
+  float inputBuffer = mInputBytesPerSec ? (float)mDecoder.getInputBufferSize() / mInputBytesPerSec : 0.f;
+  float moreBuffer = mConfig.mHints.samplerate ? (32.f * 512.f / mConfig.mHints.samplerate) : 0.f;
+  return AUDIO_BUFFER_SECONDS + inputBuffer + moreBuffer;
   }
 //}}}
 //{{{
@@ -422,8 +420,6 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
   mSubmittedEos = false;
   mFailedEos = false;
 
-  mSubmitted = 0.f;
-
   return true;
   }
 //}}}
@@ -479,27 +475,23 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         }
 
       // if this buffer won't fit then flush out what we have
-      int desiredSize = getChunkLen (mCodecContext->channels);
-
-      uint8_t* decodedData = nullptr;
-      int decodedSize = 0;
       if (mBufferOutputUsed &&
-          (((mBufferOutputUsed + outputSize) > desiredSize) || mNoConcatenate)) {
-        //{{{  done
-        decodedData = mBufferOutput;
-        decodedSize = mBufferOutputUsed;
-
+          (((mBufferOutputUsed + outputSize) > getChunkLen (mCodecContext->channels)) || mNoConcatenate)) {
+        // done, wait for buffer and add to output
+        if (mBufferOutputUsed > 0) {
+          while (getSpace() < mBufferOutputUsed) {
+            mClock->msSleep (10);
+            if (flushRequested)
+              return true;
+            }
+          addBuffer (mBufferOutput, mBufferOutputUsed, mDts, mPts);
+          }
         mBufferOutputUsed = 0;
         mNoConcatenate = false;
-
-        dts = mDts;
-        pts = mPts;
         }
-        //}}}
       else {
-        //{{{  convert
+        // convert data into outputBuffer
         mFrameSize = outputSize;
-
         if (mBufferOutputAllocated < (mBufferOutputUsed + outputSize)) {
           mBufferOutput = (uint8_t*)mAvUtil.av_realloc (
             mBufferOutput, mBufferOutputUsed + outputSize + FF_INPUT_BUFFER_PADDING_SIZE);
@@ -509,7 +501,6 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         if (mCodecContext->sample_fmt == mDesiredSampleFormat) {
           //{{{  copy to contiguous buffer
           uint8_t* out_planes[mCodecContext->channels];
-
           if ((mAvUtil.av_samples_fill_arrays (out_planes, NULL, mBufferOutput + mBufferOutputUsed,
                                                mCodecContext->channels, mFrame->nb_samples,
                                                mDesiredSampleFormat, 1) < 0) ||
@@ -558,21 +549,10 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
 
         if (mFirstFrame)
           cLog::log (LOGINFO1, "cOmxAudio::getData size:%d/%d line:%d/%d desired:%d",
-                     inputSize, outputSize, inLineSize, outLineSize, desiredSize);
+                     inputSize, outputSize, inLineSize, outLineSize, getChunkLen (mCodecContext->channels));
         mFirstFrame = false;
 
         mBufferOutputUsed += outputSize;
-        }
-        //}}}
-
-      if (decodedSize > 0) {
-        while (getSpace() < decodedSize) {
-          mClock->msSleep (10);
-          if (flushRequested)
-            return true;
-          }
-
-        addBuffer (decodedData, decodedSize, dts, pts);
         }
       }
       //}}}
@@ -642,7 +622,6 @@ void cOmxAudio::flush() {
 
   mSetStartTime  = true;
   mLastPts = DVD_NOPTS_VALUE;
-  mSubmitted = 0.f;
   }
 //}}}
 
@@ -764,10 +743,8 @@ bool cOmxAudio::srcChanged() {
     return true;
     }
     //}}}
-
   if (!mMixer.init ("OMX.broadcom.audio_mixer", OMX_IndexParamAudioInit))
     return false;
-
   if (mConfig.mDevice == "omx:both")
     if (!mSplitter.init ("OMX.broadcom.audio_splitter", OMX_IndexParamAudioInit))
       return false;
@@ -778,54 +755,50 @@ bool cOmxAudio::srcChanged() {
     if (!mRenderHdmi.init ("OMX.broadcom.audio_render", OMX_IndexParamAudioInit))
       return false;
 
-  //{{{  setup pcm output
-  OMX_INIT_STRUCTURE(mPcmOutput);
-  mPcmOutput.nPortIndex = mDecoder.getOutputPort();
-  if (mDecoder.getParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
+  //{{{  setup decoder output pcmMode
+  OMX_AUDIO_PARAM_PCMMODETYPE pcmMode;
+  OMX_INIT_STRUCTURE(pcmMode);
+  pcmMode.nPortIndex = mDecoder.getOutputPort();
+  if (mDecoder.getParam (OMX_IndexParamAudioPcm, &pcmMode)) {
     // error return
-    cLog::log (LOGERROR, string(__func__) + "getParam pcmOutput");
+    cLog::log (LOGERROR, string(__func__) + "getParam pcmMode");
     return false;
     }
 
-  memcpy (mPcmOutput.eChannelMapping, mOutputChans, sizeof(mOutputChans));
-
-  // round up to power of 2
-  mPcmOutput.nChannels = mNumOutputChans > 4 ? 8 : mNumOutputChans > 2 ? 4 : mNumOutputChans;
-
-  // limit samplerate (through resampling) if requested
-  mPcmOutput.nSamplingRate = min (max ((int)mPcmOutput.nSamplingRate, 8000), 192000);
-
-  mPcmOutput.nPortIndex = mMixer.getOutputPort();
-  if (mMixer.setParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
+  memcpy (pcmMode.eChannelMapping, mOutputChans, sizeof(mOutputChans));
+  pcmMode.nChannels = mNumOutputChans > 4 ? 8 : mNumOutputChans > 2 ? 4 : mNumOutputChans;
+  pcmMode.nSamplingRate = min (max ((int)pcmMode.nSamplingRate, 8000), 192000);
+  pcmMode.nPortIndex = mMixer.getOutputPort();
+  if (mMixer.setParam (OMX_IndexParamAudioPcm, &pcmMode)) {
     // error return
-    cLog::log (LOGERROR,  string(__func__) + " setParam pcmOutput");
+    cLog::log (LOGERROR,  string(__func__) + " setParam pcmMode");
     return false;
     }
   //}}}
   cLog::log (LOGINFO, string(__func__) +
-                      " - " + dec(mPcmOutput.nChannels) + "x" + dec(mPcmOutput.nBitPerSample) +
-                      "@" + dec(mPcmOutput.nSamplingRate)+
+                      " - " + dec(pcmMode.nChannels) + "x" + dec(pcmMode.nBitPerSample) +
+                      "@" + dec(pcmMode.nSamplingRate) +
                       " bufferLen:" +  dec(mBufferLen) +
                       " bytesPerSec:" + dec(mBytesPerSec));
   if (mSplitter.isInit()) {
     //{{{  wireup splitter to pcm output
     // setup splitter
-    mPcmOutput.nPortIndex = mSplitter.getInputPort();
-    if (mSplitter.setParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
+    pcmMode.nPortIndex = mSplitter.getInputPort();
+    if (mSplitter.setParam (OMX_IndexParamAudioPcm, &pcmMode)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " mSplitter setParam");
       return false;
       }
 
-    mPcmOutput.nPortIndex = mSplitter.getOutputPort();
-    if (mSplitter.setParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
+    pcmMode.nPortIndex = mSplitter.getOutputPort();
+    if (mSplitter.setParam (OMX_IndexParamAudioPcm, &pcmMode)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " mSplitter setParam");
       return false;
       }
 
-    mPcmOutput.nPortIndex = mSplitter.getOutputPort() + 1;
-    if (mSplitter.setParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
+    pcmMode.nPortIndex = mSplitter.getOutputPort() + 1;
+    if (mSplitter.setParam (OMX_IndexParamAudioPcm, &pcmMode)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " setParam");
       return false;
@@ -834,8 +807,8 @@ bool cOmxAudio::srcChanged() {
     //}}}
   if (mRenderAnal.isInit()) {
     //{{{  wireup analRender and pcm output
-    mPcmOutput.nPortIndex = mRenderAnal.getInputPort();
-    if (mRenderAnal.setParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
+    pcmMode.nPortIndex = mRenderAnal.getInputPort();
+    if (mRenderAnal.setParam (OMX_IndexParamAudioPcm, &pcmMode)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " mRenderAnal setParam");
       return false;
@@ -844,8 +817,8 @@ bool cOmxAudio::srcChanged() {
     //}}}
   if (mRenderHdmi.isInit()) {
     //{{{  wireup hdmiRender and pcm output
-    mPcmOutput.nPortIndex = mRenderHdmi.getInputPort();
-    if (mRenderHdmi.setParam (OMX_IndexParamAudioPcm, &mPcmOutput)) {
+    pcmMode.nPortIndex = mRenderHdmi.getInputPort();
+    if (mRenderHdmi.setParam (OMX_IndexParamAudioPcm, &pcmMode)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " mRenderhdmi setParam");
       return false;
@@ -1126,7 +1099,5 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
       if (!srcChanged())
         cLog::log (LOGERROR, string(__func__) + "  srcChanged");
     }
-
-  mSubmitted += (float)demuxSamples / mConfig.mHints.samplerate;
   }
 //}}}

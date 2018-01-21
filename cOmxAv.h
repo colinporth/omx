@@ -449,7 +449,6 @@ private:
 
   OMX_AUDIO_CHANNELTYPE mInputChans[OMX_AUDIO_MAXCHANNELS];
   OMX_AUDIO_CHANNELTYPE mOutputChans[OMX_AUDIO_MAXCHANNELS];
-  OMX_AUDIO_PARAM_PCMMODETYPE mPcmOutput;
 
   cAvUtil mAvUtil;
   cAvCodec mAvCodec;
@@ -471,12 +470,11 @@ private:
   unsigned int mBufferLen = 0;
   unsigned int mChunkLen = 0;
 
-  float mSubmitted = 0.f;
-  bool mSubmittedEos = false;
-  bool mFailedEos = false;
-
   bool mSetStartTime = false;
   double mLastPts = DVD_NOPTS_VALUE;
+
+  bool mSubmittedEos = false;
+  bool mFailedEos = false;
 
   bool mMute = false;
   float mCurVolume = 0.f;
