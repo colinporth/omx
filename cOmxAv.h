@@ -295,6 +295,18 @@ public:
   };
 //}}}
 //{{{
+class cOmxAudioConfig {
+public:
+  cOmxStreamInfo mHints;
+  int mPacketMaxCacheSize = 512 * 1024; // 0.5m
+
+  std::string mDevice = "omx:local";
+  enum PCMLayout mLayout = PCM_LAYOUT_2_0;
+  bool mBoostOnDownmix = true;
+  };
+//}}}
+
+//{{{
 class cOmxVideo {
 public:
   ~cOmxVideo();
@@ -359,31 +371,9 @@ private:
   //}}}
   };
 //}}}
-
-//{{{
-class cOmxAudioConfig {
-public:
-  cOmxStreamInfo mHints;
-  int mPacketMaxCacheSize = 512 * 1024; // 0.5m
-
-  std::string mDevice = "omx:local";
-  enum PCMLayout mLayout = PCM_LAYOUT_2_0;
-  bool mBoostOnDownmix = true;
-  };
-//}}}
 //{{{
 class cOmxAudio {
 public:
-  //{{{
-  enum EEncoded {
-    ENCODED_NONE = 0,
-    ENCODED_IEC61937_AC3,
-    ENCODED_IEC61937_EAC3,
-    ENCODED_IEC61937_DTS,
-    ENCODED_IEC61937_MPEG,
-    ENCODED_IEC61937_UNKNOWN,
-    };
-  //}}}
   ~cOmxAudio();
 
   bool isEOS();
@@ -406,7 +396,6 @@ public:
 
   bool open (cOmxClock* clock, const cOmxAudioConfig& config);
   bool decode (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
-  void process();
   void submitEOS();
   void flush();
   void reset();
@@ -423,7 +412,7 @@ private:
   void applyVolume();
   void addBuffer (uint8_t* data, int size, double dts, double pts);
 
-  // vars
+  //{{{  vars
   std::recursive_mutex mMutex;
 
   cOmxAudioConfig mConfig;
@@ -488,6 +477,7 @@ private:
 
   double mPts = 0.0;
   double mDts = 0.0;
+  //}}}
   };
 //}}}
 
