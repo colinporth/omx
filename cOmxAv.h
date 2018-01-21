@@ -479,7 +479,6 @@ private:
   float mCurVolume = 0.f;
   float mLastVolume = 0.f;
 
-  WAVEFORMATEXTENSIBLE mWaveHeader;
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
 
   uint8_t* mBufferOutput = nullptr;

@@ -200,8 +200,12 @@ void cOmxAudio::setVolume (float volume) {
 //{{{
 bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
-  cLog::log (LOGINFO, "cOmxAudio::open");
+  cLog::log (LOGINFO, "cOmxAudio::open " + mConfig.mDevice);
 
+  mClock = clock;
+  mConfig = config;
+  mChans = 0;
+  mFirstFrame = true;
   mAvCodec.avcodec_register_all();
 
   auto codec = mAvCodec.avcodec_find_decoder (config.mHints.codec);
@@ -211,8 +215,7 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
     return false;
     }
     //}}}
-
-  mFirstFrame = true;
+  //{{{  codecContext
   mCodecContext = mAvCodec.avcodec_alloc_context3 (codec);
   mCodecContext->debug_mv = 0;
   mCodecContext->debug = 0;
@@ -221,7 +224,6 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
   if (codec->capabilities & CODEC_CAP_TRUNCATED)
     mCodecContext->flags |= CODEC_FLAG_TRUNCATED;
 
-  mChans = 0;
   mCodecContext->channels = config.mHints.channels;
   mCodecContext->sample_rate = config.mHints.samplerate;
   mCodecContext->block_align = config.mHints.blockalign;
@@ -249,7 +251,7 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
     return false;
     }
     //}}}
-
+  //}}}
   mFrame = mAvCodec.av_frame_alloc();
 
   mSampleFormat = AV_SAMPLE_FMT_NONE;
@@ -257,19 +259,10 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  mClock = clock;
-  mConfig = config;
-
-  int bitsPerSample = getBitsPerSample();
-
   uint64_t chanMap = getChanMap();
   mNumInputChans = getCountBits (chanMap);
   memset (mInputChans, 0, sizeof(mInputChans));
   memset (mOutputChans, 0, sizeof(mOutputChans));
-
-  memset (&mWaveHeader, 0, sizeof(mWaveHeader));
-  mWaveHeader.Format.nChannels = 2;
-  mWaveHeader.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
   if (chanMap) {
     //{{{  set input format, get channelLayout
     enum PCMChannels inLayout[OMX_AUDIO_MAXCHANNELS];
@@ -283,18 +276,17 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
     cPcmMap pcmMap;
     pcmMap.reset();
-    pcmMap.setInputFormat (mNumInputChans, inLayout, bitsPerSample / 8,
+    pcmMap.setInputFormat (mNumInputChans, inLayout, getBitsPerSample() / 8,
                            mConfig.mHints.samplerate, mConfig.mLayout, mConfig.mBoostOnDownmix);
     pcmMap.setOutputFormat (mNumOutputChans, outLayout, false);
     pcmMap.getDownmixMatrix (mDownmixMatrix);
-    mWaveHeader.dwChannelMask = chanMap;
 
     buildChanMapOMX (mInputChans, chanMap);
     buildChanMapOMX (mOutputChans, getChanLayout (mConfig.mLayout));
     }
     //}}}
 
-  mBitsPerSample = bitsPerSample;
+  mBitsPerSample = getBitsPerSample();
   mBytesPerSec = mConfig.mHints.samplerate * (2 << kRoundedUpChansShift[mNumInputChans]);
   mBufferLen = mBytesPerSec * AUDIO_BUFFER_SECONDS;
   mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChans >> 3;
@@ -370,18 +362,24 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
     return false;
     }
     //}}}
-  //{{{  declare buffer as waveHeader
-  mWaveHeader.Samples.wSamplesPerBlock = 0;
-  mWaveHeader.Format.nChannels = mNumInputChans;
-  mWaveHeader.Format.nBlockAlign = mNumInputChans * (mBitsPerSample >> 3);
+
+  //{{{  set decoder inputBuffer as waveHeader
+  WAVEFORMATEXTENSIBLE waveHeader;
+  memset (&waveHeader, 0, sizeof(waveHeader));
+
+  waveHeader.Format.nChannels = 2;
+  waveHeader.dwChannelMask = chanMap ? chanMap : SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+  waveHeader.Samples.wSamplesPerBlock = 0;
+  waveHeader.Format.nChannels = mNumInputChans;
+  waveHeader.Format.nBlockAlign = mNumInputChans * (mBitsPerSample >> 3);
+  waveHeader.Format.nSamplesPerSec = mConfig.mHints.samplerate;
+  waveHeader.Format.nAvgBytesPerSec = mBytesPerSec;
+  waveHeader.Format.wBitsPerSample = mBitsPerSample;
+  waveHeader.Samples.wValidBitsPerSample = mBitsPerSample;
+  waveHeader.Format.cbSize = 0;
+  waveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
   // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
-  mWaveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
-  mWaveHeader.Format.nSamplesPerSec = mConfig.mHints.samplerate;
-  mWaveHeader.Format.nAvgBytesPerSec = mBytesPerSec;
-  mWaveHeader.Format.wBitsPerSample = mBitsPerSample;
-  mWaveHeader.Samples.wValidBitsPerSample = mBitsPerSample;
-  mWaveHeader.Format.cbSize = 0;
-  mWaveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
+  waveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
 
   auto buffer = mDecoder.getInputBuffer();
   if (!buffer) {
@@ -391,10 +389,11 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
     }
 
   buffer->nOffset = 0;
-  buffer->nFilledLen = min (sizeof(mWaveHeader), buffer->nAllocLen);
+  buffer->nFilledLen = min (sizeof(waveHeader), buffer->nAllocLen);
   memset (buffer->pBuffer, 0, buffer->nAllocLen);
-  memcpy (buffer->pBuffer, &mWaveHeader, buffer->nFilledLen);
+  memcpy (buffer->pBuffer, &waveHeader, buffer->nFilledLen);
   buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG | OMX_BUFFERFLAG_ENDOFFRAME;
+
   if (mDecoder.emptyThisBuffer (buffer)) {
     //  error, return
     cLog::log (LOGERROR, string(__func__) + " emptyThisBuffer");
@@ -405,14 +404,10 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
   if (mDecoder.badState())
     return false;
 
-  cLog::log (LOGINFO1, string(__func__) + " " + mConfig.mDevice);
-
   mSetStartTime  = true;
   mLastPts = DVD_NOPTS_VALUE;
-
   mSubmittedEos = false;
   mFailedEos = false;
-
 
   return true;
   }
