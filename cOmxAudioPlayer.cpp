@@ -41,17 +41,15 @@ bool cOmxAudioPlayer::openOmxAudio() {
 
   mOmxAudio = new cOmxAudio();
 
-  if (mOmxAudio->open (mConfig)) {
-    if (mOmxAudio->init (mClock, mConfig)) {
-      cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
-                          " rate:" + dec(mConfig.mHints.samplerate) +
-                          " bps:" + dec(mConfig.mHints.bitspersample));
+  if (mOmxAudio->open (mClock, mConfig)) {
+    cLog::log (LOGINFO, "cOmxAudioPlayer::openOmxAudio - chan:" + dec(mConfig.mHints.channels) +
+                        " rate:" + dec(mConfig.mHints.samplerate) +
+                        " bps:" + dec(mConfig.mHints.bitspersample));
 
-      // setup current volume settings
-      mOmxAudio->setVolume (mCurrentVolume);
-      mOmxAudio->setMute (mMute);
-      return true;
-      }
+    // setup current volume settings
+    mOmxAudio->setVolume (mCurrentVolume);
+    mOmxAudio->setMute (mMute);
+    return true;
     }
 
   delete mOmxAudio;

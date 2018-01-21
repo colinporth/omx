@@ -408,8 +408,7 @@ public:
   void setMute (bool mute);
   void setVolume (float volume);
 
-  bool open (const cOmxAudioConfig& config);
-  bool init (cOmxClock* clock, const cOmxAudioConfig& config);
+  bool open (cOmxClock* clock, const cOmxAudioConfig& config);
   bool decode (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
   void process();
   void submitEOS();

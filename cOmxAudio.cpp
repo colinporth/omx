@@ -91,7 +91,6 @@ bool cOmxAudio::isEOS() {
   return true;
   }
 //}}}
-
 //{{{
 int cOmxAudio::getChunkLen (int chans) {
 // we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
@@ -199,7 +198,7 @@ void cOmxAudio::setVolume (float volume) {
 
 // actions
 //{{{
-bool cOmxAudio::open (const cOmxAudioConfig& config) {
+bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   cLog::log (LOGINFO, "cOmxAudio::open");
 
@@ -256,12 +255,6 @@ bool cOmxAudio::open (const cOmxAudioConfig& config) {
   mSampleFormat = AV_SAMPLE_FMT_NONE;
   mDesiredSampleFormat = (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
 
-  return true;
-  }
-//}}}
-//{{{
-bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
-
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mClock = clock;
@@ -283,7 +276,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
     enum PCMChannels outLayout[OMX_AUDIO_MAXCHANNELS];
 
     // force out layout stereo if input not multichannel, gives the receiver chance to upmix
-    if (chanMap == (AV_CH_FRONT_LEFT | AV_CH_FRONT_RIGHT) || chanMap == AV_CH_FRONT_CENTER)
+    if ((chanMap == (AV_CH_FRONT_LEFT | AV_CH_FRONT_RIGHT)) || (chanMap == AV_CH_FRONT_CENTER))
       mConfig.mLayout = PCM_LAYOUT_2_0;
     buildChanMap (inLayout, chanMap);
     mNumOutputChans = buildChanMapCEA (outLayout, getChanLayout(mConfig.mLayout));
@@ -419,6 +412,7 @@ bool cOmxAudio::init (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mSubmittedEos = false;
   mFailedEos = false;
+
 
   return true;
   }
