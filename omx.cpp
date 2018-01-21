@@ -339,7 +339,7 @@ private:
     bool ok = true;
     while (ok) {
       cLog::log (LOGINFO, "open " + fileName);
-      if (mOmxReader.open (fileName, false, mAudioConfig.mIsLive, 5.f, "","","probesize:1000000","")) {
+      if (mOmxReader.open (fileName, false, true, 5.f, "","","probesize:1000000","")) {
         cLog::log (LOGINFO, "opened " + fileName);
         //{{{  start play
         mOmxClock.stateIdle();
@@ -368,9 +368,6 @@ private:
           mOmxAudioPlayer->setVolume (pow (10, mVolume / 2000.0));
           //mOmxAudioPlayer.SetDynamicRangeCompression (m_Amplification);
           }
-
-        auto loadThreshold = mAudioConfig.mIsLive ? 0.7f : 0.2f;
-        float loadLatency = 0.f;
 
         mOmxClock.reset (mOmxVideoPlayer, mOmxAudioPlayer);
         mOmxClock.stateExecute();
@@ -416,123 +413,28 @@ private:
             //}}}
 
           auto clockPts = mOmxClock.getMediaTime();
-          //{{{  pts, fifos
-          auto threshold = mOmxAudioPlayer ? min (0.1f, (float)mOmxAudioPlayer->getCacheTotal() * 0.1f) : 0.1f;
-
-          // audio
-          auto audio_fifo = 0.f;
-          auto audio_fifo_low = false;
-          auto audio_fifo_high = false;
-          auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
-          if (audio_pts != DVD_NOPTS_VALUE) {
-            audio_fifo = (audio_pts - clockPts) / 1000000.0;
-            audio_fifo_low = mOmxAudioPlayer && (audio_fifo < threshold);
-            audio_fifo_high = !mOmxAudioPlayer ||
-                              ((audio_pts != DVD_NOPTS_VALUE) && (audio_fifo > loadThreshold));
-            }
-
-          // video
-          auto video_fifo = 0.f;
-          auto video_fifo_low = false;
-          auto video_fifo_high = false;
-          auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
-          if (video_pts != DVD_NOPTS_VALUE) {
-            video_fifo = (video_pts - clockPts) / 1000000.0;
-            video_fifo_low = mOmxVideoPlayer && (video_fifo < threshold);
-            video_fifo_high = !mOmxVideoPlayer ||
-                              ((video_pts != DVD_NOPTS_VALUE) && (video_fifo > loadThreshold));
-            }
-          //}}}
           //{{{  debugStr
-          auto aLevel = mOmxAudioPlayer ? mOmxAudioPlayer->getPacketCacheSize()/1024 : 0;
-          auto vLevel = mOmxVideoPlayer ? mOmxVideoPlayer->getPacketCacheSize()/1024 : 0;
           auto streamLength = mOmxReader.getStreamLength() / 1000;
+          auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
+          auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurrentPTS() : DVD_NOPTS_VALUE;
 
           auto str = frac(clockPts/1000000.0,6,2,' ') +
                      "of" + dec (streamLength) +
                      " " + frac(audio_pts/1000000.0,6,2,' ') +
-                     ":" + frac(video_pts/1000000.0,6,2,' ') +
-                     " " + frac(audio_fifo,6,2,' ') +
-                     ":" + frac(video_fifo,6,2,' ') +
-                     " " + dec(aLevel,4) +
-                     ":" + dec(vLevel,4);
+                     ":" + frac(video_pts/1000000.0,6,2,' ');
+
           mDebugStr = str;
           //}}}
 
-          if (mAudioConfig.mIsLive) {
-            //{{{  live latency controlled by adjusting clock
-            float latency = DVD_NOPTS_VALUE;
-            if (mOmxAudioPlayer && (audio_pts != DVD_NOPTS_VALUE))
-              latency = audio_fifo;
-            else if (!mOmxAudioPlayer && mOmxVideoPlayer && video_pts != DVD_NOPTS_VALUE)
-              latency = video_fifo;
-
-            if (!mPause && (latency != DVD_NOPTS_VALUE)) {
-              if (mOmxClock.isPaused()) {
-                if (latency > loadThreshold) {
-                  cLog::log (LOGINFO, "resume %.2f,%.2f (%d,%d,%d,%d) EOF:%d PKT:%p",
-                             audio_fifo, video_fifo,
-                             audio_fifo_low, video_fifo_low, audio_fifo_high, video_fifo_high,
-                             mOmxReader.isEof(), packet);
-                  mOmxClock.resume();
-                  loadLatency = latency;
-                  }
-                }
-
-              else {
-                loadLatency = loadLatency * 0.99f + latency * 0.01f;
-                float speed = 1.f;
-                if (loadLatency < 0.5f * loadThreshold)
-                  speed = 0.990f;
-                else if (loadLatency < 0.9f*loadThreshold)
-                  speed = 0.999f;
-                else if (loadLatency > 2.f*loadThreshold)
-                  speed = 1.010f;
-                else if (loadLatency > 1.1f*loadThreshold)
-                  speed = 1.001f;
-
-                mOmxClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, false);
-                mOmxClock.setSpeed (DVD_PLAYSPEED_NORMAL * speed, true);
-                cLog::log (LOGINFO1, "omxPlayer live: %.2f (%.2f) S:%.3f T:%.2f",
-                           loadLatency, latency, speed, loadThreshold);
-                }
-              }
+          // pause control
+          if (mPause && !mOmxClock.isPaused()) {
+            cLog::log (LOGINFO, "pause");
+            mOmxClock.pause();
             }
-            //}}}
-          else if (!mPause && (mOmxReader.isEof() || packet || (audio_fifo_high && video_fifo_high))) {
-            //{{{  resume
-            if (mOmxClock.isPaused()) {
-              cLog::log (LOGINFO, "resume - aFifo:%.2f vFifo:%.2f %s%s%s%s%s%s",
-                         audio_fifo, video_fifo,
-                         audio_fifo_low ? "aFifoLo ":"",
-                         video_fifo_low ? "vFifoLo ":"",
-                         audio_fifo_high ? "aFifoHi ":"",
-                         video_fifo_high ? "vFifoHi ":"",
-                         mOmxReader.isEof() ? "eof " : "",
-                         packet ? "" : "emptyPkt");
-
-              mOmxClock.resume();
-              }
+          if (!mPause && mOmxClock.isPaused()) {
+            cLog::log (LOGINFO, "resume");
+            mOmxClock.resume();
             }
-            //}}}
-          else if (mPause || audio_fifo_low || video_fifo_low) {
-            //{{{  pause
-            if (!mOmxClock.isPaused()) {
-              if (!mPause)
-                loadThreshold = min(2.f*loadThreshold, 16.f);
-
-              cLog::log (LOGINFO, "pause - aFifo:%.2f vFifo:%.2f %s%s%s%s thresh:%.2f",
-                         audio_fifo, video_fifo,
-                         audio_fifo_low ? "aFifoLo ":"",
-                         video_fifo_low ? "vFifoLo ":"",
-                         audio_fifo_high ? "aFifoHi ":"",
-                         video_fifo_high ? "vFifoHi ":"",
-                         loadThreshold);
-
-              mOmxClock.pause();
-              }
-            }
-            //}}}
 
           if (!sentStarted) {
             //{{{  clock reset
@@ -697,8 +599,6 @@ int main (int argc, char* argv[]) {
   appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
   appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
   appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
-  //appWindow.mAudioConfig.mIsLive = true;
-  //appWindow.mAudioConfig.mHwDecode = true;
   appWindow.run (inTs, frequency, startPlayer);
 
   return EXIT_SUCCESS;
