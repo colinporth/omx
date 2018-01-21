@@ -81,7 +81,7 @@ bool cOmxAudio::isEOS() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (!mFailedEos && 
+  if (!mFailedEos &&
       !(mDecoder.isEOS() && (getAudioRenderingLatency() == 0)))
     return false;
 
@@ -107,7 +107,7 @@ float cOmxAudio::getDelay() {
     return (mLastPts - stamp) * (1.0 / DVD_TIME_BASE);
   else { // just measure the input fifo
     unsigned int used = mDecoder.getInputBufferSize() - mDecoder.getInputBufferSpace();
-    return mInputBytesPerSec ? (float)used / (float)mInputBytesPerSec : 0.f;
+    return mInputBytesPerSec ? (float)used / mInputBytesPerSec : 0.f;
     }
   }
 //}}}
@@ -286,7 +286,7 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mBitsPerSample = getBitsPerSample();
   mBytesPerSec = mConfig.mHints.samplerate * (2 << kRoundedUpChansShift[mNumInputChans]);
-  mBufferLen =  AUDIO_BUFFER_SECONDS * mBytesPerSec;
+  mBufferLen = AUDIO_BUFFER_SECONDS * mBytesPerSec;
   mInputBytesPerSec = mConfig.mHints.samplerate * mBitsPerSample * mNumInputChans >> 3;
 
   if (!mDecoder.init ("OMX.broadcom.audio_decode", OMX_IndexParamAudioInit))

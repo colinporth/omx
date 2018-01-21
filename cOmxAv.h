@@ -477,18 +477,18 @@ private:
   bool mMute = false;
   float mCurVolume = 0.f;
   float mLastVolume = 0.f;
-
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
 
+  int mChans = 0;
+  bool mFirstFrame = true;
+
+  bool mGotFrame = false;
+  unsigned int mFrameSize = 0;
+  bool mNoConcatenate = false;
   uint8_t* mBufferOutput = nullptr;
   int mBufferOutputUsed = 0;
   int mBufferOutputAllocated = 0;
 
-  int mChans = 0;
-  bool mGotFrame = false;
-  bool mFirstFrame = true;
-  bool mNoConcatenate = false;
-  unsigned int mFrameSize = 0;
   double mPts = 0.0;
   double mDts = 0.0;
   };
