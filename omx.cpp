@@ -1,4 +1,4 @@
-// omx.cpp 
+// omx.cpp
 //{{{  includes
 #include <stdio.h>
 #include <signal.h>
@@ -76,10 +76,10 @@ public:
       add (new cTextBox (mDvb.mPacketStr, 15.f));
       add (new cTextBox (mDvb.mSignalStr, 14.f));
       add (new cTextBox (mDvb.mTuneStr, 13.f));
-      add (new cTransportStreamBox (0.f, startPlayer ? (getHeight()-2.f)/2.f : -2.f, &mDvb.mTs));
+      mTsBox = add (new cTransportStreamBox (0.f, startPlayer ? (getHeight()-2.f)/2.f : -2.f, &mDvb.mTs));
       }
     if (startPlayer)
-      add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,frequency?(getHeight()-2.f)/2.f:-2.f));
+      mListWidget = add (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,frequency?(getHeight()-2.f)/2.f:-2.f));
 
     updateFileNames();
 
@@ -139,6 +139,7 @@ protected:
       ACT_SEEK_DEC_SMALL, ACT_SEEK_INC_SMALL,
       ACT_SEEK_DEC_LARGE, ACT_SEEK_INC_LARGE,
       ACT_DEC_VOLUME, ACT_INC_VOLUME,
+      ACT_TOGGLE_TS, ACT_TOGGLE_LIST,
       ACT_TOGGLE_VSYNC, ACT_TOGGLE_PERF, ACT_TOGGLE_STATS, ACT_TOGGLE_TESTS,
       ACT_TOGGLE_SOLID, ACT_TOGGLE_EDGES, ACT_TOGGLE_TRIANGLES,
       ACT_LESS_FRINGE, ACT_MORE_FRINGE,
@@ -168,6 +169,11 @@ protected:
       keymap['-'] = ACT_DEC_VOLUME;
       keymap['+'] = ACT_INC_VOLUME;
       keymap['='] = ACT_INC_VOLUME;
+
+      keymap['g'] = ACT_TOGGLE_TS;
+      keymap['G'] = ACT_TOGGLE_TS;
+      keymap['f'] = ACT_TOGGLE_LIST;
+      keymap['F'] = ACT_TOGGLE_LIST;
 
       keymap['v'] = ACT_TOGGLE_VSYNC;
       keymap['V'] = ACT_TOGGLE_VSYNC;
@@ -213,6 +219,9 @@ protected:
           mFileChanged = true;
           updateFileNames();
           }
+        if (mListWidget)
+          mListWidget->setVisible (true);
+        changed();
         break;
       //}}}
       //{{{
@@ -222,12 +231,34 @@ protected:
           mFileChanged = true;
           updateFileNames();
           }
+        if (mListWidget)
+          mListWidget->setVisible (true);
+        changed();
         break;
       //}}}
       //{{{
       case cKeyConfig::ACT_ENTER:
         cLog::log (LOGNOTICE, "enter");
         mEntered = true;
+        if (mListWidget)
+          mListWidget->setVisible (false);
+        changed();
+        break;
+      //}}}
+      //{{{
+      case cKeyConfig::ACT_TOGGLE_LIST:
+        if (mListWidget) {
+          mListWidget->setVisible (!mListWidget->isVisible());
+          changed();
+          }
+        break;
+      //}}}
+      //{{{
+      case cKeyConfig::ACT_TOGGLE_TS:
+        if (mTsBox) {
+          mTsBox->setVisible (!mTsBox->isVisible());
+          changed();
+          }
         break;
       //}}}
 
@@ -564,6 +595,9 @@ private:
 
   cDvb mDvb;
   string mRoot;
+
+  cWidget* mListWidget = nullptr;
+  cWidget* mTsBox = nullptr;
 
   bool mPause = false;
   double mSeekIncSec = 0.0;
