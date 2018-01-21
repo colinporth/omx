@@ -23,6 +23,7 @@ int getCountBits (uint64_t value) {
 //{{{
 cOmxAudio::~cOmxAudio() {
 
+  // deallocate OMX wiring
   if (mTunnelClockAnalog.isInit() )
     mTunnelClockAnalog.deEstablish();
   if (mTunnelClockHdmi.isInit() )
@@ -46,9 +47,9 @@ cOmxAudio::~cOmxAudio() {
   if (mTunnelSplitterAnalog.isInit() )
     mTunnelSplitterAnalog.deEstablish();
 
+  // deallocate OMX resources
   mDecoder.flushInput();
   mDecoder.deInit();
-
   if (mMixer.isInit())
     mMixer.deInit();
   if (mSplitter.isInit())
@@ -58,14 +59,12 @@ cOmxAudio::~cOmxAudio() {
   if (mRenderAnal.isInit())
     mRenderAnal.deInit();
 
+  // deallocate ffmpeg resources
   mAvUtil.av_free (mBufferOutput);
-
   if (mFrame)
     mAvUtil.av_free (mFrame);
-
   if (mConvert)
     mSwResample.swr_free (&mConvert);
-
   if (mCodecContext) {
     if (mCodecContext->extradata)
       mAvUtil.av_free (mCodecContext->extradata);
@@ -82,22 +81,16 @@ bool cOmxAudio::isEOS() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  if (!mFailedEos && !(mDecoder.isEOS() && (getAudioRenderingLatency() == 0)))
+  if (!mFailedEos && 
+      !(mDecoder.isEOS() && (getAudioRenderingLatency() == 0)))
     return false;
+
   if (mSubmittedEos) {
     mSubmittedEos = false;
     cLog::log (LOGINFO, __func__);
     }
 
   return true;
-  }
-//}}}
-//{{{
-int cOmxAudio::getChunkLen (int chans) {
-// we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
-// it will be 16-bit and rounded up to next power of 2 chans
-
-  return 32*1024 * (chans * mBitsPerSample) >> (kRoundedUpChansShift[chans] + 4);
   }
 //}}}
 //{{{
@@ -124,6 +117,14 @@ float cOmxAudio::getCacheTotal() {
   float inputBuffer = mInputBytesPerSec ? (float)mDecoder.getInputBufferSize() / mInputBytesPerSec : 0.f;
   float moreBuffer = mConfig.mHints.samplerate ? (32.f * 512.f / mConfig.mHints.samplerate) : 0.f;
   return AUDIO_BUFFER_SECONDS + inputBuffer + moreBuffer;
+  }
+//}}}
+//{{{
+int cOmxAudio::getChunkLen (int chans) {
+// we want audio_decode output buffer size to be no more than AUDIO_DECODE_OUTPUT_BUFFER.
+// it will be 16-bit and rounded up to next power of 2 chans
+
+  return 32*1024 * (chans * mBitsPerSample) >> (kRoundedUpChansShift[chans] + 4);
   }
 //}}}
 //{{{
