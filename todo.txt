@@ -1,4 +1,8 @@
 fix switch to 5.1
 speed up ts open
 make mpeg2 sw work
+
 background not extending to whole screen
+
+make local keyboard work with events
+make mouse,touchscreen work with events

@@ -393,7 +393,6 @@ private:
     if (mOmxReader.getAudioStreamCount())
       mOmxAudioPlayer = new cOmxAudioPlayer();
     mOmxReader.getHints (OMXSTREAM_AUDIO, mAudioConfig.mHints);
-    mAudioConfig.mDevice = "omx:local";
 
     if (mOmxAudioPlayer) {
       if (mOmxAudioPlayer->open (&mOmxClock, mAudioConfig)) {
@@ -623,6 +622,8 @@ int main (int argc, char* argv[]) {
   appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
   appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
   appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
+  appWindow.mAudioConfig.mDevice = "omx:local";
+
   appWindow.run (inTs, frequency, startPlayer);
 
   return EXIT_SUCCESS;

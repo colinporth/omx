@@ -460,7 +460,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
         mNoConcatenate = true;
         }
 
-      // if this buffer won't fit then flush out what we have
+      // if buffer won't fit then flush out what we have
       if (mBufferOutputUsed &&
           (((mBufferOutputUsed + outputSize) > getChunkLen (mCodecContext->channels)) || mNoConcatenate)) {
         // done, wait for buffer and add to output
@@ -846,13 +846,13 @@ bool cOmxAudio::srcChanged() {
     //}}}
   if (mRenderAnal.isInit() ) {
     //{{{  more setup analRender
-    // By default audio_render is the clock master, and if output samples don't fit the timestamps,
-    // it will speed up/slow down the clock.
-    // This tends to be better for maintaining audio sync and avoiding audio glitches,
-    // but can affect video/display sync when in dual audio mode, make Analogue the slave
+    // default audio_render is the clock master
+    // - if output samples don't fit the timestamps, it will speed up/slow down the clock.
+    // - this tends to be better for maintaining audio sync and avoiding audio glitches,
+    //   but can affect video/display sync when in dual audio mode, make Analogue the slave
     OMX_CONFIG_BOOLEANTYPE configBool;
     OMX_INIT_STRUCTURE(configBool);
-    configBool.bEnabled = mConfig.mIsLive || mConfig.mDevice == "omx:both" ? OMX_FALSE : OMX_TRUE;
+    configBool.bEnabled = (mConfig.mDevice == "omx:both") ? OMX_FALSE : OMX_TRUE;
     if (mRenderAnal.setConfig (OMX_IndexConfigBrcmClockReferenceSource, &configBool)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " setClockRef");
@@ -871,14 +871,11 @@ bool cOmxAudio::srcChanged() {
     //}}}
   if (mRenderHdmi.isInit() ) {
     //{{{  set clock ref src
-    // By default audio_render is the clock master, and if output samples don't fit the timestamps,
-    // it will speed up/slow down the clock.
-    // This tends to be better for maintaining audio sync and avoiding audio glitches,
-    // but can affect video/display sync
     OMX_CONFIG_BOOLEANTYPE configBool;
     OMX_INIT_STRUCTURE(configBool);
 
-    configBool.bEnabled = mConfig.mIsLive ? OMX_FALSE : OMX_TRUE;
+    //configBool.bEnabled = mConfig.mIsLive ? OMX_FALSE : OMX_TRUE;
+    configBool.bEnabled = OMX_TRUE;
     if (mRenderHdmi.setConfig (OMX_IndexConfigBrcmClockReferenceSource, &configBool))
       return false;
     //}}}

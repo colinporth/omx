@@ -280,7 +280,6 @@ enum eDeInterlaceMode {
 class cOmxVideoConfig {
 public:
   cOmxStreamInfo mHints;
-
   int mPacketMaxCacheSize = 2 * 1024 * 1024; // 2m
   int mFifoSize = 2 * 1024 * 1024; // 2m
 
@@ -365,15 +364,11 @@ private:
 class cOmxAudioConfig {
 public:
   cOmxStreamInfo mHints;
-
   int mPacketMaxCacheSize = 512 * 1024; // 0.5m
 
-  std::string mDevice;
-
+  std::string mDevice = "omx:local";
   enum PCMLayout mLayout = PCM_LAYOUT_2_0;
   bool mBoostOnDownmix = true;
-
-  bool mIsLive = false;
   };
 //}}}
 //{{{
