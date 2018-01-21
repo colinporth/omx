@@ -323,7 +323,7 @@ public:
   void setVideoRect (const cRect& srcRect, const cRect& dstRect);
 
   bool open (cOmxClock* clock, const cOmxVideoConfig& config);
-  bool decode (uint8_t* data, int size, double dts, double pts);
+  bool decode (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
   void submitEOS();
   void reset();
   void close();
@@ -377,7 +377,6 @@ public:
   ~cOmxAudio();
 
   bool isEOS();
-  int getSpace() { return mDecoder.getInputBufferSpace(); }
   float getCacheTotal();
   float getDelay();
   unsigned int getAudioRenderingLatency();

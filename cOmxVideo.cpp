@@ -392,7 +392,13 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
   }
 //}}}
 //{{{
-bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts) {
+bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) {
+
+  while (size > (int)getInputBufferSpace()) {
+    mClock->msSleep (10);
+    if (flushRequested)
+      return true;
+    }
 
   cLog::log (LOGINFO1, "decode " + frac(pts/1000000.0,6,2,' ') + " " + dec(size));
 

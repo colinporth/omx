@@ -115,12 +115,6 @@ bool cOmxVideoPlayer::decode (cOmxPacket* packet) {
     mCurPts = pts;
     }
 
-  while ((int)mOmxVideo->getInputBufferSpace() < packet->mSize) {
-    mClock->msSleep (10);
-    if (mFlushRequested)
-      return true;
-    }
-
-  return mOmxVideo->decode (packet->mData, packet->mSize, dts, pts);
+  return mOmxVideo->decode (packet->mData, packet->mSize, dts, pts, mFlushRequested);
   }
 //}}}

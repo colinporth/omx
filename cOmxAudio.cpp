@@ -464,14 +464,12 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
       if (mBufferOutputUsed &&
           (((mBufferOutputUsed + outputSize) > getChunkLen (mCodecContext->channels)) || mNoConcatenate)) {
         // done, wait for buffer and add to output
-        if (mBufferOutputUsed > 0) {
-          while (getSpace() < mBufferOutputUsed) {
-            mClock->msSleep (10);
-            if (flushRequested)
-              return true;
-            }
-          addBuffer (mBufferOutput, mBufferOutputUsed, mDts, mPts);
-          }
+        while (mBufferOutputUsed > (int)mDecoder.getInputBufferSpace()) {
+          mClock->msSleep (10);
+          if (flushRequested)
+            return true;
+           }
+        addBuffer (mBufferOutput, mBufferOutputUsed, mDts, mPts);
         mBufferOutputUsed = 0;
         mNoConcatenate = false;
         }
