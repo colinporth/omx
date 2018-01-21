@@ -384,7 +384,7 @@ private:
       if (mOmxVideoPlayer->open (&mOmxClock, mVideoConfig))
         thread ([=]() { mOmxVideoPlayer->run ("vid "); } ).detach();
       else {
-        //delete (mOmxVideoPlayer);  // crashes
+        delete (mOmxVideoPlayer);  // crashes
         mOmxVideoPlayer = nullptr;
         }
       }
@@ -401,7 +401,7 @@ private:
         mOmxAudioPlayer->setVolume (pow (10, mVolume / 2000.0));
         }
       else {
-        //delete (mOmxAudioPlayer);  // crashes ?
+        delete (mOmxAudioPlayer);  // crashes ?
         mOmxAudioPlayer = nullptr;
         }
       }
@@ -540,11 +540,15 @@ private:
   //}}}
   //{{{
   void stopPlay() {
+
     mOmxClock.stop();
     mOmxClock.stateIdle();
 
     delete (mOmxVideoPlayer);
+    mOmxVideoPlayer = nullptr;
+
     delete (mOmxAudioPlayer);
+    mOmxAudioPlayer = nullptr;
     }
   //}}}
 

@@ -980,10 +980,11 @@ void cOmxAudio::applyVolume() {
     OMX_CONFIG_BRCMAUDIODOWNMIXCOEFFICIENTS8x8 mix;
     OMX_INIT_STRUCTURE(mix);
 
+    mix.nPortIndex = mMixer.getInputPort();
     const float* coeff = mDownmixMatrix;
     for (size_t i = 0; i < 8*8; ++i)
       mix.coeff[i] = static_cast<unsigned int>(0x10000 * (coeff[i] * volume));
-    mix.nPortIndex = mMixer.getInputPort();
+
     if (mMixer.setConfig (OMX_IndexConfigBrcmAudioDownmixCoefficients8x8, &mix)) {
       // error return
       cLog::log (LOGERROR, string(__func__) + " mixer setDownmix");
