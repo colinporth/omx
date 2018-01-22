@@ -32,6 +32,7 @@
 #include "../shared/widgets/cListWidget.h"
 #include "../shared/widgets/cTextBox.h"
 #include "../shared/widgets/cTransportStreamBox.h"
+#include "../shared/widgets/cTimecodeBox.h"
 
 #include "version.h"
 
@@ -81,6 +82,7 @@ public:
       }
     float list = frequency ? 2.f : 1.0f;
     mListWidget = addAt (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,-list), 0.f,list);
+    addBottomRight (new cTimecodeBox (mPlayPts, mLengthPts, 17.f, 2.f));
 
     updateFileNames();
 
@@ -489,14 +491,13 @@ private:
         }
         //}}}
 
+      mPlayPts = mOmxClock.getMediaTime();
+      mLengthPts = mOmxReader.getStreamLength() * 1000.0;
+
       // debugStr
-      auto clockPts = mOmxClock.getMediaTime();
-      auto streamLength = mOmxReader.getStreamLength() / 1000;
       auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurPTS() : kNoPts;
       auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurPTS() : kNoPts;
-      auto str = frac(clockPts/1000000.0,6,2,' ') +
-                 "of" + dec(streamLength) +
-                 " " + frac(audio_pts/1000000.0,6,2,' ') +
+      auto str = frac(audio_pts/1000000.0,6,2,' ') +
                  ":" + frac(video_pts/1000000.0,6,2,' ') +
                  " vol:" + frac(mOmxAudioPlayer ? mOmxAudioPlayer->getVolume() : 0.f, 3,2,' ') +
                  " " + string(mOmxVideoPlayer ? mOmxVideoPlayer->getDebugString() : "noVideo") +
@@ -611,6 +612,8 @@ private:
 
   bool mPause = false;
   double mSeekIncSec = 0.0;
+  double mPlayPts = 0.0;
+  double mLengthPts = 0.0;
 
   static vector<string> mFileNames;
   unsigned int mFileNum = 0;

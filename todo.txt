@@ -1,9 +1,9 @@
 fix switch to 5.1
-speed up ts open
 make mpeg2 sw work
+speed up ts open
 
 background not extending to whole screen
-adv hd interlvae on 1920x1080 monitor fails in omx, ok in omxplayer
+adv hd interleave on 1920x1080 monitor fails in omx, ok in omxplayer
 
 make local keyboard work with events
 make mouse,touchscreen work with events
