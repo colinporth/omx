@@ -795,9 +795,10 @@ public:
       // open hw decoder
       mOmxVideo = new cOmxVideo();
       if (mOmxVideo->open (mClock, mConfig)) {
-        cLog::log (LOGINFO, "cOmxPlayerVideo::open - %s profile:%d %dx%d %ffps",
-                   mOmxVideo->getDecoderName().c_str(), mConfig.mHints.profile,
-                   mConfig.mHints.width, mConfig.mHints.height, mFps);
+        cLog::log (LOGINFO, "cOmxPlayerVideo::open - " + mOmxVideo->getDecoderName() +
+                   ":" + dec(mConfig.mHints.profile) +
+                   " " + dec(mConfig.mHints.width) + "x" + dec(mConfig.mHints.height) +
+                   "@" + frac(mFps,4,2,' '));
         return true;
         }
       else {

@@ -343,22 +343,6 @@ void cPcmMap::buildMap() {
   }
 //}}}
 //{{{
-void cPcmMap::dumpMap (string info, unsigned int channels, enum PCMChannels *channelMap) {
-
-  if (channelMap == NULL) {
-    cLog::log (LOGINFO, "cPcmMap - %s map: NULL", info.c_str());
-    return;
-    }
-
-  string mapping;
-  for (unsigned int i = 0; i < channels; ++i)
-    mapping += ((i == 0) ? "" : ",") + pcmChannelStr (channelMap[i]);
-
-  cLog::log (LOGINFO, "cPcmMap - %s map:%s", info.c_str(), mapping.c_str());
-  }
-//}}}
-
-//{{{
 string cPcmMap::pcmChannelStr (enum PCMChannels ename) {
 
   const char* PCMChannelName[] = { "FL",   "FR",   "CE",  "LFE", "BL",  "BR",
@@ -372,5 +356,20 @@ string cPcmMap::pcmChannelStr (enum PCMChannels ename) {
     namestr = PCMChannelName[namepos];
 
   return namestr;
+  }
+//}}}
+//{{{
+void cPcmMap::dumpMap (string info, unsigned int channels, enum PCMChannels *channelMap) {
+
+  if (channelMap == NULL) {
+    cLog::log (LOGINFO, "cPcmMap - empty");
+    return;
+    }
+
+  string mapping;
+  for (auto i = 0u; i < channels; ++i)
+    mapping += ((i == 0) ? "" : ",") + pcmChannelStr (channelMap[i]);
+
+  cLog::log (LOGINFO, "cPcmMap - " + info + " "  + mapping);
   }
 //}}}

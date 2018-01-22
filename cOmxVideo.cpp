@@ -560,7 +560,7 @@ string cOmxVideo::getDeInterlaceModeString (eDeInterlaceMode deInterlaceMode) {
 //{{{
 bool cOmxVideo::sendDecoderExtraConfig() {
 
-  cLog::log (LOGINFO, string(__func__) + " size:" + dec(mConfig.mHints.extrasize));
+  cLog::log (LOGINFO, "cOmxVideo::sendDecoderExtraConfig - size:" + dec(mConfig.mHints.extrasize));
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -602,7 +602,7 @@ bool cOmxVideo::setNaluFormat (enum AVCodecID codec, uint8_t* in_extradata, int 
     }
 
   if (naluFormat) {
-    cLog::log (LOGINFO, string(__func__));
+    cLog::log (LOGINFO, "cOmxVideo::setNaluFormat");
 
     OMX_NALSTREAMFORMATTYPE nalStreamFormat;
     OMX_INIT_STRUCTURE(nalStreamFormat);
