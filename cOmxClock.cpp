@@ -56,7 +56,7 @@ double cOmxClock::getMediaTime() {
     }
 
   else {
-    double speed = mPause ? 0.0 : (double)mOmxSpeed / 1000;
+    double speed = mPause ? 0.0 : mSpeed;
     pts = mLastMediaTime + (now - mLastMediaTimeRead) * speed;
     }
 
@@ -138,18 +138,18 @@ bool cOmxClock::setMediaTime (double pts) {
   }
 //}}}
 //{{{
-bool cOmxClock::setSpeed (int speed, bool pauseResume) {
+bool cOmxClock::setSpeed (double speed, bool pauseResume) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   cLog::log (LOGINFO1, "cOmxClock::setSpeed %.2f pause_resume:%d",
-                       (float)speed / (float)1000, pauseResume);
+                       (float)speed, pauseResume);
 
   if (pauseResume) {
     OMX_TIME_CONFIG_SCALETYPE scale;
     OMX_INIT_STRUCTURE(scale);
 
-    scale.xScale = (speed << 16) / 1000;
+    scale.xScale = int(speed * 0x10000);
     if (mOmxCore.setConfig (OMX_IndexConfigTimeScale, &scale)) {
       cLog::log (LOGERROR, __func__);
       return false;
@@ -157,7 +157,7 @@ bool cOmxClock::setSpeed (int speed, bool pauseResume) {
     }
 
   if (!pauseResume)
-    mOmxSpeed = speed;
+    mSpeed = speed;
   mLastMediaTime = 0.f;
 
   return true;
@@ -314,7 +314,7 @@ bool cOmxClock::pause() {
   if (!mPause) {
     lock_guard<recursive_mutex> lockGuard (mMutex);
 
-    if (setSpeed (0, true))
+    if (setSpeed (0.0, true))
       mPause = true;
     mLastMediaTime = 0.f;
     }
@@ -328,7 +328,7 @@ bool cOmxClock::resume() {
   if (mPause) {
     lock_guard<recursive_mutex> lockGuard (mMutex);
 
-    if (setSpeed (mOmxSpeed, true))
+    if (setSpeed (mSpeed, true))
       mPause = false;
     mLastMediaTime = 0.f;
     }

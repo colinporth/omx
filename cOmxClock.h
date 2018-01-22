@@ -36,12 +36,12 @@ public:
   double getAbsoluteClock();
   double getMediaTime();
   double getClockAdjustment();
-  int getPlaySpeed() { return mOmxSpeed; };
+  double getPlaySpeed() { return mSpeed; };
   bool isPaused() { return mPause; };
 
   bool setReferenceClock (bool hasAudio);
   bool setMediaTime (double pts);
-  bool setSpeed (int speed, bool pauseResume);
+  bool setSpeed (double speed, bool pauseResume);
 
   void stateIdle();
   bool stateExecute();
@@ -62,7 +62,7 @@ private:
   cAvFormat mAvFormat;
 
   bool mPause = false;
-  int mOmxSpeed = 1000;
+  double mSpeed = 1.0;
 
   OMX_U32 mWaitMask = 0;
   OMX_TIME_CLOCKSTATE mState = OMX_TIME_ClockStateStopped;
