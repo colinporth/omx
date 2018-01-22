@@ -298,7 +298,8 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     //}}}
 
   cLog::log (LOGINFO, string (__func__) + " " + mDecoder.getName() +
-             " " + dec(mDecoder.getInputPort()) + "->" + dec(mDecoder.getOutputPort()));
+                      " " + dec(mDecoder.getInputPort()) + 
+                      "->" + dec(mDecoder.getOutputPort()));
 
   //{{{  set port format codingType,fps
   OMX_VIDEO_PARAM_PORTFORMATTYPE portFormat;
@@ -376,7 +377,6 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     }
     //}}}
   sendDecoderExtraConfig();
-
   if (mDecoder.badState())
     return false;
 

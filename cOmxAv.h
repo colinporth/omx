@@ -346,19 +346,19 @@ private:
 
   cOmxClock* mClock = nullptr;
   cOmxCore mDecoder;
-  cOmxCore mRender;
   cOmxCore mScheduler;
   cOmxCore mImageFx;
+  cOmxCore mRender;
 
-  cOmxTunnel mTunnelDecoder;
   cOmxTunnel mTunnelClock;
-  cOmxTunnel mTunnelSched;
+  cOmxTunnel mTunnelDecoder;
   cOmxTunnel mTunnelImageFx;
+  cOmxTunnel mTunnelSched;
 
   std::string mVideoCodecName;
 
   bool mSrcChanged = false;
-  bool mSetStartTime = true;
+  bool mSetStartTime = false;
 
   bool mSubmittedEos = false;
   bool mFailedEos = false;
@@ -418,18 +418,18 @@ private:
   cOmxAudioConfig mConfig;
   cOmxClock* mClock = nullptr;
 
+  cOmxCore mDecoder;
+  cOmxCore mMixer;
+  cOmxCore mSplitter;
   cOmxCore mRenderAnal;
   cOmxCore mRenderHdmi;
-  cOmxCore mSplitter;
-  cOmxCore mMixer;
-  cOmxCore mDecoder;
 
-  cOmxTunnel mTunnelClockAnalog;
-  cOmxTunnel mTunnelClockHdmi;
-  cOmxTunnel mTunnelMixer;
   cOmxTunnel mTunnelDecoder;
+  cOmxTunnel mTunnelMixer;
   cOmxTunnel mTunnelSplitterAnalog;
+  cOmxTunnel mTunnelClockAnalog;
   cOmxTunnel mTunnelSplitterHdmi;
+  cOmxTunnel mTunnelClockHdmi;
 
   OMX_AUDIO_CHANNELTYPE mInputChans[OMX_AUDIO_MAXCHANNELS];
   OMX_AUDIO_CHANNELTYPE mOutputChans[OMX_AUDIO_MAXCHANNELS];
