@@ -386,6 +386,7 @@ public:
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
   uint64_t getChanLayout (enum PCMLayout layout);
+  std::string getDebugString();
 
   float getMute() { return mMute; }
   float getVolume() { return mMute ? 0.f : mCurVolume; }
@@ -680,6 +681,7 @@ public:
 
   bool getMute() { return mOmxAudio->getMute(); }
   float getVolume() { return mOmxAudio->getVolume(); }
+  std::string getDebugString();
 
   //{{{
   void setMute (bool mute) {
@@ -730,6 +732,7 @@ public:
 
   bool isEOS() { return mPackets.empty() && mOmxVideo->isEOS(); }
   double getFPS() { return mFps; };
+  std::string getDebugString();
 
   void setAlpha (int alpha) { mOmxVideo->setAlpha (alpha); }
   void setVideoRect (int aspectMode) { mOmxVideo->setVideoRect (aspectMode); }

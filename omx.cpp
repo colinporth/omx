@@ -378,9 +378,9 @@ private:
       cLog::log (LOGINFO, "opening " + fileName);
       if (mOmxReader.open (fileName, false, true, 5.f, "","","probesize:1000000","")) {
         cLog::log (LOGINFO, "opened " + fileName);
-        startPlay();
+        beginPlay();
         playLoop();
-        stopPlay();
+        endPlay();
         mOmxReader.close();
         }
 
@@ -405,7 +405,7 @@ private:
     }
   //}}}
   //{{{
-  void startPlay() {
+  void beginPlay() {
 
     mOmxClock.stateIdle();
     mOmxClock.stop();
@@ -494,7 +494,9 @@ private:
                  "of" + dec(streamLength) +
                  " " + frac(audio_pts/1000000.0,6,2,' ') +
                  ":" + frac(video_pts/1000000.0,6,2,' ') +
-                 " vol:" + frac(mOmxAudioPlayer ? mOmxAudioPlayer->getVolume() : 0.f, 3,2,' ');
+                 " vol:" + frac(mOmxAudioPlayer ? mOmxAudioPlayer->getVolume() : 0.f, 3,2,' ') +
+                 " " + string(mOmxVideoPlayer ? mOmxVideoPlayer->getDebugString() : "noVideo") +
+                 " " + string(mOmxAudioPlayer ? mOmxAudioPlayer->getDebugString() : "noAudio");
       mDebugStr = str;
 
       // pause control
@@ -573,7 +575,7 @@ private:
     }
   //}}}
   //{{{
-  void stopPlay() {
+  void endPlay() {
 
     mOmxClock.stop();
     mOmxClock.stateIdle();

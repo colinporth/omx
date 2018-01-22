@@ -179,6 +179,11 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
   return (int)layout < 10 ? layouts[(int)layout] : 0;
   }
 //}}}
+//{{{
+string cOmxAudio::getDebugString() {
+  return dec(mCodecContext->channels) + "@" + dec(mCodecContext->sample_rate);
+  }
+//}}}
 
 // sets
 //{{{

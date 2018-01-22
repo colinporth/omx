@@ -11,6 +11,12 @@ using namespace std;
 //}}}
 
 //{{{
+string cOmxAudioPlayer::getDebugString() {
+  return mOmxAudio->getDebugString();
+  }
+//}}}
+
+//{{{
 bool cOmxAudioPlayer::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mClock = clock;

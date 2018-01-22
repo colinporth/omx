@@ -36,6 +36,12 @@ double normaliseFps (int scale, int rate) {
 //}}}
 
 //{{{
+string cOmxVideoPlayer::getDebugString() {
+  return dec(mConfig.mHints.width) + "x" + dec(mConfig.mHints.height) + "@" + frac (mFps, 4,2,' ');
+  }
+//}}}
+
+//{{{
 bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
 
   mClock = clock;
