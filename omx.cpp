@@ -107,6 +107,7 @@ public:
   //}}}
   cOmxVideoConfig mVideoConfig;
   cOmxAudioConfig mAudioConfig;
+  string mDebugStr;
 
 protected:
   //{{{
@@ -604,7 +605,6 @@ private:
 
   bool mPause = false;
   double mSeekIncSec = 0.0;
-  string mDebugStr;
 
   static vector<string> mFileNames;
   unsigned int mFileNum = 0;
@@ -661,6 +661,7 @@ int main (int argc, char* argv[]) {
   appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
   appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
   appWindow.mAudioConfig.mDevice = "omx:local";
+  appWindow.mDebugStr = "omx " + root + " " + string(VERSION_DATE);
 
   appWindow.run (inTs, frequency);
 
