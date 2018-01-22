@@ -404,8 +404,6 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mSetStartTime  = true;
   mLastPts = kNoPts;
-  mSubmittedEos = false;
-  mFailedEos = false;
 
   return true;
   }

@@ -357,11 +357,11 @@ private:
 
   std::string mVideoCodecName;
 
+  bool mSrcChanged = false;
+  bool mSetStartTime = true;
+
   bool mSubmittedEos = false;
   bool mFailedEos = false;
-
-  bool mSrcChanged = false;
-  bool mSetStartTime = false;
 
   bool mDeInterlace = false;
   bool mDeInterlaceAdv = false;

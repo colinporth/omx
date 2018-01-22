@@ -154,10 +154,6 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 
   mClock = clock;
   mConfig = config;
-  mSrcChanged = false;
-  mSetStartTime = true;
-  mSubmittedEos = false;
-  mFailedEos = false;
 
   //{{{  init decoder
   string decoderName;
@@ -388,6 +384,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     (float)mConfig.mHints.aspect / mConfig.mHints.width * mConfig.mHints.height : 1.f;
   mPixelAspect = aspect / mConfig.mDisplayAspect;
 
+  mSetStartTime = true;
   return true;
   }
 //}}}
@@ -408,8 +405,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts, std::at
   OMX_U32 nFlags = 0;
   if (mSetStartTime) {
     nFlags |= OMX_BUFFERFLAG_STARTTIME;
-    cLog::log (LOGINFO1, "cOmxVideo::Decode - startTime:%f",
-                         ((pts == kNoPts) ? 0.0 : pts) / 1000000.f);
+    cLog::log (LOGINFO1, "decode - startTime " + frac (pts/kPtsScale,6,2,' '));
     mSetStartTime = false;
     }
   if ((pts == kNoPts) && (dts == kNoPts))
@@ -429,8 +425,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts, std::at
 
     buffer->nFlags = nFlags;
     buffer->nOffset = 0;
-    buffer->nTimeStamp = toOmxTime ((uint64_t)((pts != kNoPts) ?
-                                                 pts : (dts != kNoPts) ? dts : 0.0));
+    buffer->nTimeStamp = toOmxTime ((uint64_t)((pts != kNoPts) ? pts : (dts != kNoPts) ? dts : 0.0));
     buffer->nFilledLen = min ((OMX_U32)bytesLeft, buffer->nAllocLen);
     memcpy (buffer->pBuffer, data, buffer->nFilledLen);
     bytesLeft -= buffer->nFilledLen;
