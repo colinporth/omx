@@ -298,7 +298,7 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
     //}}}
 
   cLog::log (LOGINFO, string (__func__) + " " + mDecoder.getName() +
-                      " " + dec(mDecoder.getInputPort()) + 
+                      " " + dec(mDecoder.getInputPort()) +
                       "->" + dec(mDecoder.getOutputPort()));
 
   //{{{  set port format codingType,fps
@@ -391,13 +391,13 @@ bool cOmxVideo::open (cOmxClock* clock, const cOmxVideoConfig &config) {
 //{{{
 bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) {
 
+  cLog::log (LOGINFO1, __func__ + frac(pts/1000000.0,6,2,' ') + " " + dec(size));
+
   while (size > (int)getInputBufferSpace()) {
     mClock->msSleep (10);
     if (flushRequested)
       return true;
     }
-
-  cLog::log (LOGINFO1, "decode " + frac(pts/1000000.0,6,2,' ') + " " + dec(size));
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -405,7 +405,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts, std::at
   OMX_U32 nFlags = 0;
   if (mSetStartTime) {
     nFlags |= OMX_BUFFERFLAG_STARTTIME;
-    cLog::log (LOGINFO1, "decode - startTime " + frac (pts/kPtsScale,6,2,' '));
+    cLog::log (LOGINFO1, string(__func__) +  "startTime:" + frac (pts/kPtsScale,6,2,' '));
     mSetStartTime = false;
     }
   if ((pts == kNoPts) && (dts == kNoPts))
@@ -458,7 +458,7 @@ bool cOmxVideo::decode (uint8_t* data, int size, double dts, double pts, std::at
 //{{{
 void cOmxVideo::submitEOS() {
 
-  cLog::log (LOGINFO, "submitEOS");
+  cLog::log (LOGINFO1, __func__);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -488,6 +488,8 @@ void cOmxVideo::submitEOS() {
 //{{{
 void cOmxVideo::reset() {
 
+  cLog::log (LOGINFO1, __func__);
+
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   mSetStartTime = true;
@@ -500,6 +502,8 @@ void cOmxVideo::reset() {
 //}}}
 //{{{
 void cOmxVideo::close() {
+
+  cLog::log (LOGINFO1, __func__);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 

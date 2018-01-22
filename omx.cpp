@@ -60,6 +60,8 @@ public:
   //{{{
   cAppWindow (const string& root) : mDvb(root), mRoot(root) {
 
+    mDebugStr = "omx " + root + " " + string(VERSION_DATE);
+
     mKeyboard.setKeymap (cKeyConfig::getKeymap());
     thread ([=]() { mKeyboard.run(); } ).detach();
     }
@@ -107,7 +109,6 @@ public:
   //}}}
   cOmxVideoConfig mVideoConfig;
   cOmxAudioConfig mAudioConfig;
-  string mDebugStr;
 
 protected:
   //{{{
@@ -590,6 +591,8 @@ private:
   //}}}
 
   //{{{  vars
+  string mDebugStr;
+
   cOmxClock mOmxClock;
   cOmxReader mOmxReader;
   cOmxVideoPlayer* mOmxVideoPlayer = nullptr;
@@ -655,14 +658,11 @@ int main (int argc, char* argv[]) {
   cLog::log (LOGNOTICE, "omx " + root + " " + string(VERSION_DATE));
 
   cAppWindow appWindow (root);
-
-  appWindow.mVideoConfig.mDeInterlaceMode = deInterlaceMode;
-  appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
-  appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
-  appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
   appWindow.mAudioConfig.mDevice = "omx:local";
-  appWindow.mDebugStr = "omx " + root + " " + string(VERSION_DATE);
-
+  appWindow.mAudioConfig.mPacketMaxCacheSize = aCache * 1024;
+  appWindow.mVideoConfig.mPacketMaxCacheSize = vCache * 1024;
+  appWindow.mVideoConfig.mFifoSize = vFifo * 1024;
+  appWindow.mVideoConfig.mDeInterlaceMode = deInterlaceMode;
   appWindow.run (inTs, frequency);
 
   return EXIT_SUCCESS;

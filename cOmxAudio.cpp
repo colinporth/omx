@@ -87,7 +87,7 @@ bool cOmxAudio::isEOS() {
 
   if (mSubmittedEos) {
     mSubmittedEos = false;
-    cLog::log (LOGINFO, __func__);
+    cLog::log (LOGINFO1, __func__);
     }
 
   return true;
@@ -527,7 +527,7 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
 //{{{
 void cOmxAudio::submitEOS() {
 
-  cLog::log (LOGINFO2, __func__);
+  cLog::log (LOGINFO1, __func__);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -557,7 +557,7 @@ void cOmxAudio::submitEOS() {
 //{{{
 void cOmxAudio::reset() {
 
-  cLog::log (LOGINFO2, "cOmxAudio::reset " + mConfig.mDevice);
+  cLog::log (LOGINFO1, __func__);
 
   mAvCodec.avcodec_flush_buffers (mCodecContext);
 
@@ -568,7 +568,7 @@ void cOmxAudio::reset() {
 //{{{
 void cOmxAudio::flush() {
 
-  cLog::log (LOGINFO2, "cOmxAudio::flush " + mConfig.mDevice);
+  cLog::log (LOGINFO1, __func__);
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
@@ -994,7 +994,7 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
   if (mSetStartTime) {
     buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
     mLastPts = pts;
-    cLog::log (LOGINFO, string(__func__) + " - setStartTime " + frac(pts/kPtsScale, 6,2,' '));
+    cLog::log (LOGINFO1, string(__func__) + " - setStartTime:" + frac(pts/kPtsScale, 6,2,' '));
     mSetStartTime = false;
     }
   else if (pts == kNoPts) {
