@@ -33,8 +33,6 @@ SRC       = omx.cpp \
 	    cOmxReader.cpp \
 	    cOmxVideo.cpp \
 	    cOmxAudio.cpp \
-	    cOmxVideoPlayer.cpp \
-	    cOmxAudioPlayer.cpp \
 	    cPcmMap.cpp \
 	    ../shared/utils/cLog.cpp \
 	    ../shared/utils/cKeyboard.cpp \

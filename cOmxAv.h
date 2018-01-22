@@ -614,6 +614,7 @@ public:
   //}}}
   //{{{
   bool close() {
+
     mAbort  = true;
     flush();
 
@@ -681,7 +682,11 @@ public:
 
   bool getMute() { return mOmxAudio->getMute(); }
   float getVolume() { return mOmxAudio->getVolume(); }
-  std::string getDebugString();
+  //{{{
+  std::string getDebugString() {
+    return mOmxAudio->getDebugString();
+    }
+  //}}}
 
   //{{{
   void setMute (bool mute) {
@@ -694,7 +699,34 @@ public:
     }
   //}}}
 
-  bool open (cOmxClock* avClock, const cOmxAudioConfig& config);
+  //{{{
+  bool open (cOmxClock* clock, const cOmxAudioConfig& config) {
+
+    mClock = clock;
+    mConfig = config;
+    mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
+
+    mAbort = false;
+    mFlush = false;
+    mFlushRequested = false;
+    mPacketCacheSize = 0;
+    mCurPts = kNoPts;
+
+    mAvFormat.av_register_all();
+
+    mOmxAudio = new cOmxAudio();
+    if (mOmxAudio->open (mClock, mConfig)) {
+      cLog::log (LOGINFO, "cOmxAudioPlayer::open - " + dec(mConfig.mHints.channels) +
+                          "x" + dec(mConfig.mHints.samplerate) +
+                          "@:" + dec(mConfig.mHints.bitspersample));
+      return true;
+      }
+    else {
+      close();
+      return false;
+      }
+    }
+  //}}}
   void submitEOS() { mOmxAudio->submitEOS(); }
   void reset() {}
 
@@ -732,17 +764,108 @@ public:
 
   bool isEOS() { return mPackets.empty() && mOmxVideo->isEOS(); }
   double getFPS() { return mFps; };
-  std::string getDebugString();
+  //{{{
+  std::string getDebugString() {
+    return dec(mConfig.mHints.width) + "x" + dec(mConfig.mHints.height) + "@" + frac (mFps, 4,2,' ');
+    }
+  //}}}
 
   void setAlpha (int alpha) { mOmxVideo->setAlpha (alpha); }
   void setVideoRect (int aspectMode) { mOmxVideo->setVideoRect (aspectMode); }
   void setVideoRect (const cRect& SrcRect, const cRect& DestRect) { mOmxVideo->setVideoRect (SrcRect, DestRect); }
 
-  bool open (cOmxClock* avClock, const cOmxVideoConfig& config);
+  //{{{
+  bool open (cOmxClock* clock, const cOmxVideoConfig& config) {
+
+    mClock = clock;
+    mConfig = config;
+    mPacketMaxCacheSize = mConfig.mPacketMaxCacheSize;
+
+    mAbort = false;
+    mFlush = false;
+    mFlushRequested = false;
+    mPacketCacheSize = 0;
+    mCurPts = kNoPts;
+
+    mAvFormat.av_register_all();
+
+    mDelay = 0;
+
+    if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
+      mFps = normaliseFps (mConfig.mHints.fpsscale, mConfig.mHints.fpsrate);
+      if (mFps > 100.f || mFps < 5.f) {
+        cLog::log (LOGERROR, "cOmxPlayerVideo::open invalid framerate " + frac (mFps,6,4,' '));
+        mFps = 25.0;
+        }
+      }
+    else
+      mFps = 25.0;
+
+    if (mConfig.mHints.codec == AV_CODEC_ID_MPEG2VIDEO) {
+      cLog::log (LOGNOTICE, "cOmxPlayerVideo::open - no hw mpeg2 decoder - implement swDecoder");
+      return false;
+      }
+    else {
+      // open hw decoder
+      mOmxVideo = new cOmxVideo();
+      if (mOmxVideo->open (mClock, mConfig)) {
+        cLog::log (LOGINFO, "cOmxPlayerVideo::open %s profile:%d %dx%d %ffps",
+                   mOmxVideo->getDecoderName().c_str(), mConfig.mHints.profile,
+                   mConfig.mHints.width, mConfig.mHints.height, mFps);
+        return true;
+        }
+      else {
+        close();
+        return false;
+        }
+      }
+    }
+  //}}}
+  //{{{
+  void reset() {
+
+    flush();
+
+    mStreamId = -1;
+    mStream = NULL;
+    mCurPts = kNoPts;
+
+    mAbort = false;
+    mFlush = false;
+    mFlushRequested = false;
+
+    mPacketCacheSize = 0;
+    mDelay = 0;
+    }
+  //}}}
   void submitEOS() { mOmxVideo->submitEOS(); }
-  void reset();
 
 private:
+  //{{{
+  double normaliseFps (int scale, int rate) {
+  // if the frameDuration is within 20 microseconds of a common duration, use that
+
+    const double durations[] = {
+      1.001/24.0, 1.0/24.0, 1.0/25.0, 1.001/30.0, 1.0/30.0, 1.0/50.0, 1.001/60.0, 1.0/60.0 };
+
+    double frameDuration = double(scale) / double(rate);
+    double lowestdiff = kPtsScale;
+    int selected = -1;
+    for (size_t i = 0; i < sizeof(durations) / sizeof(durations[0]); i++) {
+      double diff = fabs (frameDuration - durations[i]);
+      if ((diff < 0.000020) && (diff < lowestdiff)) {
+        selected = i;
+        lowestdiff = diff;
+        }
+      }
+
+    if (selected != -1)
+      return 1.0 / durations[selected];
+    else
+      return 1.0 / frameDuration;
+    }
+  //}}}
+
   //{{{
   bool decodeDecoder (uint8_t* data, int size, double dts, double pts) {
     return mOmxVideo->decode (data, size, dts, pts, mFlushRequested);
