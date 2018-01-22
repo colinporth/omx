@@ -412,6 +412,8 @@ private:
     mOmxClock.stateIdle();
     mOmxClock.stop();
     mOmxClock.pause();
+    //mOmxClock.setSpeed (4.0, false);
+    //mOmxReader.setSpeed (4.0);
 
     // get video streams,config and start videoPlayer
     if (mOmxReader.getVideoStreamCount())
@@ -498,7 +500,8 @@ private:
                  ":" + frac(video_pts/1000000.0,6,2,' ') +
                  " vol:" + frac(mOmxAudioPlayer ? mOmxAudioPlayer->getVolume() : 0.f, 3,2,' ') +
                  " " + string(mOmxVideoPlayer ? mOmxVideoPlayer->getDebugString() : "noVideo") +
-                 " " + string(mOmxAudioPlayer ? mOmxAudioPlayer->getDebugString() : "noAudio");
+                 " " + string(mOmxAudioPlayer ? mOmxAudioPlayer->getDebugString() : "noAudio") +
+                 " " + string(mPause ? "paused":"playing");
       mDebugStr = str;
 
       // pause control

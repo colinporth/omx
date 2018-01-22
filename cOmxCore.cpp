@@ -294,7 +294,7 @@ OMX_ERRORTYPE cOmxCore::allocInputBuffers (bool useBuffers /* = false **/) {
   mInputAlignment = portFormat.nBufferAlignment;
   mInputBufferCount = portFormat.nBufferCountActual;
   mInputBufferSize = portFormat.nBufferSize;
-  cLog::log (LOGINFO, "allocInputBuffers %s - port:%d, countMin:%u, countActual:%u, size:%u, align:%u",
+  cLog::log (LOGINFO, "cOmxCore::allocInputBuffers - %s - port:%d, min:%u, actual:%u, size:%u:%u",
                       mName.c_str(), getInputPort(),
                       portFormat.nBufferCountMin, portFormat.nBufferCountActual,
                       portFormat.nBufferSize, portFormat.nBufferAlignment);
@@ -394,7 +394,7 @@ OMX_ERRORTYPE cOmxCore::allocOutputBuffers (bool useBuffers /* = false */) {
   omxErr = waitCommand (OMX_CommandPortEnable, mOutputPort);
   if (omxErr) {
     //{{{  error return
-    cLog::log (LOGERROR, string(__func__)+ " " + mName +  
+    cLog::log (LOGERROR, string(__func__)+ " " + mName +
                          " portEnable:" + dec(mOutputPort) + " " + hex(omxErr));
     return omxErr;
     }

@@ -106,7 +106,7 @@ public:
   AVMediaType getPacketType (cOmxPacket* packet);
 
   // sets
-  void setSpeed (int speed);
+  void setSpeed (double speed);
   double selectAspect (AVStream* st, bool& forced);
   bool setActiveStream (OMXStreamType type, unsigned int index);
 
@@ -148,7 +148,7 @@ private:
   int mAudioCount = 0;
   unsigned int mProgram = 0;
 
-  int mSpeed = 0;
+  double mSpeed = 1.0;
   double mCurPts = 0.0;
 
   double mAspect = 0.0;

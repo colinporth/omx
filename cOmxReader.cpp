@@ -465,20 +465,20 @@ AVMediaType cOmxReader::getPacketType (cOmxPacket* packet) {
 
 // sets
 //{{{
-void cOmxReader::setSpeed (int speed) {
+void cOmxReader::setSpeed (double speed) {
 
-  if ((mSpeed != 0) && (speed == 0))
+  if ((mSpeed != 0.0) && (speed == 0.0))
     mAvFormat.av_read_pause (mAvFormatContext);
-  else if ((mSpeed == 0) && (speed != 0))
+  else if ((mSpeed == 0.0) && (speed != 0.0))
     mAvFormat.av_read_play (mAvFormatContext);
   mSpeed = speed;
 
   AVDiscard discard = AVDISCARD_NONE;
-  if (mSpeed > 4*1000)
+  if (mSpeed > 4.0)
     discard = AVDISCARD_NONKEY;
-  else if (mSpeed > 2*1000)
+  else if (mSpeed > 2.0)
     discard = AVDISCARD_BIDIR;
-  else if (mSpeed < 0)
+  else if (mSpeed < 0.0)
     discard = AVDISCARD_NONKEY;
 
   for (auto i = 0u; i < mAvFormatContext->nb_streams; i++)
@@ -522,7 +522,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
   timeoutDefaultDuration = (int64_t) (timeout * 1e9);
   mCurPts = kNoPts;
   mFilename = filename;
-  mSpeed = 1000;
+  mSpeed = 1.0;
   mProgram = UINT_MAX;
   AVInputFormat* iformat = NULL;
 
@@ -654,7 +654,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
   cLog::log (LOGNOTICE, "cOmxReader::Open streams a:%d v:%d",
                         getAudioStreamCount(), getVideoStreamCount());
 
-  mSpeed = 1000;
+  mSpeed = 1.0;
   if (dumpFormat)
     mAvFormat.av_dump_format (mAvFormatContext, 0, mFilename.c_str(), 0);
 
@@ -853,7 +853,7 @@ bool cOmxReader::close() {
   mVideoIndex = -1;
   mEof = false;
   mCurPts = kNoPts;
-  mSpeed = 1000;
+  mSpeed = 1.0;
 
   clearStreams();
   return true;

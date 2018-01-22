@@ -777,12 +777,10 @@ public:
 
     mAvFormat.av_register_all();
 
-    mDelay = 0;
-
     if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
       mFps = normaliseFps (mConfig.mHints.fpsscale, mConfig.mHints.fpsrate);
       if (mFps > 100.f || mFps < 5.f) {
-        cLog::log (LOGERROR, "cOmxPlayerVideo::open invalid framerate " + frac (mFps,6,4,' '));
+        cLog::log (LOGERROR, "cOmxPlayerVideo::open - invalid framerate " + frac (mFps,6,4,' '));
         mFps = 25.0;
         }
       }
@@ -803,6 +801,9 @@ public:
         return true;
         }
       else {
+        cLog::log (LOGERROR, "cOmxPlayerVideo::open - no decoder");
+        if (mConfig.mHints.codec == AV_CODEC_ID_MPEG2VIDEO)
+          cLog::log (LOGNOTICE, "mpeg2 decoder needed");
         close();
         return false;
         }
@@ -823,7 +824,6 @@ public:
     mFlushRequested = false;
 
     mPacketCacheSize = 0;
-    mDelay = 0;
     }
   //}}}
   void submitEOS() { mOmxVideo->submitEOS(); }
