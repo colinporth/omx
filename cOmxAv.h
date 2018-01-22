@@ -442,7 +442,7 @@ private:
   SwrContext* mConvert = nullptr;
 
   enum AVSampleFormat mSampleFormat = AV_SAMPLE_FMT_NONE;
-  enum AVSampleFormat mDesiredSampleFormat = AV_SAMPLE_FMT_NONE;
+  enum AVSampleFormat mOutFormat = AV_SAMPLE_FMT_NONE;
 
   unsigned int mNumInputChans = 0;
   unsigned int mNumOutputChans = 0;
@@ -468,11 +468,9 @@ private:
 
   bool mGotFirstFrame = true;
   bool mGotFrame = false;
-  unsigned int mFrameSize = 0;
-  bool mNoConcatenate = false;
   uint8_t* mOutput = nullptr;
-  int mOutputUsed = 0;
   int mOutputAllocated = 0;
+  int mOutputSize = 0;
 
   double mPts = 0.0;
   double mDts = 0.0;
@@ -754,6 +752,6 @@ private:
   cOmxVideoConfig mConfig;
   cOmxVideo* mOmxVideo = nullptr;
 
-  float mFps = 25.f;
+  double mFps = 25.0;
   };
 //}}}
