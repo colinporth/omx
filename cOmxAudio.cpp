@@ -205,8 +205,6 @@ void cOmxAudio::setVolume (float volume) {
 //{{{
 bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
-  cLog::log (LOGINFO, "cOmxAudio::open " + mConfig.mDevice);
-
   mClock = clock;
   mConfig = config;
 

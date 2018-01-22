@@ -704,9 +704,10 @@ public:
 
     mOmxAudio = new cOmxAudio();
     if (mOmxAudio->open (mClock, mConfig)) {
-      cLog::log (LOGINFO, "cOmxAudioPlayer::open - " + dec(mConfig.mHints.channels) +
-                          "x" + dec(mConfig.mHints.samplerate) +
-                          "@:" + dec(mConfig.mHints.bitspersample));
+      cLog::log (LOGINFO, "cOmxAudioPlayer::open - " + config.mDevice +
+                          " " + dec(mConfig.mHints.channels) +
+                          "x" + dec(mConfig.mHints.bitspersample) +
+                          "@" + dec(mConfig.mHints.samplerate));
       return true;
       }
     else {
