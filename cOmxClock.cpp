@@ -36,7 +36,7 @@ double cOmxClock::getMediaTime() {
 
   double pts = 0.0;
   double now = getAbsoluteClock();
-  if (now - mLastMediaTimeRead > DVD_MSEC_TO_TIME(100) || mLastMediaTime == 0.0) {
+  if ((now - mLastMediaTimeRead > (kPtsScale / 10.0)) || (mLastMediaTime == 0.0)) {
     lock_guard<recursive_mutex> lockGuard (mMutex);
 
     OMX_TIME_CONFIG_TIMESTAMPTYPE timeStamp;
@@ -56,7 +56,7 @@ double cOmxClock::getMediaTime() {
     }
 
   else {
-    double speed = mPause ? 0.0 : (double)mOmxSpeed / DVD_PLAYSPEED_NORMAL;
+    double speed = mPause ? 0.0 : (double)mOmxSpeed / 1000;
     pts = mLastMediaTime + (now - mLastMediaTimeRead) * speed;
     }
 
@@ -143,13 +143,13 @@ bool cOmxClock::setSpeed (int speed, bool pauseResume) {
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
   cLog::log (LOGINFO1, "cOmxClock::setSpeed %.2f pause_resume:%d",
-                       (float)speed / (float)DVD_PLAYSPEED_NORMAL, pauseResume);
+                       (float)speed / (float)1000, pauseResume);
 
   if (pauseResume) {
     OMX_TIME_CONFIG_SCALETYPE scale;
     OMX_INIT_STRUCTURE(scale);
 
-    scale.xScale = (speed << 16) / DVD_PLAYSPEED_NORMAL;
+    scale.xScale = (speed << 16) / 1000;
     if (mOmxCore.setConfig (OMX_IndexConfigTimeScale, &scale)) {
       cLog::log (LOGERROR, __func__);
       return false;

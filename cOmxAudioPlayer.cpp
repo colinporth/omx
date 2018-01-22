@@ -21,7 +21,7 @@ bool cOmxAudioPlayer::open (cOmxClock* clock, const cOmxAudioConfig& config) {
   mFlush = false;
   mFlushRequested = false;
   mPacketCacheSize = 0;
-  mCurPts = DVD_NOPTS_VALUE;
+  mCurPts = kNoPts;
 
   mAvFormat.av_register_all();
 
@@ -58,9 +58,9 @@ bool cOmxAudioPlayer::openOmxAudio() {
 //{{{
 bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
 
-  if (packet->mPts != DVD_NOPTS_VALUE)
+  if (packet->mPts != kNoPts)
     mCurPts = packet->mPts;
-  else if (packet->mDts != DVD_NOPTS_VALUE)
+  else if (packet->mDts != kNoPts)
     mCurPts = packet->mDts;
 
   return mOmxAudio->decode (packet->mData, packet->mSize, packet->mDts, packet->mPts, mFlushRequested);

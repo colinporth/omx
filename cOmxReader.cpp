@@ -467,18 +467,18 @@ AVMediaType cOmxReader::getPacketType (cOmxPacket* packet) {
 //{{{
 void cOmxReader::setSpeed (int speed) {
 
-  if ((mSpeed != DVD_PLAYSPEED_PAUSE) && (speed == DVD_PLAYSPEED_PAUSE))
+  if ((mSpeed != 0) && (speed == 0))
     mAvFormat.av_read_pause (mAvFormatContext);
-  else if ((mSpeed == DVD_PLAYSPEED_PAUSE) && (speed != DVD_PLAYSPEED_PAUSE))
+  else if ((mSpeed == 0) && (speed != 0))
     mAvFormat.av_read_play (mAvFormatContext);
   mSpeed = speed;
 
   AVDiscard discard = AVDISCARD_NONE;
-  if (mSpeed > 4*DVD_PLAYSPEED_NORMAL)
+  if (mSpeed > 4*1000)
     discard = AVDISCARD_NONKEY;
-  else if (mSpeed > 2*DVD_PLAYSPEED_NORMAL)
+  else if (mSpeed > 2*1000)
     discard = AVDISCARD_BIDIR;
-  else if (mSpeed < DVD_PLAYSPEED_PAUSE)
+  else if (mSpeed < 0)
     discard = AVDISCARD_NONKEY;
 
   for (auto i = 0u; i < mAvFormatContext->nb_streams; i++)
@@ -520,9 +520,9 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
                        const string& lavfdopts, const string& avdict) {
 
   timeoutDefaultDuration = (int64_t) (timeout * 1e9);
-  mCurPts = DVD_NOPTS_VALUE;
+  mCurPts = kNoPts;
   mFilename = filename;
-  mSpeed = DVD_PLAYSPEED_NORMAL;
+  mSpeed = 1000;
   mProgram = UINT_MAX;
   AVInputFormat* iformat = NULL;
 
@@ -654,7 +654,7 @@ bool cOmxReader::open (const string& filename, bool dumpFormat, bool live, float
   cLog::log (LOGNOTICE, "cOmxReader::Open streams a:%d v:%d",
                         getAudioStreamCount(), getVideoStreamCount());
 
-  mSpeed = DVD_PLAYSPEED_NORMAL;
+  mSpeed = 1000;
   if (dumpFormat)
     mAvFormat.av_dump_format (mAvFormatContext, 0, mFilename.c_str(), 0);
 
@@ -708,11 +708,11 @@ cOmxPacket* cOmxReader::readPacket() {
   getHints (stream, &packet->mHints);
   packet->mDts = convertTimestamp (avPacket.dts, stream->time_base.den, stream->time_base.num);
   packet->mPts = convertTimestamp (avPacket.pts, stream->time_base.den, stream->time_base.num);
-  packet->mDuration = DVD_SEC_TO_TIME((double)avPacket.duration * stream->time_base.num / stream->time_base.den);
+  packet->mDuration = ((double)avPacket.duration * stream->time_base.num / stream->time_base.den) * kPtsScale;
 
   // used to guess streamlength
-  if ((packet->mDts != DVD_NOPTS_VALUE) &&
-      (packet->mDts > mCurPts || mCurPts == DVD_NOPTS_VALUE))
+  if ((packet->mDts != kNoPts) &&
+      (packet->mDts > mCurPts || mCurPts == kNoPts))
     mCurPts = packet->mDts;
 
   // check if stream has passed full duration, needed for live streams
@@ -766,7 +766,7 @@ bool cOmxReader::seek (float time, double& startPts) {
 
   // in this case the start time is requested time
   if (startPts)
-    startPts = DVD_MSEC_TO_TIME (time);
+    startPts = time * kPtsScale / 1000.0;
 
   // demuxer will return failure, if you seek to eof
   mEof = false;
@@ -775,22 +775,21 @@ bool cOmxReader::seek (float time, double& startPts) {
     ret = 0;
     }
 
-  cLog::log (LOGINFO1, "cOmxReader::SeekTime %d seek ended up on time %d",
-                       time, (int)(mCurPts / DVD_TIME_BASE * 1000));
-
+  cLog::log (LOGINFO1, "cOmxReader::seek " + frac(time,4,2,' ') +
+                       " went to " + frac (mCurPts / kPtsScale, 6, 2, ' '));
   return ret >= 0;
   }
 //}}}
 //{{{
 void cOmxReader::updateCurrentPTS() {
 
-  mCurPts = DVD_NOPTS_VALUE;
+  mCurPts = kNoPts;
 
   for (unsigned int i = 0; i < mAvFormatContext->nb_streams; i++) {
     auto stream = mAvFormatContext->streams[i];
     if (stream && stream->cur_dts != (int64_t)AV_NOPTS_VALUE) {
       double ts = convertTimestamp (stream->cur_dts, stream->time_base.den, stream->time_base.num);
-      if (mCurPts == DVD_NOPTS_VALUE || mCurPts > ts )
+      if (mCurPts == kNoPts || mCurPts > ts )
         mCurPts = ts;
       }
     }
@@ -853,8 +852,8 @@ bool cOmxReader::close() {
   mAudioIndex = -1;
   mVideoIndex = -1;
   mEof = false;
-  mCurPts = DVD_NOPTS_VALUE;
-  mSpeed = DVD_PLAYSPEED_NORMAL;
+  mCurPts = kNoPts;
+  mSpeed = 1000;
 
   clearStreams();
   return true;
@@ -955,7 +954,7 @@ void cOmxReader::addStream (int id) {
 double cOmxReader::convertTimestamp (int64_t pts, int den, int num) {
 
   if (pts == (int64_t)AV_NOPTS_VALUE)
-    return DVD_NOPTS_VALUE;
+    return kNoPts;
 
   // do calculations in floats as they can easily overflow otherwise
   // we don't care for having a completly exact timestamp anyway
@@ -969,7 +968,7 @@ double cOmxReader::convertTimestamp (int64_t pts, int den, int num) {
   else if (timestamp + 0.1f > starttime )
     timestamp = 0;
 
-  return timestamp * DVD_TIME_BASE;
+  return timestamp * kPtsScale;
   }
 //}}}
 //{{{

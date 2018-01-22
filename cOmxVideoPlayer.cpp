@@ -15,15 +15,13 @@ double normaliseDuration (double frameDuration) {
 // if the duration is within 20 microseconds of a common duration, use that
 
   const double durations[] = {
-    DVD_TIME_BASE * 1.001 / 24.0, DVD_TIME_BASE / 24.0, DVD_TIME_BASE / 25.0,
-    DVD_TIME_BASE * 1.001 / 30.0, DVD_TIME_BASE / 30.0, DVD_TIME_BASE / 50.0,
-    DVD_TIME_BASE * 1.001 / 60.0, DVD_TIME_BASE / 60.0};
+    1.001/24.0, 1.0/24.0, 1.0/25.0, 1.001/30.0, 1.0/30.0, 1.0/50.0, 1.001/60.0, 1.0/60.0 };
 
-  double lowestdiff = DVD_TIME_BASE;
+  double lowestdiff = kPtsScale;
   int selected = -1;
   for (size_t i = 0; i < sizeof(durations) / sizeof(durations[0]); i++) {
-    double diff = fabs (frameDuration - durations[i]);
-    if (diff < DVD_MSEC_TO_TIME(0.02) && diff < lowestdiff) {
+    double diff = fabs (frameDuration - (durations[i] * kPtsScale));
+    if ((diff < 20.0) && (diff < lowestdiff)) {
       selected = i;
       lowestdiff = diff;
       }
@@ -47,7 +45,7 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
   mFlush = false;
   mFlushRequested = false;
   mPacketCacheSize = 0;
-  mCurPts = DVD_NOPTS_VALUE;
+  mCurPts = kNoPts;
 
   mAvFormat.av_register_all();
 
@@ -90,7 +88,7 @@ void cOmxVideoPlayer::reset() {
 
   mStreamId = -1;
   mStream = NULL;
-  mCurPts = DVD_NOPTS_VALUE;
+  mCurPts = kNoPts;
 
   mAbort = false;
   mFlush = false;
@@ -106,11 +104,11 @@ void cOmxVideoPlayer::reset() {
 bool cOmxVideoPlayer::decode (cOmxPacket* packet) {
 
   double dts = packet->mDts;
-  if (dts != DVD_NOPTS_VALUE)
+  if (dts != kNoPts)
     dts += mVideoDelay;
 
   double pts = packet->mPts;
-  if (pts != DVD_NOPTS_VALUE) {
+  if (pts != kNoPts) {
     pts += mVideoDelay;
     mCurPts = pts;
     }

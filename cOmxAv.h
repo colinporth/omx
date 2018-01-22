@@ -378,7 +378,7 @@ public:
 
   bool isEOS();
   float getCacheTotal();
-  float getDelay();
+  double getDelay();
   unsigned int getAudioRenderingLatency();
   int getChunkLen (int chans);
 
@@ -454,7 +454,7 @@ private:
   unsigned int mChunkLen = 0;
 
   bool mSetStartTime = false;
-  double mLastPts = DVD_NOPTS_VALUE;
+  double mLastPts = kNoPts;
 
   bool mSubmittedEos = false;
   bool mFailedEos = false;
@@ -586,7 +586,7 @@ public:
       }
 
     mPacketCacheSize = 0;
-    mCurPts = DVD_NOPTS_VALUE;
+    mCurPts = kNoPts;
 
     flushDecoder();
 
@@ -606,7 +606,7 @@ public:
     deleteDecoder();
 
     mStreamId = -1;
-    mCurPts = DVD_NOPTS_VALUE;
+    mCurPts = kNoPts;
     mStream = nullptr;
 
     return true;

@@ -94,17 +94,17 @@ bool cOmxAudio::isEOS() {
   }
 //}}}
 //{{{
-float cOmxAudio::getDelay() {
+double cOmxAudio::getDelay() {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  double stamp = DVD_NOPTS_VALUE;
-  if (mLastPts != DVD_NOPTS_VALUE && mClock)
+  double stamp = kNoPts;
+  if ((mLastPts != kNoPts) && mClock)
     stamp = mClock->getMediaTime();
 
   // if possible the delay is current media time - time of last submitted packet
-  if (stamp != DVD_NOPTS_VALUE)
-    return (mLastPts - stamp) * (1.0 / DVD_TIME_BASE);
+  if (stamp != kNoPts)
+    return (mLastPts - stamp) / kPtsScale;
   else { // just measure the input fifo
     unsigned int used = mDecoder.getInputBufferSize() - mDecoder.getInputBufferSpace();
     return mInputBytesPerSec ? (float)used / mInputBytesPerSec : 0.f;
@@ -400,7 +400,7 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
     return false;
 
   mSetStartTime  = true;
-  mLastPts = DVD_NOPTS_VALUE;
+  mLastPts = kNoPts;
   mSubmittedEos = false;
   mFailedEos = false;
 
@@ -611,7 +611,7 @@ void cOmxAudio::flush() {
     mRenderHdmi.resetEos();
 
   mSetStartTime  = true;
-  mLastPts = DVD_NOPTS_VALUE;
+  mLastPts = kNoPts;
   }
 //}}}
 
@@ -1048,7 +1048,7 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
     samplesSent += samples;
 
     //{{{  set buffer flags and timestamp
-    auto val = (uint64_t)(pts == DVD_NOPTS_VALUE) ? 0 : pts;
+    auto val = (uint64_t)(pts == kNoPts) ? 0 : pts;
     buffer->nTimeStamp = toOmxTime (val);
 
     buffer->nFlags = (samplesSent == numSamples) ? OMX_BUFFERFLAG_ENDOFFRAME : 0;
@@ -1056,12 +1056,11 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
     if (mSetStartTime) {
       buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
       mLastPts = pts;
-      float time = (float)val / DVD_TIME_BASE;
-      cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(time, 6,2,' '));
+      cLog::log (LOGINFO1, string(__func__) + " - setStartTime " + frac(val / kPtsScale, 6,2,' '));
       mSetStartTime = false;
       }
 
-    else if (pts == DVD_NOPTS_VALUE) {
+    else if (pts == kNoPts) {
       buffer->nFlags = OMX_BUFFERFLAG_TIME_UNKNOWN;
       mLastPts = pts;
       }

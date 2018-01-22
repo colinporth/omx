@@ -470,7 +470,7 @@ private:
           delete (packet);
           packet = nullptr;
 
-          if (pts != DVD_NOPTS_VALUE)
+          if (pts != kNoPts)
             mOmxClock.setMediaTime (seekPts);
           }
 
@@ -488,8 +488,8 @@ private:
       // debugStr
       auto clockPts = mOmxClock.getMediaTime();
       auto streamLength = mOmxReader.getStreamLength() / 1000;
-      auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurPTS() : DVD_NOPTS_VALUE;
-      auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurPTS() : DVD_NOPTS_VALUE;
+      auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurPTS() : kNoPts;
+      auto video_pts = mOmxVideoPlayer ? mOmxVideoPlayer->getCurPTS() : kNoPts;
       auto str = frac(clockPts/1000000.0,6,2,' ') +
                  "of" + dec(streamLength) +
                  " " + frac(audio_pts/1000000.0,6,2,' ') +
