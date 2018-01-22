@@ -105,7 +105,7 @@ bool cOmxClock::setReferenceClock (bool hasAudio) {
     mClock = refClock.eClock;
     }
 
-  mLastMediaTime = 0.f;
+  mLastMediaTime = 0.0;
   return ret;
   }
 //}}}
@@ -132,8 +132,7 @@ bool cOmxClock::setMediaTime (double pts) {
 
   cLog::log  (LOGINFO1, "cOmxClock::setMediaTime %s %.2f",
                         index == OMX_IndexConfigTimeCurrentAudioReference ? "aud":"vid", pts);
-  mLastMediaTime = 0.f;
-
+  mLastMediaTime = 0.0;
   return true;
   }
 //}}}
@@ -142,8 +141,7 @@ bool cOmxClock::setSpeed (double speed, bool pauseResume) {
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 
-  cLog::log (LOGINFO1, "cOmxClock::setSpeed %.2f pause_resume:%d",
-                       (float)speed, pauseResume);
+  cLog::log (LOGINFO1, "cOmxClock::setSpeed " + frac(speed,4,2,' ') + string(pauseResume ? " pauseResume":""));
 
   if (pauseResume) {
     OMX_TIME_CONFIG_SCALETYPE scale;
@@ -158,8 +156,8 @@ bool cOmxClock::setSpeed (double speed, bool pauseResume) {
 
   if (!pauseResume)
     mSpeed = speed;
-  mLastMediaTime = 0.f;
 
+  mLastMediaTime = 0.0;
   return true;
   }
 //}}}
@@ -171,7 +169,8 @@ void cOmxClock::stateIdle() {
 
   if (mOmxCore.getState() != OMX_StateIdle)
     mOmxCore.setState (OMX_StateIdle);
-  mLastMediaTime = 0.f;
+
+  mLastMediaTime = 0.0;
   }
 //}}}
 //{{{
@@ -188,8 +187,8 @@ bool cOmxClock::stateExecute() {
       }
       //}}}
     }
-  mLastMediaTime = 0.f;
 
+  mLastMediaTime = 0.0;
   return true;
   }
 //}}}
@@ -215,8 +214,7 @@ bool cOmxClock::hdmiClockSync() {
     return false;
     }
 
-  mLastMediaTime = 0.f;
-
+  mLastMediaTime = 0.0;
   return true;
   }
 //}}}
@@ -240,7 +238,7 @@ bool cOmxClock::stop() {
     }
   mState = clock.eState;
 
-  mLastMediaTime = 0.f;
+  mLastMediaTime = 0.0;
   return true;
   }
 //}}}
@@ -263,8 +261,8 @@ bool cOmxClock::step (int steps) {
     }
 
   cLog::log (LOGINFO1, "cOmxClock::step %d", steps);
-  mLastMediaTime = 0.f;
 
+  mLastMediaTime = 0.0;
   return true;
   }
 //}}}
@@ -304,7 +302,7 @@ bool cOmxClock::reset (bool hasVideo, bool hasAudio) {
       }
     }
 
-  mLastMediaTime = 0.f;
+  mLastMediaTime = 0.0;
   return true;
   }
 //}}}
@@ -316,7 +314,7 @@ bool cOmxClock::pause() {
 
     if (setSpeed (0.0, true))
       mPause = true;
-    mLastMediaTime = 0.f;
+    mLastMediaTime = 0.0;
     }
 
   return mPause;
@@ -330,7 +328,7 @@ bool cOmxClock::resume() {
 
     if (setSpeed (mSpeed, true))
       mPause = false;
-    mLastMediaTime = 0.f;
+    mLastMediaTime = 0.0;
     }
 
   return !mPause;
