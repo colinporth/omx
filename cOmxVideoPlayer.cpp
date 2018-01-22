@@ -98,10 +98,3 @@ void cOmxVideoPlayer::reset() {
   mDelay = 0;
   }
 //}}}
-
-// protected
-//{{{
-bool cOmxVideoPlayer::decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) {
-  return mOmxVideo->decode (data, size, dts, pts, mFlushRequested);
-  }
-//}}}

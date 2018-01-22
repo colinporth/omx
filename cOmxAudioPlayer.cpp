@@ -54,9 +54,3 @@ bool cOmxAudioPlayer::openOmxAudio() {
     }
   }
 //}}}
-
-//{{{
-bool cOmxAudioPlayer::decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) {
-  return mOmxAudio->decode (data, size, dts, pts, mFlushRequested);
-  }
-//}}}

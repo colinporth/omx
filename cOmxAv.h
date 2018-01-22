@@ -583,7 +583,7 @@ public:
       mCurPts = pts;
       }
 
-    return decodeDecoder (packet->mData, packet->mSize, dts, pts, mFlushRequested);
+    return decodeDecoder (packet->mData, packet->mSize, dts, pts);
     }
   //}}}
   //{{{
@@ -641,7 +641,7 @@ protected:
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
   // should be a decoder base class here
-  virtual bool decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) = 0;
+  virtual bool decodeDecoder (uint8_t* data, int size, double dts, double pts) = 0;
   virtual void flushDecoder() = 0;
   virtual void deleteDecoder() = 0;
 
@@ -701,7 +701,11 @@ public:
 private:
   bool openOmxAudio();
 
-  bool decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
+  //{{{
+  bool decodeDecoder (uint8_t* data, int size, double dts, double pts) {
+    return mOmxAudio->decode (data, size, dts, pts, mFlushRequested);
+    }
+  //}}}
   //{{{
   void flushDecoder() {
     mOmxAudio->reset();
@@ -738,7 +742,11 @@ public:
   void reset();
 
 private:
-  bool decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
+  //{{{
+  bool decodeDecoder (uint8_t* data, int size, double dts, double pts) {
+    return mOmxVideo->decode (data, size, dts, pts, mFlushRequested);
+    }
+  //}}}
   void flushDecoder() { mOmxVideo->reset(); }
   void deleteDecoder() { delete mOmxVideo; mOmxVideo = nullptr; }
 
