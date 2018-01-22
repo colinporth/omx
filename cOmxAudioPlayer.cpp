@@ -56,13 +56,7 @@ bool cOmxAudioPlayer::openOmxAudio() {
 //}}}
 
 //{{{
-bool cOmxAudioPlayer::decode (cOmxPacket* packet) {
-
-  if (packet->mPts != kNoPts)
-    mCurPts = packet->mPts;
-  else if (packet->mDts != kNoPts)
-    mCurPts = packet->mDts;
-
-  return mOmxAudio->decode (packet->mData, packet->mSize, packet->mDts, packet->mPts, mFlushRequested);
+bool cOmxAudioPlayer::decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) {
+  return mOmxAudio->decode (data, size, dts, pts, mFlushRequested);
   }
 //}}}

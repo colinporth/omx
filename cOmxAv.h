@@ -377,15 +377,15 @@ public:
   ~cOmxAudio();
 
   bool isEOS();
-  float getCacheTotal();
   double getDelay();
+  float getCacheTotal();
   unsigned int getAudioRenderingLatency();
   int getChunkLen (int chans);
 
   int getChans() { return mCodecContext->channels; }
-  uint64_t getChanLayout (enum PCMLayout layout);
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
+  uint64_t getChanLayout (enum PCMLayout layout);
 
   float getMute() { return mMute; }
   float getVolume() { return mMute ? 0.f : mCurVolume; }
@@ -502,6 +502,9 @@ public:
   int getNumPackets() { return mPackets.size(); };
   int getPacketCacheSize() { return mPacketCacheSize; };
   double getCurPTS() { return mCurPts; };
+  double getDelay() { return mDelay; }
+
+  void setDelay (double delay) { mDelay = delay; }
 
   //{{{
   bool addPacket (cOmxPacket* packet) {
@@ -568,6 +571,22 @@ public:
     }
   //}}}
   //{{{
+  bool decode (cOmxPacket* packet) {
+
+    double dts = packet->mDts;
+    if (dts != kNoPts)
+      dts += mDelay;
+
+    double pts = packet->mPts;
+    if (pts != kNoPts) {
+      pts += mDelay;
+      mCurPts = pts;
+      }
+
+    return decodeDecoder (packet->mData, packet->mSize, dts, pts, mFlushRequested);
+    }
+  //}}}
+  //{{{
   void flush() {
 
     mFlushRequested = true;
@@ -621,7 +640,8 @@ protected:
   void lockDecoder() { pthread_mutex_lock (&mLockDecoder); }
   void unLockDecoder() { pthread_mutex_unlock (&mLockDecoder); }
 
-  virtual bool decode (cOmxPacket* packet) = 0;
+  // should be a decoder base class here
+  virtual bool decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) = 0;
   virtual void flushDecoder() = 0;
   virtual void deleteDecoder() = 0;
 
@@ -640,6 +660,7 @@ protected:
   AVStream* mStream = nullptr;
 
   double mCurPts = 0.0;
+  double mDelay = 0.0;
 
   bool mAbort;
   bool mFlush = false;
@@ -679,7 +700,8 @@ public:
 
 private:
   bool openOmxAudio();
-  bool decode (cOmxPacket* packet);
+
+  bool decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
   //{{{
   void flushDecoder() {
     mOmxAudio->reset();
@@ -705,10 +727,8 @@ public:
   virtual ~cOmxVideoPlayer() { close(); }
 
   bool isEOS() { return mPackets.empty() && mOmxVideo->isEOS(); }
-  double getDelay() { return mVideoDelay; }
   double getFPS() { return mFps; };
 
-  void setDelay (double delay) { mVideoDelay = delay; }
   void setAlpha (int alpha) { mOmxVideo->setAlpha (alpha); }
   void setVideoRect (int aspectMode) { mOmxVideo->setVideoRect (aspectMode); }
   void setVideoRect (const cRect& SrcRect, const cRect& DestRect) { mOmxVideo->setVideoRect (SrcRect, DestRect); }
@@ -718,7 +738,7 @@ public:
   void reset();
 
 private:
-  bool decode (cOmxPacket* packet);
+  bool decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested);
   void flushDecoder() { mOmxVideo->reset(); }
   void deleteDecoder() { delete mOmxVideo; mOmxVideo = nullptr; }
 
@@ -727,6 +747,5 @@ private:
   cOmxVideo* mOmxVideo = nullptr;
 
   float mFps = 25.f;
-  double mVideoDelay = 0.0;
   };
 //}}}

@@ -59,7 +59,7 @@ public:
   //}}}
 
   enum AVCodecID codec;
-  bool software;  //force software decoding
+  bool software;  // force software decoding
 
   // VIDEO
   int fpsscale; // scale of 1000 and a rate of 29970 will result in 29.97 fps

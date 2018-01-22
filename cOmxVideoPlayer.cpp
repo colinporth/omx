@@ -49,7 +49,7 @@ bool cOmxVideoPlayer::open (cOmxClock* clock, const cOmxVideoConfig& config) {
 
   mAvFormat.av_register_all();
 
-  mVideoDelay = 0;
+  mDelay = 0;
 
   if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
     mFps = 1000000.f / normaliseDuration (1000000.0 * mConfig.mHints.fpsscale / mConfig.mHints.fpsrate);
@@ -95,24 +95,13 @@ void cOmxVideoPlayer::reset() {
   mFlushRequested = false;
 
   mPacketCacheSize = 0;
-  mVideoDelay = 0;
+  mDelay = 0;
   }
 //}}}
 
 // protected
 //{{{
-bool cOmxVideoPlayer::decode (cOmxPacket* packet) {
-
-  double dts = packet->mDts;
-  if (dts != kNoPts)
-    dts += mVideoDelay;
-
-  double pts = packet->mPts;
-  if (pts != kNoPts) {
-    pts += mVideoDelay;
-    mCurPts = pts;
-    }
-
-  return mOmxVideo->decode (packet->mData, packet->mSize, dts, pts, mFlushRequested);
+bool cOmxVideoPlayer::decodeDecoder (uint8_t* data, int size, double dts, double pts, std::atomic<bool>& flushRequested) {
+  return mOmxVideo->decode (data, size, dts, pts, mFlushRequested);
   }
 //}}}
