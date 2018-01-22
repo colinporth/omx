@@ -982,7 +982,7 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
     }
     //}}}
 
-  // set buffer datas
+  // set buffer data
   buffer->nOffset = 0;
   buffer->nFilledLen = size;
   memcpy (buffer->pBuffer, data, size);
@@ -990,7 +990,6 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
   // set buffer flags and timestamp
   buffer->nTimeStamp = toOmxTime ((uint64_t)(pts == kNoPts) ? 0 : pts);
   buffer->nFlags = OMX_BUFFERFLAG_ENDOFFRAME;
-
   if (mSetStartTime) {
     buffer->nFlags = OMX_BUFFERFLAG_STARTTIME;
     mLastPts = pts;
