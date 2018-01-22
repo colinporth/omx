@@ -682,22 +682,10 @@ public:
 
   bool getMute() { return mOmxAudio->getMute(); }
   float getVolume() { return mOmxAudio->getVolume(); }
-  //{{{
-  std::string getDebugString() {
-    return mOmxAudio->getDebugString();
-    }
-  //}}}
+  std::string getDebugString() { return mOmxAudio->getDebugString(); }
 
-  //{{{
-  void setMute (bool mute) {
-    mOmxAudio->setMute (mute);
-    }
-  //}}}
-  //{{{
-  void setVolume (float volume) {
-    mOmxAudio->setVolume (volume);
-    }
-  //}}}
+  void setMute (bool mute) { mOmxAudio->setMute (mute); }
+  void setVolume (float volume) { mOmxAudio->setVolume (volume); }
 
   //{{{
   bool open (cOmxClock* clock, const cOmxAudioConfig& config) {
