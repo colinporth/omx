@@ -465,14 +465,14 @@ private:
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
 
   int mChans = 0;
-  bool mFirstFrame = true;
 
+  bool mGotFirstFrame = true;
   bool mGotFrame = false;
   unsigned int mFrameSize = 0;
   bool mNoConcatenate = false;
-  uint8_t* mBufferOutput = nullptr;
-  int mBufferOutputUsed = 0;
-  int mBufferOutputAllocated = 0;
+  uint8_t* mOutput = nullptr;
+  int mOutputUsed = 0;
+  int mOutputAllocated = 0;
 
   double mPts = 0.0;
   double mDts = 0.0;
