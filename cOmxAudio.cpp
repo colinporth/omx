@@ -209,18 +209,16 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
 
   mClock = clock;
   mConfig = config;
-  mChans = 0;
-  mGotFirstFrame = false;
-  mAvCodec.avcodec_register_all();
 
+  mAvCodec.avcodec_register_all();
+  //{{{  codecContext
   auto codec = mAvCodec.avcodec_find_decoder (config.mHints.codec);
   if (!codec) {
-    //{{{  error return
+    // error return
     cLog::log (LOGINFO1, string(__func__) + " no codec");
     return false;
     }
-    //}}}
-  //{{{  codecContext
+
   mCodecContext = mAvCodec.avcodec_alloc_context3 (codec);
   mCodecContext->debug_mv = 0;
   mCodecContext->debug = 0;
@@ -255,8 +253,8 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
     return false;
     }
   //}}}
-  mFrame = mAvCodec.av_frame_alloc();
 
+  mFrame = mAvCodec.av_frame_alloc();
   mSampleFormat = AV_SAMPLE_FMT_NONE;
   mOutFormat = (mCodecContext->sample_fmt == AV_SAMPLE_FMT_S16) ? AV_SAMPLE_FMT_S16 : AV_SAMPLE_FMT_FLTP;
 

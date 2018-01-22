@@ -8,28 +8,15 @@ extern "C" {
 
 class cOmxStreamInfo {
 public:
-  //{{{
-  cOmxStreamInfo() {
-    extradata = NULL;
-    Clear();
-    }
-  //}}}
-  //{{{
-  ~cOmxStreamInfo() {
-    //if( extradata && extrasize ) free(extradata);
-    extradata = NULL;
-    extrasize = 0;
-    }
-  //}}}
+  cOmxStreamInfo() { clear(); }
+  ~cOmxStreamInfo() {}
 
   //{{{
-  void Clear() {
+  void clear() {
 
     codec = AV_CODEC_ID_NONE;
     software = false;
     codec_tag  = 0;
-
-    //if( extradata && extrasize ) free(extradata);
 
     extradata = NULL;
     extrasize = 0;
@@ -86,9 +73,9 @@ public:
   int identifier;
 
   // CODEC EXTRADATA
-  void*        extradata; // extra data for codec to use
-  unsigned int extrasize; // size of extra data
-  unsigned int codec_tag; // extra identifier hints for decoding
+  void* extradata = nullptr;  // extra data for codec to use
+  unsigned int extrasize = 0; // size of extra data
+  unsigned int codec_tag;      // extra identifier hints for decoding
 
   // ac3/dts indof
   unsigned int framesize;
