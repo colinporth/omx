@@ -530,7 +530,6 @@ public:
       lock();
       if (!mAbort && mPackets.empty())
         pthread_cond_wait (&mPacketCond, &mLock);
-
       if (mAbort) {
         unLock();
         break;
@@ -549,22 +548,14 @@ public:
       unLock();
 
       lockDecoder();
-      if (packet) {
-        if (mFlush) {
-          delete (packet);
-          packet = nullptr;
-          mFlush = false;
-          }
-        else if (decode (packet)) {
-          delete (packet);
-          packet = nullptr;
-          }
+      if (packet && (mFlush || decode (packet))) {
+        delete (packet);
+        packet = nullptr;
+        mFlush = false;
         }
       unLockDecoder();
       }
-
     delete (packet);
-    packet = nullptr;
 
     cLog::log (LOGNOTICE, "exit");
     }
@@ -585,6 +576,8 @@ public:
     return decodeDecoder (packet->mData, packet->mSize, dts, pts);
     }
   //}}}
+  virtual void submitEOS() = 0;
+  virtual void reset() = 0;
   //{{{
   void flush() {
 
@@ -596,13 +589,7 @@ public:
     mFlushRequested = false;
 
     mFlush = true;
-    while (!mPackets.empty()) {
-      auto packet = mPackets.front();
-      mPackets.pop_front();
-      delete (packet);
-      packet = nullptr;
-      }
-
+    mPackets.clear();
     mPacketCacheSize = 0;
     mCurPts = kNoPts;
 
@@ -631,8 +618,6 @@ public:
     return true;
     }
   //}}}
-  virtual void submitEOS() = 0;
-  virtual void reset() = 0;
 
 protected:
   void lock() { pthread_mutex_lock (&mLock); }
@@ -662,12 +647,14 @@ protected:
   double mCurPts = 0.0;
   double mDelay = 0.0;
 
-  bool mAbort;
+  bool mAbort = false;
   bool mFlush = false;
   std::atomic<bool> mFlushRequested;
-  std::deque<cOmxPacket*> mPackets;
   int mPacketCacheSize = 0;
   int mPacketMaxCacheSize = 0;
+
+private:
+  std::deque<cOmxPacket*> mPackets;
   };
 //}}}
 //{{{
@@ -676,7 +663,7 @@ public:
   cOmxAudioPlayer() : cOmxPlayer() {}
   virtual ~cOmxAudioPlayer() { close(); }
 
-  bool isEOS() { return mPackets.empty() && mOmxAudio->isEOS(); }
+  bool isEOS() { return !getNumPackets() && mOmxAudio->isEOS(); }
   double getDelay() { return mOmxAudio->getDelay(); }
   double getCacheTotal() { return mOmxAudio->getCacheTotal(); }
 
@@ -751,7 +738,7 @@ public:
   cOmxVideoPlayer() : cOmxPlayer() {}
   virtual ~cOmxVideoPlayer() { close(); }
 
-  bool isEOS() { return mPackets.empty() && mOmxVideo->isEOS(); }
+  bool isEOS() { return !getNumPackets() && mOmxVideo->isEOS(); }
   double getFPS() { return mFps; };
   //{{{
   std::string getDebugString() {

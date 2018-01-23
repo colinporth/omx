@@ -492,7 +492,7 @@ private:
         //}}}
 
       mPlayPts = mOmxClock.getMediaTime();
-      mLengthPts = mOmxReader.getStreamLength() * 1000.0;
+      mLengthPts = mOmxReader.getStreamLength();
 
       // debugStr
       auto audio_pts = mOmxAudioPlayer ? mOmxAudioPlayer->getCurPTS() : kNoPts;
@@ -528,7 +528,6 @@ private:
 
       if (!packet)
         packet = mOmxReader.readPacket();
-
       if (packet) {
         //{{{  got packet
         submitEos = false;

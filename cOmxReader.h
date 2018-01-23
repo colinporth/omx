@@ -93,7 +93,7 @@ public:
   int getAudioStreamCount() { return mAudioCount; };
   int getVideoStreamCount() { return mVideoCount; };
 
-  int getStreamLength() { return (int)(mAvFormatContext->duration / (AV_TIME_BASE / 1000)); }
+  double getStreamLength() { return 1000.0 * mAvFormatContext->duration / (AV_TIME_BASE / 1000); }
 
   std::string getCodecName (OMXStreamType type);
   std::string getCodecName (OMXStreamType type, unsigned int index);
