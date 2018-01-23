@@ -506,9 +506,14 @@ private:
                  " " + string(mOmxAudioPlayer ? mOmxAudioPlayer->getDebugString() : "noAudio") +
                  " " + string(mPause ? "paused":"playing");
       mDebugStr = str;
-      mChans = mOmxAudioPlayer ? mOmxAudioPlayer->getChans() : 0;
-      if (mOmxAudioPlayer)
+      //{{{  update power
+      if (!mPause && mOmxAudioPlayer) {
+        mChans = mOmxAudioPlayer->getChans();
         mPower = mOmxAudioPlayer->getPower (mPlayPts);
+        }
+      else
+        mPower = {0.f};
+      //}}}
 
       // pause control
       if (mPause && !mOmxClock.isPaused()) {
