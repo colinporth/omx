@@ -770,15 +770,7 @@ public:
 
     mAvFormat.av_register_all();
 
-    if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
-      mFps = normaliseFps (mConfig.mHints.fpsscale, mConfig.mHints.fpsrate);
-      if (mFps > 100.f || mFps < 5.f) {
-        cLog::log (LOGERROR, "cOmxPlayerVideo::open - invalid framerate " + frac (mFps,6,4,' '));
-        mFps = 25.0;
-        }
-      }
-    else
-      mFps = 25.0;
+    mFps = normalisedFps (mConfig.mHints.fpsscale, mConfig.mHints.fpsrate);
 
     if (mConfig.mHints.codec == AV_CODEC_ID_MPEG2VIDEO) {
       cLog::log (LOGNOTICE, "cOmxPlayerVideo::open - no hw mpeg2 decoder - implement swDecoder");
@@ -824,27 +816,31 @@ public:
 
 private:
   //{{{
-  double normaliseFps (int scale, int rate) {
-  // if the frameDuration is within 20 microseconds of a common duration, use that
+  double normalisedFps (int scale, int rate) {
+  // return fps if frameDuration is within 20 microseconds of a common duration, use it
 
-    const double durations[] = {
-      1.001/24.0, 1.0/24.0, 1.0/25.0, 1.001/30.0, 1.0/30.0, 1.0/50.0, 1.001/60.0, 1.0/60.0 };
+    if (mConfig.mHints.fpsrate && mConfig.mHints.fpsscale) {
+      const double durations[] = {
+        1.001/24.0, 1.0/24.0, 1.0/25.0, 1.001/30.0, 1.0/30.0, 1.0/50.0, 1.001/60.0, 1.0/60.0 };
 
-    double frameDuration = double(scale) / double(rate);
-    double lowestdiff = kPtsScale;
-    int selected = -1;
-    for (size_t i = 0; i < sizeof(durations) / sizeof(durations[0]); i++) {
-      double diff = fabs (frameDuration - durations[i]);
-      if ((diff < 0.000020) && (diff < lowestdiff)) {
-        selected = i;
-        lowestdiff = diff;
+      double frameDuration = double(mConfig.mHints.fpsscale) / double(mConfig.mHints.fpsrate);
+      double lowestdiff = kPtsScale;
+      int selected = -1;
+      for (size_t i = 0; i < sizeof(durations) / sizeof(durations[0]); i++) {
+        double diff = fabs (frameDuration - durations[i]);
+        if ((diff < 0.000020) && (diff < lowestdiff)) {
+          selected = i;
+          lowestdiff = diff;
+          }
         }
-      }
 
-    if (selected != -1)
-      return 1.0 / durations[selected];
+      if (selected != -1)
+        return 1.0 / durations[selected];
+      else
+        return 1.0 / frameDuration;
+      }
     else
-      return 1.0 / frameDuration;
+      return 25.0;
     }
   //}}}
 
