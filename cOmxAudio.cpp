@@ -180,6 +180,22 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
   }
 //}}}
 //{{{
+array<float,6> cOmxAudio::getPower (double pts) {
+
+  uint64_t uint64Pts = uint64_t(40.0 * pts / kPtsScale);
+
+  auto powerIt = mPowerMap.find (uint64Pts);
+  if (powerIt == mPowerMap.end()) {
+    cLog::log (LOGINFO, "getPower not found " + frac(uint64Pts/40.0f, 8,4,' ') + " " + dec(mPowerMap.size()));
+    return { 0.f };
+    }
+  else {
+    //cLog::log (LOGINFO, "getPower found " + frac(uint64Pts/40.0f, 8,4,' ') + " " + dec(mPowerMap.size()));
+    return powerIt->second;
+    }
+  }
+//}}}
+//{{{
 string cOmxAudio::getDebugString() {
   return dec(mCodecContext->channels) + "@" + dec(mCodecContext->sample_rate);
   }
@@ -970,7 +986,7 @@ void cOmxAudio::applyVolume() {
 //{{{
 void cOmxAudio::addBuffer (uint8_t* data, int size, bool format32, int chans, int samples, double pts) {
 
-  //{{{  calc power from max, should abs and rms
+  //  calc power from max, should abs and rms
   auto ptr = (float*)data;
   for (auto chan = 0; chan < chans; chan++) {
     mPower[chan] = 0.f;
@@ -980,7 +996,8 @@ void cOmxAudio::addBuffer (uint8_t* data, int size, bool format32, int chans, in
       ptr++;
       }
     }
-  //}}}
+  uint64_t uint64Pts = uint64_t(40.0 * pts / kPtsScale);
+  mPowerMap.insert (std::map<uint64_t,std::array<float,6>>::value_type (uint64Pts, mPower));
 
   //cLog::log (LOGINFO, "addBuffer " + frac(pts/1000000.0,6,2,' ') +
   //                    " " + dec(size) +

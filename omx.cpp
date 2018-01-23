@@ -507,7 +507,8 @@ private:
                  " " + string(mPause ? "paused":"playing");
       mDebugStr = str;
       mChans = mOmxAudioPlayer ? mOmxAudioPlayer->getChans() : 0;
-      mPower = mOmxAudioPlayer ? mOmxAudioPlayer->getPower() : nullptr;
+      if (mOmxAudioPlayer)
+        mPower = mOmxAudioPlayer->getPower (mPlayPts);
 
       // pause control
       if (mPause && !mOmxClock.isPaused()) {
@@ -624,7 +625,7 @@ private:
   bool mEntered = false;
 
   int mChans = 2;
-  float* mPower = nullptr;
+  std::array<float,6> mPower;
   //}}}
   };
 vector<string> cAppWindow::mFileNames;

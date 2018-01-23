@@ -4,9 +4,10 @@
 
 #include <sys/types.h>
 #include <atomic>
-#include <string>
 #include <mutex>
+#include <string>
 #include <deque>
+#include <map>
 
 #include "../shared/utils/utils.h"
 #include "../shared/utils/cLog.h"
@@ -387,7 +388,7 @@ public:
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
   uint64_t getChanLayout (enum PCMLayout layout);
-  float* getPower() { return mPower; }
+  std::array<float,6> getPower (double pts);
   std::string getDebugString();
 
   float getMute() { return mMute; }
@@ -467,7 +468,8 @@ private:
   float mCurVolume = 1.f;
   float mLastVolume = 0.f;
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
-  float mPower[8] = {0};
+  std::array <float,6> mPower;
+  std::map <uint64_t,std::array<float,6>> mPowerMap;
 
   int mChans = 0;
 
@@ -671,7 +673,7 @@ public:
   bool getMute() { return mOmxAudio->getMute(); }
   float getVolume() { return mOmxAudio->getVolume(); }
   int getChans() { return mOmxAudio->getChans(); }
-  float* getPower() { return mOmxAudio->getPower(); }
+  std::array<float,6> getPower (double pts) { return mOmxAudio->getPower (pts); }
   std::string getDebugString() { return mOmxAudio->getDebugString(); }
 
   void setMute (bool mute) { mOmxAudio->setMute (mute); }
