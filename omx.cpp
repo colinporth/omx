@@ -33,6 +33,7 @@
 #include "../shared/widgets/cTextBox.h"
 #include "../shared/widgets/cTransportStreamBox.h"
 #include "../shared/widgets/cTimecodeBox.h"
+#include "../shared/widgets/cAudBox.h"
 
 #include "version.h"
 
@@ -71,7 +72,7 @@ public:
   void run (const string& inTs, int frequency) {
 
     initialise (1.f, 0);
-    setChangeCountDown (10);
+    setChangeCountDown (4);
 
     add (new cTextBox (mDebugStr, 0.f));
     if (frequency) {
@@ -83,6 +84,7 @@ public:
     float list = frequency ? 2.f : 1.0f;
     mListWidget = addAt (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,-list), 0.f,list);
     addBottomRight (new cTimecodeBox (mPlayPts, mLengthPts, 17.f, 2.f));
+    addBottomRight (new cAudBox (mPower, mChans, 4.f, 2.f));
 
     updateFileNames();
 
@@ -504,6 +506,8 @@ private:
                  " " + string(mOmxAudioPlayer ? mOmxAudioPlayer->getDebugString() : "noAudio") +
                  " " + string(mPause ? "paused":"playing");
       mDebugStr = str;
+      mChans = mOmxAudioPlayer ? mOmxAudioPlayer->getChans() : 0;
+      mPower = mOmxAudioPlayer ? mOmxAudioPlayer->getPower() : nullptr;
 
       // pause control
       if (mPause && !mOmxClock.isPaused()) {
@@ -618,6 +622,9 @@ private:
   unsigned int mFileNum = 0;
   bool mFileChanged = false;
   bool mEntered = false;
+
+  int mChans = 2;
+  float* mPower = nullptr;
   //}}}
   };
 vector<string> cAppWindow::mFileNames;

@@ -375,7 +375,7 @@ bool cOmxAudio::open (cOmxClock* clock, const cOmxAudioConfig& config) {
   waveHeader.Format.cbSize = 0;
   waveHeader.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
   // 0x8000 is custom format interpreted by GPU as WAVE_FORMAT_IEEE_FLOAT_PLANAR
-  waveHeader.Format.wFormatTag = mBitsPerSample == 32 ? 0x8000 : WAVE_FORMAT_PCM;
+  waveHeader.Format.wFormatTag = (mBitsPerSample == 32) ? 0x8000 : WAVE_FORMAT_PCM;
 
   auto buffer = mDecoder.getInputBuffer();
   if (!buffer) {
@@ -412,10 +412,8 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
   cLog::log (LOGINFO1, "decode " + frac(pts/1000000.0,6,2,' ') + " " + dec(size));
 
   while (size > 0) {
-    if (!mOutputSize) {
-      mDts = dts;
+    if (!mOutputSize)
       mPts = pts;
-      }
 
     if (!mGotFrame) {
       //{{{  decode frame from packet
@@ -509,7 +507,8 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
           if (flushRequested)
             return true;
            }
-        addBuffer (mOutput, mOutputSize, mDts, mPts);
+        addBuffer (mOutput, mOutputSize, mOutFormat == AV_SAMPLE_FMT_FLTP,
+                   mCodecContext->channels, mFrame->nb_samples, mPts);
         mOutputSize = 0;
         }
 
@@ -969,7 +968,24 @@ void cOmxAudio::applyVolume() {
   }
 //}}}
 //{{{
-void cOmxAudio::addBuffer (uint8_t* data, int size, double dts, double pts) {
+void cOmxAudio::addBuffer (uint8_t* data, int size, bool format32, int chans, int samples, double pts) {
+
+  //{{{  calc power from max, should abs and rms
+  auto ptr = (float*)data;
+  for (auto chan = 0; chan < chans; chan++) {
+    mPower[chan] = 0.f;
+    for (auto sample = 0; sample < samples; sample++) {
+      if (*ptr > mPower[chan])
+        mPower[chan] = *ptr;
+      ptr++;
+      }
+    }
+  //}}}
+
+  //cLog::log (LOGINFO, "addBuffer " + frac(pts/1000000.0,6,2,' ') +
+  //                    " " + dec(size) +
+  //                    " " + frac(mPower[0], 4,2,' ') + "," + frac(mPower[1], 4,2,' ') + "," + frac(mPower[2], 4,2,' ') +
+  //                    " " + dec(size) + " " + dec(chans) + " " + dec(samples) + " " + dec(format32));
 
   lock_guard<recursive_mutex> lockGuard (mMutex);
 

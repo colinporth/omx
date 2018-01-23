@@ -387,6 +387,7 @@ public:
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
   uint64_t getChanLayout (enum PCMLayout layout);
+  float* getPower() { return mPower; }
   std::string getDebugString();
 
   float getMute() { return mMute; }
@@ -411,7 +412,7 @@ private:
 
   bool srcChanged();
   void applyVolume();
-  void addBuffer (uint8_t* data, int size, double dts, double pts);
+  void addBuffer (uint8_t* data, int size, bool format32, int chans, int samples, double pts);
 
   //{{{  vars
   std::recursive_mutex mMutex;
@@ -457,6 +458,7 @@ private:
 
   bool mSetStartTime = false;
   double mLastPts = kNoPts;
+  double mPts = 0.0;
 
   bool mSubmittedEos = false;
   bool mFailedEos = false;
@@ -465,6 +467,7 @@ private:
   float mCurVolume = 1.f;
   float mLastVolume = 0.f;
   float mDownmixMatrix[OMX_AUDIO_MAXCHANNELS*OMX_AUDIO_MAXCHANNELS];
+  float mPower[8] = {0};
 
   int mChans = 0;
 
@@ -473,9 +476,6 @@ private:
   uint8_t* mOutput = nullptr;
   int mOutputAllocated = 0;
   int mOutputSize = 0;
-
-  double mPts = 0.0;
-  double mDts = 0.0;
   //}}}
   };
 //}}}
@@ -670,6 +670,8 @@ public:
 
   bool getMute() { return mOmxAudio->getMute(); }
   float getVolume() { return mOmxAudio->getVolume(); }
+  int getChans() { return mOmxAudio->getChans(); }
+  float* getPower() { return mOmxAudio->getPower(); }
   std::string getDebugString() { return mOmxAudio->getDebugString(); }
 
   void setMute (bool mute) { mOmxAudio->setMute (mute); }
