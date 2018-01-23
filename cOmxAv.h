@@ -268,17 +268,18 @@ private:
 //}}}
 
 //{{{
-enum eDeInterlaceMode {
-  eDeInterlaceOff = 0,
-  eDeInterlaceAuto = 1,
-  eDeInterlaceForce = 2,
-  eDeInterlaceAutoAdv = 3,
-  eDeInterlaceForceAdv = 4,
-  };
-//}}}
-//{{{
 class cOmxVideoConfig {
 public:
+  //{{{
+  enum eDeInterlaceMode {
+    eDeInterlaceOff = 0,
+    eDeInterlaceAuto = 1,
+    eDeInterlaceForce = 2,
+    eDeInterlaceAutoAdv = 3,
+    eDeInterlaceForceAdv = 4,
+    };
+  //}}}
+
   cOmxStreamInfo mHints;
   int mPacketMaxCacheSize = 2 * 1024 * 1024; // 2m
   int mFifoSize = 2 * 1024 * 1024; // 2m
@@ -330,7 +331,7 @@ public:
 
 private:
   std::string getInterlaceModeString (enum OMX_INTERLACETYPE mode);
-  std::string getDeInterlaceModeString (eDeInterlaceMode deInterlaceMode);
+  std::string getDeInterlaceModeString (cOmxVideoConfig::eDeInterlaceMode deInterlaceMode);
 
   bool setNaluFormat (enum AVCodecID codec, uint8_t* in_extradata, int in_extrasize);
   bool sendDecoderExtraConfig();

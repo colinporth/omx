@@ -639,7 +639,7 @@ int main (int argc, char* argv[]) {
   int vFifo = 1024;
   int vCache = 2 * 1024;
   int aCache = 512;
-  eDeInterlaceMode deInterlaceMode = eDeInterlaceAuto;
+  cOmxVideoConfig::eDeInterlaceMode deInterlaceMode = cOmxVideoConfig::eDeInterlaceAuto;
 
   for (auto arg = 1; arg < argc; arg++)
     if (!strcmp(argv[arg], "l")) logLevel = eLogLevel(atoi (argv[++arg]));
@@ -657,7 +657,7 @@ int main (int argc, char* argv[]) {
     else if (!strcmp(argv[arg], "ac")) aCache = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "vc")) vCache = atoi (argv[++arg]);
     else if (!strcmp(argv[arg], "vf")) vFifo = atoi (argv[++arg]);
-    else if (!strcmp(argv[arg], "d")) deInterlaceMode = (eDeInterlaceMode)atoi (argv[++arg]);
+    else if (!strcmp(argv[arg], "d")) deInterlaceMode = (cOmxVideoConfig::eDeInterlaceMode)atoi (argv[++arg]);
 
   cLog::init (logLevel, false, "");
   cLog::log (LOGNOTICE, "omx " + root + " " + string(VERSION_DATE));

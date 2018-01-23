@@ -544,14 +544,14 @@ string cOmxVideo::getInterlaceModeString (enum OMX_INTERLACETYPE interlaceMode) 
   }
 //}}}
 //{{{
-string cOmxVideo::getDeInterlaceModeString (eDeInterlaceMode deInterlaceMode) {
+string cOmxVideo::getDeInterlaceModeString (cOmxVideoConfig::eDeInterlaceMode deInterlaceMode) {
 
   switch (deInterlaceMode) {
-    case eDeInterlaceOff:   return "deInterlaceOff";
-    case eDeInterlaceAuto:  return "deInterlaceAuto";
-    case eDeInterlaceForce: return "deInterlaceForce";
-    case eDeInterlaceAutoAdv:  return "deInterlaceAutoAdv";
-    case eDeInterlaceForceAdv: return "deInterlaceForceAdv";
+    case cOmxVideoConfig::eDeInterlaceOff:      return "deInterlaceOff";
+    case cOmxVideoConfig::eDeInterlaceAuto:     return "deInterlaceAuto";
+    case cOmxVideoConfig::eDeInterlaceForce:    return "deInterlaceForce";
+    case cOmxVideoConfig::eDeInterlaceAutoAdv:  return "deInterlaceAutoAdv";
+    case cOmxVideoConfig::eDeInterlaceForceAdv: return "deInterlaceForceAdv";
     }
   return "error";
   }
@@ -673,16 +673,16 @@ bool cOmxVideo::srcChanged() {
     return false;
 
   //{{{  set mDeInterlace,mDeInterlaceAdv from src interlace and config.mDeInterlaceMode
-  if (mConfig.mDeInterlaceMode == eDeInterlaceForce)
+  if (mConfig.mDeInterlaceMode == cOmxVideoConfig::eDeInterlaceForce)
     mDeInterlace = true;
-  else if (mConfig.mDeInterlaceMode == eDeInterlaceOff)
+  else if (mConfig.mDeInterlaceMode == cOmxVideoConfig::eDeInterlaceOff)
     mDeInterlace = false;
   else
     mDeInterlace = (interlace.eMode != OMX_InterlaceProgressive);
 
   mDeInterlaceAdv = mDeInterlace &&
-                    ((mConfig.mDeInterlaceMode == eDeInterlaceAutoAdv) ||
-                     (mConfig.mDeInterlaceMode == eDeInterlaceForceAdv));
+                    ((mConfig.mDeInterlaceMode == cOmxVideoConfig::eDeInterlaceAutoAdv) ||
+                     (mConfig.mDeInterlaceMode == cOmxVideoConfig::eDeInterlaceForceAdv));
 
   //}}}
   logSrcChanged (portParam, interlace.eMode);
