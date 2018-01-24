@@ -509,13 +509,15 @@ private:
                  " " + string(mPause ? "paused":"playing");
       mDebugStr = str;
       //{{{  update power
-      if (!mPause && mOmxAudioPlayer) {
+      if (mOmxAudioPlayer) {
         mChans = mOmxAudioPlayer->getChans();
         mPower = mOmxAudioPlayer->getPower (mPlayPts);
         mPowerMap = mOmxAudioPlayer->getPowerMap();
         }
-      else
+      else {
         mPower = {0.f};
+        mPowerMap = nullptr;
+        }
       //}}}
 
       // pause control

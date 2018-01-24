@@ -189,17 +189,8 @@ string cOmxAudio::getDebugString() {
 //{{{
 array<float,6>& cOmxAudio::getPower (double pts) {
 
-  uint64_t uint64Pts = uint64_t(40.0 * pts / kPtsScale);
-
-  auto powerIt = mPowerMap.find (uint64Pts);
-  if (powerIt == mPowerMap.end()) {
-    cLog::log (LOGINFO, "getPower not found " + frac(uint64Pts/40.0f, 8,4,' ') + " " + dec(mPowerMap.size()));
-    return kSilent;
-    }
-  else {
-    //cLog::log (LOGINFO, "getPower found " + frac(uint64Pts/40.0f, 8,4,' ') + " " + dec(mPowerMap.size()));
-    return powerIt->second;
-    }
+  auto powerIt = mPowerMap.find (uint64_t(40.0 * pts/kPtsScale));
+  return (powerIt == mPowerMap.end()) ? kSilent : powerIt->second;
   }
 //}}}
 
