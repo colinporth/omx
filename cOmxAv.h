@@ -388,8 +388,10 @@ public:
   int getSampleRate() { return mCodecContext->sample_rate; }
   int getBitRate() { return mCodecContext->bit_rate; }
   uint64_t getChanLayout (enum PCMLayout layout);
-  std::array<float,6> getPower (double pts);
+
   std::string getDebugString();
+  std::array<float,6>& getPower (double pts);
+  std::map <uint64_t,std::array<float,6>>* getPowerMap() { return &mPowerMap; }
 
   float getMute() { return mMute; }
   float getVolume() { return mMute ? 0.f : mCurVolume; }
@@ -673,8 +675,10 @@ public:
   bool getMute() { return mOmxAudio->getMute(); }
   float getVolume() { return mOmxAudio->getVolume(); }
   int getChans() { return mOmxAudio->getChans(); }
-  std::array<float,6> getPower (double pts) { return mOmxAudio->getPower (pts); }
+
   std::string getDebugString() { return mOmxAudio->getDebugString(); }
+  std::array<float,6>& getPower (double pts) { return mOmxAudio->getPower (pts); }
+  std::map <uint64_t,std::array<float,6>>* getPowerMap() { return mOmxAudio->getPowerMap(); }
 
   void setMute (bool mute) { mOmxAudio->setMute (mute); }
   void setVolume (float volume) { mOmxAudio->setVolume (volume); }

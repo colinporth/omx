@@ -33,7 +33,8 @@
 #include "../shared/widgets/cTextBox.h"
 #include "../shared/widgets/cTransportStreamBox.h"
 #include "../shared/widgets/cTimecodeBox.h"
-#include "../shared/widgets/cAudBox.h"
+#include "../shared/widgets/cPowerBox.h"
+#include "../shared/widgets/cPowerMapBox.h"
 
 #include "version.h"
 
@@ -84,7 +85,8 @@ public:
     float list = frequency ? 2.f : 1.0f;
     mListWidget = addAt (new cListWidget (mFileNames, mFileNum, mFileChanged, 0.f,-list), 0.f,list);
     addBottomRight (new cTimecodeBox (mPlayPts, mLengthPts, 17.f, 2.f));
-    addBottomRight (new cAudBox (mPower, mChans, 4.f, 2.f));
+    addBottomRight (new cPowerBox (mPower, mChans, 4.f, 2.f));
+    addBottomLeft (new cPowerMapBox (mPlayPts, mPowerMap, mChans, 0.f, 4.f));
 
     updateFileNames();
 
@@ -510,6 +512,7 @@ private:
       if (!mPause && mOmxAudioPlayer) {
         mChans = mOmxAudioPlayer->getChans();
         mPower = mOmxAudioPlayer->getPower (mPlayPts);
+        mPowerMap = mOmxAudioPlayer->getPowerMap();
         }
       else
         mPower = {0.f};
@@ -598,6 +601,7 @@ private:
     delete (mOmxVideoPlayer);
     mOmxVideoPlayer = nullptr;
 
+    mPowerMap = nullptr;
     delete (mOmxAudioPlayer);
     mOmxAudioPlayer = nullptr;
     }
@@ -630,7 +634,8 @@ private:
   bool mEntered = false;
 
   int mChans = 2;
-  std::array<float,6> mPower;
+  array<float,6> mPower;
+  map <uint64_t,array<float,6>>* mPowerMap;
   //}}}
   };
 vector<string> cAppWindow::mFileNames;

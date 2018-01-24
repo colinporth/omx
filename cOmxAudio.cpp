@@ -9,6 +9,7 @@
 using namespace std;
 //}}}
 #define AUDIO_BUFFER_SECONDS 3
+array<float,6> kSilent = { 0.f};
 const char kRoundedUpChansShift[] = {0,0,1,2,2,3,3,3,3};
 //{{{
 int getCountBits (uint64_t value) {
@@ -179,25 +180,26 @@ uint64_t cOmxAudio::getChanLayout (enum PCMLayout layout) {
   return (int)layout < 10 ? layouts[(int)layout] : 0;
   }
 //}}}
+
 //{{{
-array<float,6> cOmxAudio::getPower (double pts) {
+string cOmxAudio::getDebugString() {
+  return dec(mCodecContext->channels) + "@" + dec(mCodecContext->sample_rate);
+  }
+//}}}
+//{{{
+array<float,6>& cOmxAudio::getPower (double pts) {
 
   uint64_t uint64Pts = uint64_t(40.0 * pts / kPtsScale);
 
   auto powerIt = mPowerMap.find (uint64Pts);
   if (powerIt == mPowerMap.end()) {
     cLog::log (LOGINFO, "getPower not found " + frac(uint64Pts/40.0f, 8,4,' ') + " " + dec(mPowerMap.size()));
-    return { 0.f };
+    return kSilent;
     }
   else {
     //cLog::log (LOGINFO, "getPower found " + frac(uint64Pts/40.0f, 8,4,' ') + " " + dec(mPowerMap.size()));
     return powerIt->second;
     }
-  }
-//}}}
-//{{{
-string cOmxAudio::getDebugString() {
-  return dec(mCodecContext->channels) + "@" + dec(mCodecContext->sample_rate);
   }
 //}}}
 
@@ -474,9 +476,9 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
       if (mCodecContext->sample_fmt == mOutFormat) {
         //{{{  simple copy to mOutput
         uint8_t* out_planes[mCodecContext->channels];
-        if ((mAvUtil.av_samples_fill_arrays (out_planes, NULL, mOutput, 
+        if ((mAvUtil.av_samples_fill_arrays (out_planes, NULL, mOutput,
                                              mCodecContext->channels, mFrame->nb_samples, mOutFormat,1) < 0) ||
-             mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0, 
+             mAvUtil.av_samples_copy (out_planes, mFrame->data, 0, 0,
                                       mFrame->nb_samples, mCodecContext->channels, mOutFormat) < 0)
           mOutputSize = 0;
         }
@@ -504,9 +506,9 @@ bool cOmxAudio::decode (uint8_t* data, int size, double dts, double pts, atomic<
 
         // use unaligned flag to keep output packed
         uint8_t* out_planes[mCodecContext->channels];
-        if ((mAvUtil.av_samples_fill_arrays (out_planes, NULL, mOutput, 
+        if ((mAvUtil.av_samples_fill_arrays (out_planes, NULL, mOutput,
                                              mCodecContext->channels, mFrame->nb_samples, mOutFormat, 1) < 0) ||
-             mSwResample.swr_convert (mConvert, out_planes, mFrame->nb_samples, 
+             mSwResample.swr_convert (mConvert, out_planes, mFrame->nb_samples,
                                       (const uint8_t**)mFrame->data, mFrame->nb_samples) < 0) {
           cLog::log (LOGERROR, "cOmxAudio::getData decode unable to convert format %d to %d",
                                (int)mCodecContext->sample_fmt, mOutFormat);
